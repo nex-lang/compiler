@@ -1,0 +1,37 @@
+import std.types;
+import input, fprint from std.io;
+import sin, pow from std.math;
+
+glob const float: pi_f = 3.1415f;
+glob const double: pi_d = 3.14159265358979d;
+
+fn verify_input => (str: msg, str: condition, short int: fail_value) {
+    if !(eval.expr(condition)) {
+        return fail_value;
+    }
+
+    if !(condition.is_true) {
+        return fail_value;
+    }
+
+    return io.input(msg);
+} 
+
+: fn main => (int: argc, str[]: argv) {
+    mut: x = verify_input("Enter a number you want to use f(Φ): ", type(x) == type.s__uint__, -1);
+    mut: p = verify_input("Enter 0 for float precison and 1 for double precison: ", type(p) == type.__bool__, -1);
+
+    if (radius > 0 && precison > 0) {
+        fprint("Invalid options selected, retry");
+        return -1;
+    }
+
+    return function_phi(x, p);
+}
+
+(double, float): fn function_phi => (short uint: x, bool: p) {
+    if (p) {
+        return (2 * x.pow(2) + 3 * x + 1) * pi_d.sin() + (x.pow(4) / (7 % x)) - e_d.pow((x + 2));
+    }
+    return (2 * x.pow(2) + 3 * x + 1) * pi_f.sin() + (x.pow(4) / (7 % x)) - e_f.pow((x + 2));
+}
