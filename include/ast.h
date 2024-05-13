@@ -57,11 +57,7 @@ typedef struct ASTN_Literal {
             double bit64;
         } float_;
         char character;
-        struct {
-            char** items;
-            size_t size;
-            size_t item_size;
-        } string; 
+        char* string;
         int boolean;
         size_t size;
         struct {
@@ -88,7 +84,7 @@ typedef struct ASTN_Statements {
 
 typedef struct ASTN_Expression {
     int op;
-    struct ASTN_Expression* self_expr;
+    struct ASTN_BitwiseExpr* self_expr;
     struct ASTN_Expression* dest_expr;
 } ASTN_Expression;
 

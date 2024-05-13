@@ -20,7 +20,7 @@ bool parser_expect(Parser* parser, uint8_t expected);
 void parser_consume(Parser* parser);
 void parser_parse(Parser* parser);
 void parser_parse_expression(Parser* parser);
-void parser_parse_literal(Parser* parser);
+ASTN_Literal parser_parse_literal(Parser* parser);
 
 AST_Node* parser_parse_import(Parser* parser);
 AST_Node* parser_parse_mep_decl(Parser* parser);

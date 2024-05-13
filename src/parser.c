@@ -134,13 +134,78 @@ void parser_parse(Parser* parser) {
             default:
                 break;
         }
+        parser->tree = parser->tree->right;
         parser_consume(parser);
     }
+
+    return;
 }
 
 void parser_parse_expression(Parser* parser);
 
-void parser_parse_literal(Parser* parser);
+ASTN_Literal parser_parse_literal(Parser* parser) {
+    ASTN_Literal lit;
+    char *endptr;
+
+    lit.type = parser->cur->type;
+
+    switch (lit.type) {
+        case TOK_L_SSINT:
+            lit.value.int_.bit8 = (int8_t)strtol(parser->cur->value, &endptr, 10);
+            break;
+        case TOK_L_SINT:
+            lit.value.int_.bit16 = (int16_t)strtol(parser->cur->value, &endptr, 10);
+            break;
+        case TOK_L_INT:
+            lit.value.int_.bit32 = (int32_t)strtol(parser->cur->value, &endptr, 10);
+            break;
+        case TOK_L_LINT:
+            lit.value.int_.bit64 = (int64_t)strtol(parser->cur->value, &endptr, 10);
+            break;
+        case TOK_L_LLINT:
+            lit.value.int_.bit128 = (__int128_t)strtoll(parser->cur->value, &endptr, 10);
+            break;
+        case TOK_L_SSUINT:
+            lit.value.uint.bit8 = (uint8_t)strtoul(parser->cur->value, &endptr, 10);
+            break;
+        case TOK_L_SUINT:
+            lit.value.uint.bit16 = (uint16_t)strtoul(parser->cur->value, &endptr, 10);
+            break;
+        case TOK_L_UINT:
+            lit.value.uint.bit32 = (uint32_t)strtoul(parser->cur->value, &endptr, 10);
+            break;
+        case TOK_L_LUINT:
+            lit.value.uint.bit64 = (uint64_t)strtoull(parser->cur->value, &endptr, 10);
+            break;
+        case TOK_L_LLUINT:
+            lit.value.uint.bit128 = (__uint128_t)strtoull(parser->cur->value, &endptr, 10);
+            break;
+        case TOK_L_FLOAT:
+            lit.value.float_.bit32 = strtof(parser->cur->value, &endptr);
+            break;
+        case TOK_L_DOUBLE:
+            lit.value.float_.bit64 = strtod(parser->cur->value, &endptr);
+            break;
+        case TOK_L_CHAR:
+            lit.value.character = (parser->cur->value[0] != '\0') ? parser->cur->value[0] : '\0';
+            break;
+        case TOK_L_STRING:
+            lit.value.string = parser->cur->value;
+            break;
+        case TOK_L_BOOL:
+            lit.value.boolean = strtol(parser->cur->value, &endptr, 10) != 0;
+            break;
+        case TOK_L_SIZE:
+            lit.value.size = (size_t)strtoull(parser->cur->value, &endptr, 10);
+            break;
+        default:
+            break;
+    }
+
+    parser_consume(parser);
+    return lit;
+}
+
 
 ASTN_Statements* parser_parse_statements(Parser* parser) {
     ASTN_Statements* stms = malloc(sizeof(ASTN_Statements));
@@ -159,6 +224,7 @@ ASTN_Statements* parser_parse_statements(Parser* parser) {
             REPORT_ERROR(parser->lexer, "E_SC_AFSTM");
             return NULL;
         }
+        printf("statement: %i", statement->type);
     }
 
     return stms;
@@ -266,7 +332,9 @@ AST_Node* parser_parse_mep_decl(Parser* parser) {
     node->data.mep.parameters = parser_parse_parameters(parser);
     if (node->data.mep.parameters == NULL) {
         return NULL;
-    }
+    }  
+
+    parser_expect(parser, TOK_LBRACE);
 
     node->data.mep.statements = parser_parse_statements(parser);
     if (node->data.mep.statements == NULL) {
@@ -276,6 +344,7 @@ AST_Node* parser_parse_mep_decl(Parser* parser) {
     symtbl_insert(parser->tbl, symbol_init(
         (char*)"MEP", SYMBOL_MEP, 0, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc
     ));
+
 
     return node;
 }
@@ -317,6 +386,9 @@ ASTN_ReturnStm parser_parse_return_stm(Parser* parser) {
     if (!(parser_expect(parser, TOK_RETURN))) {
         statement.expr.op = -1;
     } 
+
+    statement.expr.self_expr = malloc(sizeof(ASTN_Expression));
+    statement.expr.self_expr->dest_expr.dest_expr.dest_expr.dest_expr.expr.data.literal = parser_parse_literal(parser);
 
     return statement;    
 }
