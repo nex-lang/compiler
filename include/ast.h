@@ -82,54 +82,138 @@ typedef struct ASTN_Statements {
     size_t item_size;
 } ASTN_Statements;
 
-typedef struct ASTN_Expression {
-    int op;
-    struct ASTN_BitwiseExpr* self_expr;
-    struct ASTN_Expression* dest_expr;
-} ASTN_Expression;
-
 typedef struct ASTN_FunctionCall {
     char* identifier;
     // ASTN_CallParam* ;
 } ASTN_FunctionCall;
 
 typedef struct ASTN_PrimaryExpr {
+    enum {
+        PRIMARY_FUNCTION_CALL,
+        PRIMARY_IDENTIFIER,
+        PRIMARY_LITERAL,
+        PRIMARY_EXPRESSION
+    } type;
+
     union {
-        ASTN_FunctionCall fn_call;
+        ASTN_FunctionCall function_call;
         char* identifier;
         ASTN_Literal literal;
-        struct ASTN_Expression* expr;
+        struct ASTN_Expression* expression;
     } data;
 } ASTN_PrimaryExpr;
 
 typedef struct ASTN_FactorExpr {
-    int op;
-    ASTN_PrimaryExpr expr;
+    enum {
+        FACTOR_PRIMARY,
+        FACTOR_UNARY_OP
+    } type;
+
+    union {
+        ASTN_PrimaryExpr primary;
+        struct {
+            int op;
+            ASTN_PrimaryExpr expr;
+        } unary_op;
+    } data;
 } ASTN_FactorExpr;
 
 typedef struct ASTN_TermExpr {
-    int op;
-    struct ASTN_TermExpr* self_expr;
-    ASTN_FactorExpr dest_expr;
+    enum {
+        TERM_FACTOR,
+        TERM_BINARY_OP
+    } type;
+
+    union {
+        ASTN_FactorExpr factor;
+        struct {
+            int op;
+            struct ASTN_TermExpr* self_expr;
+            ASTN_FactorExpr dest_expr;
+        } binary_op;
+    } data;
 } ASTN_TermExpr;
 
 typedef struct ASTN_MultiplicationExpr {
-    int op;
-    struct ASTN_MultiplicationExpr* self_expr;
-    ASTN_TermExpr dest_expr;
+    enum {
+        MULTIPLICATION_TERM,
+        MULTIPLICATION_BINARY_OP
+    } type;
+
+    union {
+        ASTN_TermExpr term;
+        struct {
+            int op;
+            struct ASTN_MultiplicationExpr* self_expr;
+            ASTN_TermExpr dest_expr;
+        } binary_op;
+    } data;
 } ASTN_MultiplicationExpr;
 
 typedef struct ASTN_AdditionExpr {
-    int op;
-    struct ASTN_AdditionExpr* self_expr;
-    ASTN_MultiplicationExpr dest_expr;
+    enum {
+        ADDITION_MULTIPLICATION,
+        ADDITION_BINARY_OP
+    } type;
+
+    union {
+        ASTN_MultiplicationExpr multiplication;
+        struct {
+            int op;
+            struct ASTN_AdditionExpr* self_expr;
+            ASTN_MultiplicationExpr dest_expr;
+        } binary_op;
+    } data;
 } ASTN_AdditionExpr;
 
 typedef struct ASTN_BitwiseExpr {
-    int op;
-    struct ASTN_BitwiseExpr* self_expr;
-    ASTN_AdditionExpr dest_expr;
+    enum {
+        BITWISE_ADDITION,
+        BITWISE_BINARY_OP
+    } type;
+
+    union {
+        ASTN_AdditionExpr addition;
+        struct {
+            int op;
+            struct ASTN_BitwiseExpr* self_expr;
+            ASTN_AdditionExpr dest_expr;
+        } binary_op;
+    } data;
 } ASTN_BitwiseExpr;
+
+
+typedef struct ASTN_Expression {
+    enum {
+        EXPR_FUNCTION_CALL,
+        EXPR_IDENTIFIER,
+        EXPR_LITERAL,
+        EXPR_BINARY_OP,
+        EXPR_PRIMARY,
+        EXPR_FACTOR,
+        EXPR_TERM,
+        EXPR_MULTIPLICATION,
+        EXPR_ADDITION,
+        EXPR_BITWISE
+    } type;
+
+    union {
+        ASTN_FunctionCall function_call;
+        char* identifier;
+        ASTN_Literal literal;
+        struct {
+            int op;
+            struct ASTN_Expression* left;
+            struct ASTN_Expression* right;
+        } binary_op;
+        ASTN_PrimaryExpr primary;
+        ASTN_FactorExpr factor;
+        ASTN_TermExpr term;
+        ASTN_MultiplicationExpr multiplication;
+        ASTN_AdditionExpr addition;
+        ASTN_BitwiseExpr bitwise;
+    } data;
+} ASTN_Expression;
 
 typedef struct ASTN_Parameter {
     ASTN_DataTypeSpecifier data_type_specifier;
