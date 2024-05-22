@@ -12,13 +12,16 @@
 To start using Nex, you'll need to install the Nex compiler and set up your development environment. Stay tuned for updates on installation instructions and documentation as Nex evolves.
 
 On unix based systems: 
-```
+```sh
 ./build.sh
+
+## or, 
+#  python3 build.py
 ```
 
 On windows:
 ```
-./build.bat
+py build.py
 ```
 
 ## Contributing
