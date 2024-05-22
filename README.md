@@ -34,5 +34,5 @@ Nex is licensed under the [MIT License](LICENSE.md). See the LICENSE.md file for
 
 ## Contact
 
-For any questions, feedback, or support, please contact us at [nex@example.com](mailto:nexcontact@gmail.com).
+For any questions, feedback, or support, please contact us at [contact.nexlang@gmail.com](mailto:contact.nexlang@gmail.com).
 ```
