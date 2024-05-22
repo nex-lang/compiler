@@ -2,8 +2,8 @@ import argparse
 import os
 import subprocess
 import sys
+import platform
 
-# ANSI color codes
 GREEN = '\033[32m'
 LIME_YELLOW = '\033[93m'
 MAGENTA = '\033[35m'
@@ -11,8 +11,18 @@ BRIGHT = '\033[1m'
 NORMAL = '\033[0m'
 UNDERLINE = '\033[4m'
 
+if platform.system() == "Windows":
+    os.system('')
+
 def print_colored(color, text):
     print(f"{color}{text}{NORMAL}")
+
+def run_command(command):
+    try:
+        subprocess.run(command, check=True, shell=True)
+    except subprocess.CalledProcessError as e:
+        print(f"Command '{' '.join(command)}' failed with exit code {e.returncode}")
+        sys.exit(e.returncode)
 
 def main():
     parser = argparse.ArgumentParser(description="Build script", add_help=False)
@@ -47,7 +57,10 @@ def main():
 
     if args.clean:
         print_colored(MAGENTA, f"{BRIGHT}[BUILD.PY]{NORMAL} FORCE CLEARING BUILD DIRECTORY")
-        subprocess.run(["rm", "-rf", "build/"], check=True)
+        if platform.system() == "Windows":
+            run_command(["rmdir", "/S", "/Q", "build"])
+        else:
+            run_command(["rm", "-rf", "build/"])
         sys.exit(0)
 
     if not (args.debug or args.release):
@@ -55,17 +68,17 @@ def main():
         print_colored(MAGENTA, f"{BRIGHT}[BUILD.PY]{NORMAL} USE --help or -H flag to find a usage guide")
         sys.exit(1)
 
+    cmake_command = ["cmake", "-B", "build"]
     if args.debug:
+        cmake_command.extend(["-DCMAKE_BUILD_TYPE=Debug", f"-DBUILD_TESTS={build_tests}"])
         print_colored(MAGENTA, f"{BRIGHT}[BUILD.PY]{NORMAL} {GREEN}LATEST VERIFIED VERSION {current_version}{NORMAL}: BUILDING IN DEBUG MODE")
-        subprocess.run(["cmake", "-B", "build", "-DCMAKE_BUILD_TYPE=Debug", f"-DBUILD_TESTS={build_tests}"], check=True)
-        os.chdir("build")
-        subprocess.run(["make"], check=True)
-
     elif args.release:
+        cmake_command.extend(["-DCMAKE_BUILD_TYPE=Release", f"-DBUILD_TESTS={build_tests}"])
         print_colored(MAGENTA, f"{BRIGHT}[BUILD.PY]{NORMAL} LATEST RELEASE VERSION {current_version}: BUILDING IN RELEASE MODE")
-        subprocess.run(["cmake", "-B", "build", "-DCMAKE_BUILD_TYPE=Release", f"-DBUILD_TESTS={build_tests}"], check=True)
-        os.chdir("build")
-        subprocess.run(["make"], check=True)
+
+    run_command(cmake_command)
+    os.chdir("build")
+    run_command(["make" if platform.system() != "Windows" else "cmake --build ."])
 
 if __name__ == "__main__":
     main()
