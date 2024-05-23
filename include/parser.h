@@ -25,7 +25,6 @@ int parse_accspec(Parser* parser, bool expect_further);
 
 ASTN_Literal parser_parse_literal(Parser* parser);
 ASTN_DataTypeSpecifier parser_parse_dt_spec(Parser* parser, bool expect_further);
-ASTN_Statements* parser_parse_statements(Parser* parser);
 
 ASTN_FunctionCall parser_parse_function_call(Parser* parser);
 ASTN_PrimaryExpr parser_parse_prim_expr(Parser* parser);
@@ -51,13 +50,12 @@ AST_Node* parser_parse_struct_decl(Parser* parser);
 AST_Node* parser_parse_class_decl(Parser* parser);
 AST_Node* parser_parse_enum_decl(Parser* parser);
 
-AST_Node* parser_parse_cond_stm(Parser* parser);
-AST_Node* parser_parse_for_stm(Parser* parser);
-AST_Node* parser_parse_switch_stm(Parser* parser);
+ASTN_ConditionalStm parser_parse_cond_stm(Parser* parser);
+ASTN_ForStm parser_parse_for_stm(Parser* parser);
+ASTN_SwitchStm parser_parse_switch_stm(Parser* parser);
 ASTN_CaseClause parser_parse_case_clause(Parser* parser);
-AST_Node* parser_parse_try_stm(Parser* parser);
-AST_Node* parser_parse_while_stm(Parser* parser);
-AST_Node* parser_parse_keyw(Parser* parser);
+ASTN_TryStm parser_parse_try_stm(Parser* parser);
+ASTN_WhileStm parser_parse_while_stm(Parser* parser);
 ASTN_ReturnStm parser_parse_return_stm(Parser* parser);
 
 ASTN_Statement* parser_parse_statement(Parser* parser);
