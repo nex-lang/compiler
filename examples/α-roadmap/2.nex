@@ -1,0 +1,9 @@
+import print from std.io as log;
+
+fn useless_function => (int: x) {
+    return x;
+}
+
+: fn main => (int: argc, str[]: argv) {
+    return 0;
+}
