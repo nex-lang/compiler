@@ -19,9 +19,9 @@ def print_colored(color, text):
 
 def run_command(command):
     try:
-        subprocess.run(command, check=True, shell=True)
+        subprocess.run(command, check=True)
     except subprocess.CalledProcessError as e:
-        print(f"Command '{' '.join(command)}' failed with exit code {e.returncode}")
+        print_colored(MAGENTA, f"Command '{' '.join(command)}' failed with exit code {e.returncode}")
         sys.exit(e.returncode)
 
 def main():
@@ -57,10 +57,12 @@ def main():
 
     if args.clean:
         print_colored(MAGENTA, f"{BRIGHT}[BUILD.PY]{NORMAL} FORCE CLEARING BUILD DIRECTORY")
-        if platform.system() == "Windows":
-            run_command(["rmdir", "/S", "/Q", "build"])
-        else:
-            run_command(["rm", "-rf", "build/"])
+        
+        if os.path.isdir("build"):
+            if platform.system() == "Windows":
+                run_command(["cmd", "/c", "rmdir", "/S", "/Q", "build"])
+            else:
+                run_command(["rm", "-rf", "build"])
         sys.exit(0)
 
     if not (args.debug or args.release):
@@ -68,17 +70,23 @@ def main():
         print_colored(MAGENTA, f"{BRIGHT}[BUILD.PY]{NORMAL} USE --help or -H flag to find a usage guide")
         sys.exit(1)
 
-    cmake_command = ["cmake", "-B", "build"]
+    cmake_command = ["cmake", "-B", "build", f"-DBUILD_TESTS={build_tests}"]
     if args.debug:
-        cmake_command.extend(["-DCMAKE_BUILD_TYPE=Debug", f"-DBUILD_TESTS={build_tests}"])
+        build_type = "Debug"
         print_colored(MAGENTA, f"{BRIGHT}[BUILD.PY]{NORMAL} {GREEN}LATEST VERIFIED VERSION {current_version}{NORMAL}: BUILDING IN DEBUG MODE")
     elif args.release:
-        cmake_command.extend(["-DCMAKE_BUILD_TYPE=Release", f"-DBUILD_TESTS={build_tests}"])
-        print_colored(MAGENTA, f"{BRIGHT}[BUILD.PY]{NORMAL} LATEST RELEASE VERSION {current_version}: BUILDING IN RELEASE MODE")
+        build_type = "Release"
+        print_colored(MAGENTA, f"{BRIGHT}[BUILD.PY]{NORMAL} {GREEN}LATEST RELEASE VERSION {current_version}{NORMAL}: BUILDING IN RELEASE MODE")
+
+    cmake_command.append(f"-DCMAKE_BUILD_TYPE={build_type}")
+    if not os.path.isdir("build"):
+        os.mkdir("build")
 
     run_command(cmake_command)
+    
     os.chdir("build")
-    run_command(["make" if platform.system() != "Windows" else "cmake --build ."])
+    build_command = ["make"] if platform.system() != "Windows" else ["cmake", "--build", "."]
+    run_command(build_command)
 
 if __name__ == "__main__":
     main()
