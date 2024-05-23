@@ -2,8 +2,7 @@
 #define PARSER_H
 
 #include "lexer.h"
-#include "ast.h"
-#include "symtbl.h"
+#include "tmp/alphadev.h"
 
 typedef struct Parser {
     Lexer* lexer;
