@@ -5,6 +5,7 @@ set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
 
 set(LIB_SOURCES
+    include/tmp/alphadev.c
     src/io.c
     src/symtbl.c
     src/lexer.c
@@ -17,6 +18,7 @@ set(EXE_SOURCES
 )
 
 set(HEADERS
+    include/tmp/alphadev.h
     include/p_info.h
     include/io.h
     include/token.h
