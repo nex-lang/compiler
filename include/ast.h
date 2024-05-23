@@ -83,7 +83,7 @@ typedef struct ASTN_Statements {
 } ASTN_Statements;
 
 typedef struct ASTN_FunctionCall {
-    char* identifier;
+    uint32_t identifier;
     // ASTN_CallParam* ;
 } ASTN_FunctionCall;
 
@@ -246,7 +246,7 @@ typedef struct ASTN_VariableDecl {
     int access, storage;
     ASTN_DataTypeSpecifier data_type_specifier;
     char* identifier;
-    ASTN_Expression expr;
+    ASTN_Expression* expr;
 } ASTN_VariableDecl;
 
 typedef struct ASTN_FunctionDecl {
@@ -300,7 +300,7 @@ typedef struct ASTN_EnumDecl {
 } ASTN_EnumDecl;
 
 typedef struct ASTN_ConditionalStm {
-    ASTN_Expression if_condition;
+    ASTN_Expression* if_condition;
     ASTN_Statements if_statement;
     struct {
         ASTN_Expression** condition;
@@ -315,14 +315,14 @@ typedef struct ASTN_ForStm {
     char var[MAX_IDENTIFIER_LEN];
     ASTN_VariableDecl var_decl;
 
-    ASTN_Expression condition_expr;
-    ASTN_Expression next_expr;
+    ASTN_Expression* condition_expr;
+    ASTN_Expression* next_expr;
 
     ASTN_Statements statements;
 } ASTN_ForStm;
 
 typedef struct ASTN_SwitchStm {
-    ASTN_Expression condition_expr;
+    ASTN_Expression* condition_expr;
     struct {
         ASTN_CaseClause** items;
         size_t size;
@@ -331,7 +331,7 @@ typedef struct ASTN_SwitchStm {
 } ASTN_SwitchStm;
 
 typedef struct ASTN_CaseClause {
-    ASTN_Expression condition_expr;
+    ASTN_Expression* condition_expr;
     ASTN_Statements statements;
 } ASTN_CaseClause;
 
@@ -347,7 +347,7 @@ typedef struct ASTN_TryStm {
 } ASTN_TryStm;
 
 typedef struct ASTN_WhileStm {
-    ASTN_Expression condition_expr;
+    ASTN_Expression* condition_expr;
     ASTN_Statements statements;
 } ASTN_WhileStm;
 
@@ -359,7 +359,7 @@ typedef struct ASTN_Keyword {
 } ASTN_Keyword;
 
 typedef struct ASTN_ReturnStm {
-    ASTN_Expression expr;
+    ASTN_Expression* expr;
 } ASTN_ReturnStm;
 
 typedef struct ASTN_Statement {
