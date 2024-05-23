@@ -83,7 +83,7 @@ typedef struct ASTN_Statements {
 } ASTN_Statements;
 
 typedef struct ASTN_FunctionCall {
-    uint32_t identifier;
+    int32_t identifier;
     // ASTN_CallParam* ;
 } ASTN_FunctionCall;
 
