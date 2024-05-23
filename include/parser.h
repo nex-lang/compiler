@@ -19,24 +19,50 @@ bool parser_expectsq(Parser* parser, ...);
 bool parser_expect(Parser* parser, uint8_t expected);
 void parser_consume(Parser* parser);
 void parser_parse(Parser* parser);
-void parser_parse_expression(Parser* parser);
+
+int parse_stospec(Parser* parser, bool expect_further);
+int parse_accspec(Parser* parser, bool expect_further);
+
 ASTN_Literal parser_parse_literal(Parser* parser);
-
-AST_Node* parser_parse_import(Parser* parser);
-AST_Node* parser_parse_mep_decl(Parser* parser);
-AST_Node* parser_parse_function_decl(Parser* parser);
-AST_Node* parser_parse_function_call(Parser* parser);
-
+ASTN_DataTypeSpecifier parser_parse_dt_spec(Parser* parser, bool expect_further);
 ASTN_Statements* parser_parse_statements(Parser* parser);
-ASTN_Statement* parser_parse_statement(Parser* parser);
-ASTN_Module* parser_parse_module(Parser* parser);
-ASTN_Parameters* parser_parse_parameters(Parser* parser);
+
+ASTN_FunctionCall parser_parse_function_call(Parser* parser);
+ASTN_PrimaryExpr parser_parse_prim_expr(Parser* parser);
+ASTN_FactorExpr parser_parse_factor_expr(Parser* parser);
+ASTN_TermExpr parser_parse_term_expr(Parser* parser);
+ASTN_MultiplicationExpr parser_parse_mult_expr(Parser* parser);
+ASTN_AdditionExpr parser_parse_add_expr(Parser* parser);
+ASTN_BitwiseExpr parser_parse_bitw_expr(Parser* parser);
+AST_Node* parser_parse_expression(Parser* parser);
+
 ASTN_Parameter* parser_parse_parameter(Parser* parser);
-ASTN_Statements* parser_parser_statements(Parser* parser);
+ASTN_Parameters* parser_parse_parameters(Parser* parser);
+
+ASTN_Module* parser_parse_module(Parser* parser);
+AST_Node* parser_parse_import(Parser* parser);
+
+AST_Node* parser_parse_var_decl(Parser* parser);
+AST_Node* parser_parse_function_decl(Parser* parser);
+
+ASTN_StructMemberDecl parser_parse_struct_mem(Parser* parser);
+AST_Node* parser_parse_struct_decl(Parser* parser);
+
+AST_Node* parser_parse_class_decl(Parser* parser);
+AST_Node* parser_parse_enum_decl(Parser* parser);
+
+AST_Node* parser_parse_cond_stm(Parser* parser);
+AST_Node* parser_parse_for_stm(Parser* parser);
+AST_Node* parser_parse_switch_stm(Parser* parser);
+ASTN_CaseClause parser_parse_case_clause(Parser* parser);
+AST_Node* parser_parse_try_stm(Parser* parser);
+AST_Node* parser_parse_while_stm(Parser* parser);
+AST_Node* parser_parse_keyw(Parser* parser);
 ASTN_ReturnStm parser_parse_return_stm(Parser* parser);
-// ASTN_FunctionCallParams* parser_parse_fncall_parameters(Parser* parser);
 
+ASTN_Statement* parser_parse_statement(Parser* parser);
+ASTN_Statements* parser_parse_statements(Parser* parser);
 
-ASTN_DataTypeSpecifier parser_parse_dt_spec(Parser* parser);
+AST_Node* parser_parse_mep_decl(Parser* parser);
 
 #endif // PARSER_H
