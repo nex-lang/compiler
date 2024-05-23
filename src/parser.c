@@ -22,57 +22,19 @@ void parser_free(Parser* parser) {
 
     if (!parser) {
         return;
-        exit(EXIT_FAILURE);
     }
 
     lexer_free(parser->lexer);
     token_free(parser->cur);
+
+    PRINT_AST_NODE(parser->tree, 0);
+
     ast_free(parser->tree);
 
     Symbol* cur = parser->tbl->symbol;
-    while (cur != NULL) {
-        printf("ID: %d\n", cur->data.id);
-        printf("Scope: %u\n", cur->data.scope);
-        printf("Nest: %u\n", cur->data.nest);
-        printf("Memory Type: %d\n", cur->data.mem_type);
-        printf("Memory Mod: %d\n", cur->data.mem_mod);
-        printf("Memory Storage: %d\n", cur->data.mem_sto);
-        printf("Access Type: %d\n", cur->data.access_type);
-        printf("Type: ");
-        switch (cur->data.type) {
-            case SYMBOL_VARIABLE:
-                printf("Variable\n");
-                break;
-            case SYMBOL_FUNCTION:
-                printf("Function\n");
-                break;
-            case SYMBOL_STRUCT:
-                printf("Struct\n");
-                break;
-            case SYMBOL_CLASS:
-                printf("Class\n");
-                break;
-            case SYMBOL_ENUM:
-                printf("Enum\n");
-                break;
-            case SYMBOL_MEP:
-                printf("MEP\n");
-            case SYMBOL_MODULE:
-                printf("Module\n");
-            default:
-                printf("Unknown\n");
-                break;
-        }
-        printf("Declaration Line: %d\n", cur->data.decl_line);
-        printf("Declaration Column: %d\n", cur->data.decl_col);
-        printf("---------------------------------------------\n");
-
-        cur = cur->next;
-    }
-
+    PRINT_SYMB_TBL(cur);
 
     symtbl_free(parser->tbl);
-
     parser = NULL;
 }
 
@@ -99,6 +61,7 @@ bool parser_expect(Parser* parser, uint8_t expected) {
     if (parser->cur->type != expected) {
         return false;            
     }
+
     parser_consume(parser);
     return true;
 }
@@ -114,7 +77,7 @@ bool parser_expect_spec_value(Parser* parser, uint8_t expected_t, char* expected
 
 void parser_consume(Parser* parser) {
     if (parser->cur->type == TOK_EOF) {
-        return; // parsing complete
+        exit(0);
     }
 
     parser->cur = lexer_next_token(parser->lexer);
@@ -123,18 +86,26 @@ void parser_consume(Parser* parser) {
 void parser_parse(Parser* parser) {
     while (parser->cur->type != TOK_EOF) {
         switch (parser->cur->type) {
-            // case TOK_IMPORT:
-            //     parser->tree->right = parser_parse_import(parser);
-            //     break;
-            // case TOK_COLON:
-            //     parser->tree->right = parser_parse_mep_decl(parser);
-            //     break;
-            // case TOK_FN:
-            //     parser->tree->right = parser_parse_function_decl(parser);
+            case TOK_IMPORT:
+                parser->tree->right = parser_parse_import(parser);
+                break;
+            case TOK_COLON:
+                parser->tree->right = parser_parse_mep_decl(parser);
+                break;
+            case TOK_FN:
+                parser->tree->right = parser_parse_function_decl(parser);
+                break;
             default:
                 break;
         }
-        parser->tree = parser->tree->right;
+        
+        if (!(parser->tree && parser->tree->right)) {
+            break;
+        }
+
+        AST_Node* tmp = parser->tree->right; 
+
+        parser->tree = tmp;
         parser_consume(parser);
     }
 
@@ -592,31 +563,40 @@ ASTN_WhileStm parser_parse_while_stm(Parser* parser) {
 }
 
 ASTN_ReturnStm parser_parse_return_stm(Parser* parser) {
+    parser_consume(parser);
     ASTN_ReturnStm statement;
 
+    statement.expr = malloc(sizeof(ASTN_Expression));
+    if (statement.expr == NULL) {
+        return statement;
+    }
 
-    if (!(parser_expect(parser, TOK_RETURN))) {
-        statement.expr->type = -1;
-    } 
-
-    statement.expr->type = PRIMARY_LITERAL;
+    statement.expr->type = EXPR_LITERAL;
     statement.expr->data.literal = parser_parse_literal(parser);
+
 
     return statement;    
 }
 
+
+
 ASTN_Statement* parser_parse_statement(Parser* parser) {
     ASTN_Statement* stm = malloc(sizeof(ASTN_Statement));
+    stm->type = -1;
 
-    while (parser->cur->type != TOK_EOF) {
-        switch (parser->cur->type) {
-            case TOK_RETURN:
-                stm->type = STMT_RETURN;
-                stm->data.return_stm = parser_parse_return_stm(parser);
-            default:
-                stm = NULL;
-                break;
-        }
+    switch (parser->cur->type) {
+        case TOK_RETURN:
+            stm->type = STMT_RETURN;
+            stm->data.return_stm = parser_parse_return_stm(parser);
+            break;
+        default:
+            break;
+    }
+
+
+    if (!(parser_expect(parser, TOK_SC))) {
+        REPORT_ERROR(parser->lexer, "E_SC_AFSTM");
+        return NULL;
     }
 
     return stm;
@@ -634,12 +614,6 @@ ASTN_Statements* parser_parse_statements(Parser* parser) {
             stms->statement = realloc(stms->statement, (stms->size + 1) * stms->item_size);
             stms->statement[stms->size++] = statement;
         }
-        
-        if (!(parser_expect(parser, TOK_SC))) {
-            REPORT_ERROR(parser->lexer, "E_SC_AFSTM");
-            return NULL;
-        }
-        printf("statement: %i", statement->type);
     }
 
     return stms;
@@ -647,6 +621,10 @@ ASTN_Statements* parser_parse_statements(Parser* parser) {
 
 
 AST_Node* parser_parse_mep_decl(Parser* parser) {
+    symtbl_insert(parser->tbl, symbol_init(
+        (char*)"MEP", SYMBOL_MEP, 0, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc
+    ));
+
     parser_consume(parser);
     
     if (!(parser_expect(parser, TOK_FN))) {
@@ -675,11 +653,6 @@ AST_Node* parser_parse_mep_decl(Parser* parser) {
     if (node->data.mep.statements == NULL) {
         return NULL;
     }
-
-    symtbl_insert(parser->tbl, symbol_init(
-        (char*)"MEP", SYMBOL_MEP, 0, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc
-    ));
-
 
     return node;
 }
