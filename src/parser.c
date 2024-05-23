@@ -95,6 +95,8 @@ void parser_parse(Parser* parser) {
             case TOK_FN:
                 parser->tree->right = parser_parse_function_decl(parser);
                 break;
+            case TOK_IDEN:  
+                parser->tree->right = parser_parse_expr(parser);
             default:
                 break;
         }
@@ -189,6 +191,8 @@ ASTN_Literal parser_parse_literal(Parser* parser) {
             lit.value.size = (size_t)strtoull(parser->cur->value, &endptr, 10);
             break;
         default:
+            lit.type = -1;
+            return lit;
             break;
     }
 
@@ -267,8 +271,8 @@ ASTN_DataTypeSpecifier parser_parse_dt_spec(Parser* parser, bool expect_further)
     return dts;
 }
 
-ASTN_FunctionCall parser_parse_function_call(Parser* parser) {
-    ASTN_FunctionCall fn;
+ASTN_Call parser_parse_call(Parser* parser) {
+    ASTN_Call fn;
     Symbol* symb = symtbl_lookup(parser->tbl, parser->cur->value, 0);
 
     if (symb == NULL) {
@@ -276,38 +280,97 @@ ASTN_FunctionCall parser_parse_function_call(Parser* parser) {
         return fn;
     }
 
-    printf("%i\n", symb->data.id);
     fn.identifier = symb->data.id;
 
     return fn;
 }
 
 ASTN_PrimaryExpr parser_parse_prim_expr(Parser* parser) {
-    (void)0;
+    ASTN_PrimaryExpr expr;
+
+    ASTN_Literal lit = parser_parse_literal(parser);
+    expr.type = -1;
+    
+    if (lit.type != -1) {
+        expr.type = PRIMARY_LITERAL;
+        expr.data.literal = lit;   
+
+        return expr;
+    }
+    
+    if (parser->cur->type != TOK_IDEN) {
+        expr.type = PRIMARY_EXPRESSION;
+        ASTN_Expression ex = parser_parse_expression(parser); 
+        expr.data.expression = &ex;
+        return expr;
+    }
+
+    Symbol* symb = symtbl_lookup(parser->tbl, parser->cur->value, 0);
+    
+    if (!(symb)) {
+        REPORT_ERROR(parser->lexer, "U_USOF_UNDEFV");
+        expr.type = PRIMARY_IDENTIFIER;
+        expr.data.identifier = 0;
+        return expr;
+    }
+
+    if (symb->data.type == SYMBOL_FUNCTION || symb->data.type == SYMBOL_CLASS || symb->data.type == SYMBOL_STRUCT) {
+        expr.type = PRIMARY_CALL;
+        expr.data.call = parser_parse_call(parser);
+    } else {
+        expr.type = PRIMARY_IDENTIFIER;
+        expr.data.identifier = symb->data.id;
+    }
+
+    return expr;
 }
 
 ASTN_FactorExpr parser_parse_factor_expr(Parser* parser) {
-    (void)0;
+    ASTN_FactorExpr factor;
+    factor.type = FACTOR_PRIMARY;
+    factor.data.primary = parser_parse_prim_expr(parser);
+    return factor;
 }
 
 ASTN_TermExpr parser_parse_term_expr(Parser* parser) {
-    (void)0;
+    ASTN_TermExpr term;
+    term.type = TERM_FACTOR;
+    term.data.factor = parser_parse_factor_expr(parser);
+    return term;
 }
 
 ASTN_MultiplicationExpr parser_parse_mult_expr(Parser* parser) {
-    (void)0;
+    ASTN_MultiplicationExpr multiplication;
+    multiplication.type = MULTIPLICATION_TERM;
+    multiplication.data.term = parser_parse_term_expr(parser);
+    return multiplication;
 }
 
 ASTN_AdditionExpr parser_parse_add_expr(Parser* parser) {
-    (void)0;
+    ASTN_AdditionExpr addition;
+    addition.type = ADDITION_MULTIPLICATION;
+    addition.data.multiplication = parser_parse_mult_expr(parser);
+    return addition;
 }
 
 ASTN_BitwiseExpr parser_parse_bitw_expr(Parser* parser) {
-    (void)0;
+    ASTN_BitwiseExpr bitwise;
+    bitwise.type = BITWISE_ADDITION;
+    bitwise.data.addition = parser_parse_add_expr(parser);
+    return bitwise;
 }
 
-AST_Node* parser_parse_expression(Parser* parser) {
-    (void)0;
+ASTN_Expression parser_parse_expression(Parser* parser) {
+    ASTN_Expression expr; 
+    expr.type = EXPR_PRIMARY;
+    expr.data.primary = parser_parse_prim_expr(parser);
+    return expr;
+}
+
+AST_Node* parser_parse_expr(Parser* parser) {
+    AST_Node* node = ast_init(EXPR);
+    node->data.expr = parser_parse_expression(parser);
+    return node;
 }
 
 
@@ -566,14 +629,7 @@ ASTN_ReturnStm parser_parse_return_stm(Parser* parser) {
     parser_consume(parser);
     ASTN_ReturnStm statement;
 
-    statement.expr = malloc(sizeof(ASTN_Expression));
-    if (statement.expr == NULL) {
-        return statement;
-    }
-
-    statement.expr->type = EXPR_LITERAL;
-    statement.expr->data.literal = parser_parse_literal(parser);
-
+    statement.expr = parser_parse_expr(parser);
 
     return statement;    
 }
