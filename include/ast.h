@@ -31,7 +31,7 @@ typedef struct ASTN_WhileStm ASTN_WhileStm;
 typedef struct ASTN_Keyword ASTN_Keyword;
 typedef struct ASTN_ReturnStm ASTN_ReturnStm;
 typedef struct ASTN_Expression ASTN_Expression;
-typedef struct ASTN_FunctionCall ASTN_FunctionCall;
+typedef struct ASTN_Call ASTN_Call;
 typedef struct ASTN_PrimaryExpr ASTN_PrimaryExpr;
 typedef struct ASTN_FactorExpr ASTN_FactorExpr;
 
@@ -82,24 +82,28 @@ typedef struct ASTN_Statements {
     size_t item_size;
 } ASTN_Statements;
 
-typedef struct ASTN_FunctionCall {
+typedef struct ASTN_Call {
     int32_t identifier;
-    // ASTN_CallParam* ;
-} ASTN_FunctionCall;
+    struct {
+        char** parameter;
+        size_t size;
+        size_t item_size;
+    };
+} ASTN_Call;
 
 typedef struct ASTN_PrimaryExpr {
     enum {
-        PRIMARY_FUNCTION_CALL,
+        PRIMARY_CALL,
         PRIMARY_IDENTIFIER,
         PRIMARY_LITERAL,
         PRIMARY_EXPRESSION
     } type;
 
     union {
-        ASTN_FunctionCall function_call;
-        char* identifier;
+        ASTN_Call call;
+        int32_t identifier;
         ASTN_Literal literal;
-        struct ASTN_Expression* expression;
+        ASTN_Expression* expression;
     } data;
 } ASTN_PrimaryExpr;
 
@@ -198,7 +202,7 @@ typedef struct ASTN_Expression {
     } type;
 
     union {
-        ASTN_FunctionCall function_call;
+        ASTN_Call function_call;
         char* identifier;
         ASTN_Literal literal;
         struct {
@@ -359,7 +363,7 @@ typedef struct ASTN_Keyword {
 } ASTN_Keyword;
 
 typedef struct ASTN_ReturnStm {
-    ASTN_Expression* expr;
+    AST_Node* expr;
 } ASTN_ReturnStm;
 
 typedef struct ASTN_Statement {
