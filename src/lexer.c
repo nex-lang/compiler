@@ -28,6 +28,7 @@ Lexer* lexer_init(char* filename) {
     lexer->buf = io_load_file(filename);
     lexer->buf_size = strlen(lexer->buf);
 
+
     lexer->i = 0;
     lexer->c = lexer->buf[lexer->i];
     
@@ -94,7 +95,7 @@ Token* lexer_next_token(Lexer* lexer) {
     Token* token;
     lexer_handle_fillers(lexer);
 
-    if (lexer->c == '\0' || lexer->i + 1 >= lexer->buf_size) {
+    if (lexer->c == '\0' || lexer->i >= lexer->buf_size) {
         token = lexer_token_init(lexer, "\0", TOK_EOF);
     } else if (isalpha(lexer->c) || lexer->c == '_') {
         token = lexer_handle_alpha(lexer);
@@ -147,17 +148,13 @@ char lexer_peep(Lexer* lexer, int8_t offset) {
     Returns: '\0' (EOF), char (valid peek)
     */
 
-    size_t peek_index = (size_t)(lexer->i + offset);
+   size_t peep_index = (size_t)(lexer->i + offset);
 
-    if (offset < 0 && (size_t)(-offset) > lexer->i) {
+    if (peep_index >= lexer->buf_size || peep_index < 0) {
         return '\0';
     }
 
-    if (peek_index >= lexer->buf_size) {
-        return '\0';
-    }
-
-    return lexer->buf[peek_index];
+    return lexer->buf[peep_index];
 }
 
 
@@ -626,7 +623,8 @@ struct ErrorTemplate templates[] = {
     {"E_SHORTER_LENIDEN", "Expected a shorter identifier length - configuration expects: <= %d"},
     {"E_CHAR_TERMINATOR", "Expected a (') character literal terminator after starting of character literal"},
     {"E_STRING_TERMINATOR", "Expected a (\") string literal terminator after starting of string literal"},
-    {"E_DTS_FN_PARAM", "Expected a valid data type specifier while specifying parameters for a function, '%s' needs a type"}
+    {"E_DTS_FN_PARAM", "Expected a valid data type specifier while specifying parameters for a function, '%s' needs a type"},
+    {"E_MEP_MATCH_LBRACK", "Expected a '}' to match brackets for MEP, found '%s'"}
 };
 
 char* lexer_get_reference(Lexer* lexer) {
