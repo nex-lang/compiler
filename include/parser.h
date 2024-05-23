@@ -25,14 +25,15 @@ int parse_accspec(Parser* parser, bool expect_further);
 ASTN_Literal parser_parse_literal(Parser* parser);
 ASTN_DataTypeSpecifier parser_parse_dt_spec(Parser* parser, bool expect_further);
 
-ASTN_FunctionCall parser_parse_function_call(Parser* parser);
+ASTN_Call parser_parse_call(Parser* parser);
 ASTN_PrimaryExpr parser_parse_prim_expr(Parser* parser);
 ASTN_FactorExpr parser_parse_factor_expr(Parser* parser);
 ASTN_TermExpr parser_parse_term_expr(Parser* parser);
 ASTN_MultiplicationExpr parser_parse_mult_expr(Parser* parser);
 ASTN_AdditionExpr parser_parse_add_expr(Parser* parser);
 ASTN_BitwiseExpr parser_parse_bitw_expr(Parser* parser);
-AST_Node* parser_parse_expression(Parser* parser);
+ASTN_Expression parser_parse_expression(Parser* parser);
+AST_Node* parser_parse_expr(Parser* parser);
 
 ASTN_Parameter* parser_parse_parameter(Parser* parser);
 ASTN_Parameters* parser_parse_parameters(Parser* parser);
