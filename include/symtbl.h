@@ -8,7 +8,7 @@
 
 typedef struct Symbol {
     struct {
-        uint32_t id; 
+        int32_t id; 
         unsigned int scope, nest;
         uint8_t mem_type, mem_mod, mem_sto, access_type;
         
@@ -46,7 +46,7 @@ Symbol* symbol_init(char* id, unsigned int type, unsigned int scope, unsigned in
 void symtbl_insert(SymTable* table, Symbol* symbol);
 Symbol* symtbl_lookup(SymTable* table, char* id, uint8_t scope_offset);
 
-uint32_t symtbl_hash(const char* key);
+int32_t symtbl_hash(const char* key);
 void symtbl_borrowsym(SymTable* table, Symbol* symbol, Symbol* borrower);
 
 #endif // SYMTBL_H

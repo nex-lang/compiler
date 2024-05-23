@@ -96,8 +96,8 @@ Symbol* symtbl_lookup(SymTable* table, char* id, uint8_t scope_offset) {
 }
 
 
-uint32_t symtbl_hash(const char* key) {
-    uint32_t hash_val = 5381;
+int32_t symtbl_hash(const char* key) {
+    int32_t hash_val = 5381;
 
     while (*key) {
         hash_val = ((hash_val << 5) + hash_val) + *key++;
