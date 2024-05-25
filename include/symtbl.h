@@ -2,6 +2,7 @@
 #define SYMTBL_H
 
 #include "token.h"
+#include "ast.h"
 
 #include <inttypes.h>
 #include <stdlib.h>
@@ -22,6 +23,8 @@ typedef struct Symbol {
             SYMBOL_MODULE
         } type;
         
+        AST_Node* data;
+
         struct {
             struct Symbol** borrower_list;
             size_t borrower_size;
