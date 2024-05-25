@@ -2,7 +2,6 @@
 #define ALPHADEV_H
 
 #include "p_info.h"
-#include "ast.h"
 #include "symtbl.h"
 
 #include <stdlib.h>
