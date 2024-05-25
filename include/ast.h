@@ -83,13 +83,15 @@ typedef struct ASTN_Statements {
     size_t item_size;
 } ASTN_Statements;
 
+typedef struct ASTN_CallParams {
+    AST_Node** parameter;
+    size_t size;
+    size_t item_size;
+} ASTN_CallParams;
+
 typedef struct ASTN_Call {
     int32_t identifier;
-    struct {
-        char** parameter;
-        size_t size;
-        size_t item_size;
-    } parameters;
+    ASTN_CallParams* params;
 } ASTN_Call;
 
 typedef struct ASTN_PrimaryExpr {

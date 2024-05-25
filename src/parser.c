@@ -141,6 +141,8 @@ ASTN_Literal parser_parse_literal(Parser* parser) {
 
     lit.type = parser->cur->type;
 
+    printf("li: %s | type: %i\n", parser->cur->value, lit.type);
+
     switch (lit.type) {
         case TOK_L_SSINT:
             lit.value.int_.bit8 = (int8_t)strtol(parser->cur->value, &endptr, 10);
@@ -195,6 +197,7 @@ ASTN_Literal parser_parse_literal(Parser* parser) {
             return lit;
             break;
     }
+
 
     parser_consume(parser);
     return lit;
@@ -272,29 +275,73 @@ ASTN_DataTypeSpecifier parser_parse_dt_spec(Parser* parser, bool expect_further)
 }
 
 ASTN_Call parser_parse_call(Parser* parser) {
-    ASTN_Call fn;
+    ASTN_Call call;
     Symbol* symb = symtbl_lookup(parser->tbl, parser->cur->value, 0);
 
-    if (symb == NULL) {
-        fn.identifier = 0;
-        return fn;
+    if (symb == NULL || symb->data.type != SYMBOL_FUNCTION) {
+        call.identifier = 0;
+        return call;
     }
 
-    fn.identifier = symb->data.id;
+    parser_consume(parser); // Consume the function name token
 
-    return fn;
+    if (!(parser_expect(parser, TOK_LPAREN))) {
+        call.identifier = 0;
+        return call;
+    } 
+
+    call.identifier = symb->data.id;
+
+    // Parse function call arguments
+    ASTN_CallParams* params = calloc(1, sizeof(ASTN_CallParams));
+    params->size = 0;
+    params->item_size = sizeof(ASTN_Parameter*);
+    params->parameter = calloc(1, sizeof(ASTN_Parameter*));
+
+    while (parser->cur->type != TOK_RPAREN) {
+        // Parse each argument as an expression
+        params->parameter[params->size] = parser_parse_expr(parser);
+
+        // Check for comma between arguments
+        if (!(parser_expect(parser, TOK_COMMA)) && (parser->cur->type != TOK_RPAREN)) {
+            REPORT_ERROR(parser->lexer, "E_PARAMS_COMMA", parser->cur->value);
+            call.identifier = 0;
+            return call;
+        }         
+        
+        params->size += 1;
+    }
+
+    // Consume the closing parenthesis token
+    parser_expect(parser, TOK_RPAREN);
+
+    printf("HEY STACK! %i has been CALLED\n", call.identifier);
+
+    // Print the types of arguments
+    if (params && params->parameter) {
+        for (size_t i = 0; i < params->size; i++) {
+            printf("arg [%zu]: %i\n", i, params->parameter[i]->data.expr.data.literal.type);
+        }
+    }
+
+    // Clean up memory allocated for parameters
+    // Note: You might need to implement the function to free parameters
+    // free_params(params);
+
+    return call;
 }
+
 
 ASTN_PrimaryExpr parser_parse_prim_expr(Parser* parser) {
     ASTN_PrimaryExpr expr;
 
     ASTN_Literal lit = parser_parse_literal(parser);
     expr.type = -1;
-    
+
     if (lit.type != -1) {
         expr.type = PRIMARY_LITERAL;
-        expr.data.literal = lit;   
-
+        expr.data.literal = lit;
+        
         return expr;
     }
     
