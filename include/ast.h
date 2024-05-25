@@ -3,23 +3,25 @@
 #include <inttypes.h>
 #include <stdbool.h>
 
+typedef struct AST_Node AST_Node;
+
 typedef struct ASTN_Literal ASTN_Literal;
 typedef struct ASTN_DataTypeSpecifier ASTN_DataTypeSpecifier;
-typedef struct ASTN_Statements ASTN_Statements;
 typedef struct ASTN_Statement ASTN_Statement;
+typedef struct ASTN_Expression ASTN_Expression;
+typedef struct ASTN_Call ASTN_Call;
+typedef struct ASTN_PrimaryExpr ASTN_PrimaryExpr;
+typedef struct ASTN_FactorExpr ASTN_FactorExpr;
 typedef struct ASTN_TermExpr ASTN_TermExpr;
 typedef struct ASTN_MultiplicationExpr ASTN_MultiplicationExpr;
 typedef struct ASTN_AdditionExpr ASTN_AdditionExpr;
 typedef struct ASTN_BitwiseExpr ASTN_BitwiseExpr;
-typedef struct ASTN_MEP ASTN_MEP;
-typedef struct AST_Node AST_Node;
 typedef struct ASTN_Parameters ASTN_Parameters;
 typedef struct ASTN_Module ASTN_Module;
 typedef struct ASTN_ImportDecl ASTN_ImportDecl;
 typedef struct ASTN_VariableDecl ASTN_VariableDecl;
 typedef struct ASTN_FunctionDecl ASTN_FunctionDecl;
 typedef struct ASTN_StructDecl ASTN_StructDecl;
-typedef struct ASTN_StructMemberDecl ASTN_StructMemberDecl;
 typedef struct ASTN_ClassDecl ASTN_ClassDecl;
 typedef struct ASTN_EnumDecl ASTN_EnumDecl;
 typedef struct ASTN_ConditionalStm ASTN_ConditionalStm;
@@ -30,10 +32,9 @@ typedef struct ASTN_TryStm ASTN_TryStm;
 typedef struct ASTN_WhileStm ASTN_WhileStm;
 typedef struct ASTN_Keyword ASTN_Keyword;
 typedef struct ASTN_ReturnStm ASTN_ReturnStm;
-typedef struct ASTN_Expression ASTN_Expression;
-typedef struct ASTN_Call ASTN_Call;
-typedef struct ASTN_PrimaryExpr ASTN_PrimaryExpr;
-typedef struct ASTN_FactorExpr ASTN_FactorExpr;
+
+typedef struct ASTN_Statements ASTN_Statements;
+typedef struct ASTN_MEP ASTN_MEP;
 
 typedef struct ASTN_Literal {
     int type;
@@ -61,7 +62,7 @@ typedef struct ASTN_Literal {
         int boolean;
         size_t size;
         struct {
-            ASTN_Expression** items;
+            AST_Node** items;
             size_t size;
             size_t item_size;
         } array;
@@ -77,7 +78,7 @@ typedef struct ASTN_DataTypeSpecifier {
 } ASTN_DataTypeSpecifier;
 
 typedef struct ASTN_Statements {
-    ASTN_Statement** statement;
+    AST_Node** statement;
     size_t size;
     size_t item_size;
 } ASTN_Statements;
@@ -88,7 +89,7 @@ typedef struct ASTN_Call {
         char** parameter;
         size_t size;
         size_t item_size;
-    };
+    } parameters;
 } ASTN_Call;
 
 typedef struct ASTN_PrimaryExpr {
@@ -103,7 +104,7 @@ typedef struct ASTN_PrimaryExpr {
         ASTN_Call call;
         int32_t identifier;
         ASTN_Literal literal;
-        ASTN_Expression* expression;
+        AST_Node* expression;
     } data;
 } ASTN_PrimaryExpr;
 
@@ -186,7 +187,6 @@ typedef struct ASTN_BitwiseExpr {
     } data;
 } ASTN_BitwiseExpr;
 
-
 typedef struct ASTN_Expression {
     enum {
         EXPR_FUNCTION_CALL,
@@ -247,10 +247,11 @@ typedef struct ASTN_ImportDecl {
 } ASTN_ImportDecl;
 
 typedef struct ASTN_VariableDecl {
-    int access, storage;
+    int access,
+    storage;
     ASTN_DataTypeSpecifier data_type_specifier;
     char* identifier;
-    ASTN_Expression* expr;
+    AST_Node* expr;
 } ASTN_VariableDecl;
 
 typedef struct ASTN_FunctionDecl {
@@ -278,7 +279,7 @@ typedef struct ASTN_StructDecl {
 typedef struct ASTN_ClassDecl {
     int access;
     char generic;
-    char* identifier;  
+    char* identifier;
 
     ASTN_FunctionDecl init, free;
 
@@ -304,55 +305,55 @@ typedef struct ASTN_EnumDecl {
 } ASTN_EnumDecl;
 
 typedef struct ASTN_ConditionalStm {
-    ASTN_Expression* if_condition;
-    ASTN_Statements if_statement;
+    AST_Node* if_condition;
+    AST_Node* if_statement;
     struct {
-        ASTN_Expression** condition;
-        ASTN_Statements** statements;
+        AST_Node** condition;
+        AST_Node** statements;
         size_t size;
         size_t item_size_a, item_size_b;
-    } elif_branches; 
-    ASTN_Statements else_statements;
+    } elif_branches;
+    AST_Node* else_statements;
 } ASTN_ConditionalStm;
 
 typedef struct ASTN_ForStm {
     char var[MAX_IDENTIFIER_LEN];
     ASTN_VariableDecl var_decl;
 
-    ASTN_Expression* condition_expr;
-    ASTN_Expression* next_expr;
+    AST_Node* condition_expr;
+    AST_Node* next_expr;
 
-    ASTN_Statements statements;
+    AST_Node* statements;
 } ASTN_ForStm;
 
 typedef struct ASTN_SwitchStm {
-    ASTN_Expression* condition_expr;
+    AST_Node* condition_expr;
     struct {
-        ASTN_CaseClause** items;
+        AST_Node** items;
         size_t size;
         size_t item_size;
     } clauses;
 } ASTN_SwitchStm;
 
 typedef struct ASTN_CaseClause {
-    ASTN_Expression* condition_expr;
-    ASTN_Statements statements;
+    AST_Node* condition_expr;
+    AST_Node* statements;
 } ASTN_CaseClause;
 
 typedef struct ASTN_TryStm {
-    ASTN_Statements try_statements;
+    AST_Node* try_statements;
     struct {
-        ASTN_Expression** condition;
-        ASTN_Statements** statements;
+        AST_Node** condition;
+        AST_Node** statements;
         size_t size;
         size_t item_size_a, item_size_b;
-    } except_branches; 
-    ASTN_Statements finally_statements;
+    } except_branches;
+    AST_Node* finally_statements;
 } ASTN_TryStm;
 
 typedef struct ASTN_WhileStm {
-    ASTN_Expression* condition_expr;
-    ASTN_Statements statements;
+    AST_Node* condition_expr;
+    AST_Node* statements;
 } ASTN_WhileStm;
 
 typedef struct ASTN_Keyword {
@@ -407,7 +408,7 @@ typedef struct ASTN_MEP {
     ASTN_Statements* statements;
 } ASTN_MEP;
 
-typedef struct AST_Node {
+struct AST_Node {
     enum {
         STMT,
         EXPR,
@@ -421,10 +422,10 @@ typedef struct AST_Node {
         ASTN_Expression expr;
     } data;
 
-    struct AST_Node* parent;
-    struct AST_Node* right;
-    struct AST_Node* left;
-} AST_Node;
+    AST_Node* parent;
+    AST_Node* right;
+    AST_Node* left;
+};
 
 AST_Node* ast_init(int type);
 void ast_free(AST_Node* node);
