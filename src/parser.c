@@ -141,8 +141,6 @@ ASTN_Literal parser_parse_literal(Parser* parser) {
 
     lit.type = parser->cur->type;
 
-    printf("li: %s | type: %i\n", parser->cur->value, lit.type);
-
     switch (lit.type) {
         case TOK_L_SSINT:
             lit.value.int_.bit8 = (int8_t)strtol(parser->cur->value, &endptr, 10);
@@ -317,7 +315,7 @@ ASTN_Call parser_parse_call(Parser* parser) {
 
     parser_expect(parser, TOK_RPAREN);
 
-    printf("HEY STACK! %i has been CALLED\n", call.identifier);
+    printf("[stack call req]: %i\n", call.identifier);
 
     if (call.params && call.params->parameter) {
         for (size_t i = 0; i < call.params->size; i++) {
@@ -331,54 +329,95 @@ ASTN_Call parser_parse_call(Parser* parser) {
 
 ASTN_PrimaryExpr parser_parse_prim_expr(Parser* parser) {
     ASTN_PrimaryExpr expr;
-
     ASTN_Literal lit = parser_parse_literal(parser);
+
     expr.type = -1;
 
     if (lit.type != -1) {
         expr.type = PRIMARY_LITERAL;
         expr.data.literal = lit;
+        return expr;
+    }
+    
+    if (parser->cur->type == TOK_IDEN) {
+        Symbol* symb = symtbl_lookup(parser->tbl, parser->cur->value, 0);
+        if (symb) {
+            if (symb->data.type == SYMBOL_FUNCTION || symb->data.type == SYMBOL_CLASS || symb->data.type == SYMBOL_STRUCT) {
+                expr.type = PRIMARY_CALL;
+                expr.data.call = parser_parse_call(parser);
+            } else {
+                expr.type = PRIMARY_IDENTIFIER;
+                expr.data.identifier = symb->data.id;
+                parser_consume(parser);
+            }
+        } else {
+            REPORT_ERROR(parser->lexer, "U_USOF_UNDEFV");
+            expr.type = PRIMARY_IDENTIFIER;
+            expr.data.identifier = 0;
+        }
         
         return expr;
     }
-    
-    if (parser->cur->type != TOK_IDEN) {
+
+    if (parser->cur->type == TOK_LPAREN) {
+        parser_consume(parser);
+
         expr.type = PRIMARY_EXPRESSION;
-        expr.data.expression = malloc(sizeof(ASTN_Expression)); // Allocate memory
+        expr.data.expression = malloc(sizeof(ASTN_Expression));
+        
         if (expr.data.expression == NULL) {
-            // Handle memory allocation failure
             exit(EXIT_FAILURE);
         }
-        expr.data.expression = parser_parse_expr(parser); // Assign the parsed expression
+        
+        ASTN_Expression x = parser_parse_expression(parser);
+        expr.data.expression = &x;
+        
+        parser_consume(parser);
         return expr;
-    }
-
-    Symbol* symb = symtbl_lookup(parser->tbl, parser->cur->value, 0);
-    
-    if (!(symb)) {
-        REPORT_ERROR(parser->lexer, "U_USOF_UNDEFV");
-        expr.type = PRIMARY_IDENTIFIER;
-        expr.data.identifier = 0;
-        return expr;
-    }
-
-    if (symb->data.type == SYMBOL_FUNCTION || symb->data.type == SYMBOL_CLASS || symb->data.type == SYMBOL_STRUCT) {
-        expr.type = PRIMARY_CALL;
-        expr.data.call = parser_parse_call(parser);
-    } else {
-        expr.type = PRIMARY_IDENTIFIER;
-        expr.data.identifier = symb->data.id;
     }
 
     return expr;
 }
 
+
 ASTN_FactorExpr parser_parse_factor_expr(Parser* parser) {
-    ASTN_FactorExpr factor;
-    factor.type = FACTOR_PRIMARY;
-    factor.data.primary = parser_parse_prim_expr(parser);
-    return factor;
+    ASTN_FactorExpr expr;
+    expr.type = -1;
+
+
+    if (parser->cur->type == TOK_MINUS_MINUS || parser->cur->type == TOK_ADD_ADD || parser->cur->type == TOK_MINUS || parser->cur->type == TOK_BANG) {
+        expr.type = FACTOR_UNARY_OP;
+        expr.data.unary_op.op = parser->cur->type;
+
+        parser_consume(parser);
+        
+        expr.data.unary_op.expr = parser_parse_prim_expr(parser);
+
+        return expr;
+    }
+
+    expr.type = FACTOR_PRIMARY;
+    expr.data.primary = parser_parse_prim_expr(parser);
+
+
+    if (parser->cur->type == TOK_MINUS_MINUS || parser->cur->type == TOK_ADD_ADD) {
+        ASTN_FactorExpr post_expr;
+        
+        post_expr.type = FACTOR_UNARY_OP;
+        post_expr.data.unary_op.op = parser->cur->type;
+
+        
+        parser_consume(parser);
+        
+        post_expr.data.unary_op.expr = expr.data.primary;
+        
+        return post_expr;
+    }
+
+
+    return expr;
 }
+
 
 ASTN_TermExpr parser_parse_term_expr(Parser* parser) {
     ASTN_TermExpr term;
@@ -409,17 +448,44 @@ ASTN_BitwiseExpr parser_parse_bitw_expr(Parser* parser) {
 }
 
 ASTN_Expression parser_parse_expression(Parser* parser) {
-    ASTN_Expression expr; 
-    expr.type = EXPR_PRIMARY;
-    expr.data.primary = parser_parse_prim_expr(parser);
+    ASTN_Expression expr;
+    expr.type = -1;
+
+    switch (parser->cur->type) {
+        case TOK_LPAREN:
+            expr.type = EXPR_PRIMARY;
+            expr.data.primary = parser_parse_prim_expr(parser);
+            break;
+        case TOK_MINUS:
+        case TOK_BANG:
+        case TOK_ADD_ADD:
+        case TOK_MINUS_MINUS:
+            expr.type = EXPR_FACTOR;
+            expr.data.factor = parser_parse_factor_expr(parser);
+            break;
+        case TOK_IDEN:
+            expr.type = EXPR_BITWISE;
+            expr.data.bitwise = parser_parse_bitw_expr(parser);
+            break;
+        default:
+            expr.type = EXPR_BITWISE;
+            expr.data.bitwise = parser_parse_bitw_expr(parser);
+            break;
+    }
+
     return expr;
 }
+
 
 AST_Node* parser_parse_expr(Parser* parser) {
     AST_Node* node = ast_init(EXPR);    
     node->data.expr = parser_parse_expression(parser);
-    return node;
 
+    ASTN_FactorExpr FACTOR = node->data.expr.data.bitwise.data.addition.data.multiplication.data.term.data.factor;
+    printf("factor expr: (op: %i) (symb: %i)\n", node->data.expr.data.factor.data.unary_op.op, node->data.expr.data.factor.data.unary_op.expr.data.identifier);
+    printf("factor expr: (op: %i) (symb: %i)\n", FACTOR.data.unary_op.op, FACTOR.data.unary_op.expr.data.identifier);
+
+    return node;
 }
 
 
@@ -532,7 +598,6 @@ AST_Node* parser_parse_import(Parser* parser) {
 
     AST_Node* statement = ast_init(STMT);
     if (!statement) {
-        // Handle memory allocation failure
         return NULL;
     }
 
@@ -677,6 +742,7 @@ ASTN_WhileStm parser_parse_while_stm(Parser* parser) {
 ASTN_ReturnStm parser_parse_return_stm(Parser* parser) {
     parser_consume(parser);
     ASTN_ReturnStm statement;
+
 
     statement.expr = parser_parse_expr(parser);
 

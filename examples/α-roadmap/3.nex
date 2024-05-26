@@ -1,5 +1,5 @@
-fn xyz => () {
-    return 12;
-}
+import this_is_a_literal;
 
-xyz(1, 2, 3, "5.5");
+fn xyz => () {
+    return this_is_a_literal--;
+}
