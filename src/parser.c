@@ -139,6 +139,11 @@ ASTN_Literal parser_parse_literal(Parser* parser) {
     ASTN_Literal lit;
     char *endptr;
 
+    if (!IS_LITERAL(parser->cur->type)) {
+        lit.type = -1;
+        return lit;
+    }
+
     lit.type = parser->cur->type;
 
     switch (lit.type) {
@@ -190,10 +195,7 @@ ASTN_Literal parser_parse_literal(Parser* parser) {
         case TOK_L_SIZE:
             lit.value.size = (size_t)strtoull(parser->cur->value, &endptr, 10);
             break;
-        default:
-            lit.type = -1;
-            return lit;
-            break;
+        default: lit.type = -1; return lit; break;
     }
 
 
@@ -420,11 +422,37 @@ ASTN_FactorExpr parser_parse_factor_expr(Parser* parser) {
 
 
 ASTN_TermExpr parser_parse_term_expr(Parser* parser) {
-    ASTN_TermExpr term;
-    term.type = TERM_FACTOR;
-    term.data.factor = parser_parse_factor_expr(parser);
-    return term;
+    ASTN_TermExpr expr;
+    expr.type = -1;
+
+    if ((parser->cur->type != TOK_IDEN) && !IS_LITERAL(parser->cur->type)) {        
+        expr.type = TERM_FACTOR;
+        expr.data.factor = parser_parse_factor_expr(parser);
+    
+        return expr;
+    }
+
+    expr.data.binary_op.left = parser_parse_factor_expr(parser);
+
+    if (expr.data.binary_op.left.type == -1) {
+        return expr;
+    }
+
+    if (!parser_expect(parser, TOK_ASTK_ASTK)) {
+        return expr;
+    }
+
+    expr.data.binary_op.right = parser_parse_factor_expr(parser);
+
+    if (expr.data.binary_op.right.type == -1) {
+        return expr;
+    }
+
+    expr.type = TERM_BINARY_OP;
+
+    return expr;
 }
+
 
 ASTN_MultiplicationExpr parser_parse_mult_expr(Parser* parser) {
     ASTN_MultiplicationExpr multiplication;
@@ -482,8 +510,6 @@ AST_Node* parser_parse_expr(Parser* parser) {
     node->data.expr = parser_parse_expression(parser);
 
     ASTN_FactorExpr FACTOR = node->data.expr.data.bitwise.data.addition.data.multiplication.data.term.data.factor;
-    printf("factor expr: (op: %i) (symb: %i)\n", node->data.expr.data.factor.data.unary_op.op, node->data.expr.data.factor.data.unary_op.expr.data.identifier);
-    printf("factor expr: (op: %i) (symb: %i)\n", FACTOR.data.unary_op.op, FACTOR.data.unary_op.expr.data.identifier);
 
     return node;
 }
