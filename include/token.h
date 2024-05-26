@@ -7,6 +7,9 @@
 #define KEYWORDS keywords
 #define MAX_KEYWORD_LEN 7
 
+#define IS_LITERAL(type) \
+    ((type) >= TOK_L_SSINT && (type) <= TOK_L_SIZE)
+
 typedef struct Token {
     unsigned int line, col;
     char* value;
