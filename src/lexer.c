@@ -508,7 +508,7 @@ Token* lexer_process_minus_op(Lexer* lexer, char next_char) {
     if (next_char == '=') {
         lexer_advance(lexer, 2);
         return lexer_token_init(lexer, "-=", TOK_MINUS_EQ);
-    } else if (next_char == '*') {
+    } else if (next_char == '-') {
         lexer_advance(lexer, 2);
         return lexer_token_init(lexer, "--", TOK_MINUS_MINUS);
     } else if isdigit(next_char) {
