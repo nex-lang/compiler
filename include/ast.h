@@ -135,8 +135,8 @@ typedef struct ASTN_TermExpr {
         ASTN_FactorExpr factor;
         struct {
             int op;
-            struct ASTN_TermExpr* self_expr;
-            ASTN_FactorExpr dest_expr;
+            ASTN_FactorExpr right;
+            ASTN_FactorExpr left;
         } binary_op;
     } data;
 } ASTN_TermExpr;
@@ -151,8 +151,8 @@ typedef struct ASTN_MultiplicationExpr {
         ASTN_TermExpr term;
         struct {
             int op;
-            struct ASTN_MultiplicationExpr* self_expr;
-            ASTN_TermExpr dest_expr;
+            ASTN_TermExpr right;
+            ASTN_TermExpr left;
         } binary_op;
     } data;
 } ASTN_MultiplicationExpr;
@@ -167,8 +167,8 @@ typedef struct ASTN_AdditionExpr {
         ASTN_MultiplicationExpr multiplication;
         struct {
             int op;
-            struct ASTN_AdditionExpr* self_expr;
-            ASTN_MultiplicationExpr dest_expr;
+            ASTN_MultiplicationExpr right;
+            ASTN_MultiplicationExpr left;
         } binary_op;
     } data;
 } ASTN_AdditionExpr;
@@ -183,8 +183,8 @@ typedef struct ASTN_BitwiseExpr {
         ASTN_AdditionExpr addition;
         struct {
             int op;
-            struct ASTN_BitwiseExpr* self_expr;
-            ASTN_AdditionExpr dest_expr;
+            ASTN_AdditionExpr right;
+            ASTN_AdditionExpr left;
         } binary_op;
     } data;
 } ASTN_BitwiseExpr;
