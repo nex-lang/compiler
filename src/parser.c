@@ -314,6 +314,7 @@ ASTN_Call parser_parse_call(Parser* parser) {
     }
 
     call.params = params;
+    call.type = CALL_FN;
 
     parser_expect(parser, TOK_RPAREN);
 
@@ -599,26 +600,60 @@ ASTN_Expression parser_parse_expression(Parser* parser) {
     ASTN_Expression expr;
     expr.type = -1;
 
-    switch (parser->cur->type) {
-        case TOK_LPAREN:
-            expr.type = EXPR_PRIMARY;
-            expr.data.primary = parser_parse_prim_expr(parser);
-            break;
-        case TOK_MINUS:
-        case TOK_BANG:
-        case TOK_ADD_ADD:
-        case TOK_MINUS_MINUS:
-            expr.type = EXPR_FACTOR;
-            expr.data.factor = parser_parse_factor_expr(parser);
-            break;
-        case TOK_IDEN:
-            expr.type = EXPR_COMPARISON;
-            expr.data.comparison = parser_parse_comp_expr(parser);
-            break;
-        default:
-            expr.type = EXPR_COMPARISON;
-            expr.data.comparison = parser_parse_comp_expr(parser);
-            break;
+
+    if (parser->cur->type == TOK_LPAREN) {
+        ASTN_PrimaryExpr p = parser_parse_prim_expr(parser); 
+
+        expr.type = EXPR_NEST;
+        expr.data.nest = p.data.expression;
+
+        return expr;
+    }
+            
+    ASTN_ComparisonExpr x = parser_parse_comp_expr(parser);
+
+    if (x.type == COMPARISON_BINARY_OP) {
+        expr.type = EXPR_COMPARISON;
+        expr.data.comparison = x;
+    } else if (x.data.bitwise.type == BITWISE_BINARY_OP) {
+        expr.type = EXPR_BITWISE;
+        expr.data.bitwise = x.data.bitwise;
+    } else if (x.data.bitwise.data.addition.type == ADDITION_BINARY_OP) {
+        expr.type = EXPR_ADDITION;
+        expr.data.addition = x.data.bitwise.data.addition;
+    } else if (x.data.bitwise.data.addition.data.multiplication.type == MULTIPLICATION_BINARY_OP) {
+        expr.type = EXPR_MULTIPLICATION;
+        expr.data.multiplication = x.data.bitwise.data.addition.data.multiplication;
+    } else if (x.data.bitwise.data.addition.data.multiplication.data.term.type == TERM_BINARY_OP) {
+        expr.type = EXPR_TERM;
+        expr.data.term = x.data.bitwise.data.addition.data.multiplication.data.term;
+    } else if (x.data.bitwise.data.addition.data.multiplication.data.term.data.factor.type == FACTOR_UNARY_OP) {
+        expr.type = EXPR_FACTOR;
+        expr.data.factor = x.data.bitwise.data.addition.data.multiplication.data.term.data.factor;
+    } else if (x.data.bitwise.data.addition.data.multiplication.data.term.data.factor.type == FACTOR_PRIMARY) {
+        switch (x.data.bitwise.data.addition.data.multiplication.data.term.data.factor.data.primary.type) {
+            case PRIMARY_IDENTIFIER:
+                expr.type = EXPR_IDENTIFIER;
+                expr.data.identifier = x.data.bitwise.data.addition.data.multiplication.data.term.data.factor.data.primary.data.identifier;
+                break;
+            case PRIMARY_LITERAL:
+                expr.type = EXPR_LITERAL;
+                expr.data.literal = x.data.bitwise.data.addition.data.multiplication.data.term.data.factor.data.primary.data.literal;
+                break;
+            case PRIMARY_EXPRESSION:
+                expr.type = EXPR_NEST;
+                expr.data.nest = x.data.bitwise.data.addition.data.multiplication.data.term.data.factor.data.primary.data.expression;
+                break;
+            case PRIMARY_CALL:
+                expr.type = EXPR_FUNCTION_CALL;
+                expr.data.function_call = x.data.bitwise.data.addition.data.multiplication.data.term.data.factor.data.primary.data.call;
+                break;
+        }
+    } else {
+        REPORT_ERROR(parser->lexer, "UNA_PARSE_EXPR");
+        while (!(parser_expect(parser, TOK_SC))) {
+            parser_consume(parser);
+        }
     }
 
     return expr;
