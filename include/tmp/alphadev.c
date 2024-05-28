@@ -50,7 +50,7 @@ void print_ast_node(AST_Node* node, int indent_level) {
                     break;
                 case EXPR_IDENTIFIER:
                     print_indent(indent_level + 2);
-                    printf("Identifier: %s\n", node->data.expr.data.identifier);
+                    printf("Identifier: %i\n", node->data.expr.data.identifier);
                     break;
                 // Add cases for other expression types as needed
                 default:
@@ -84,11 +84,11 @@ void print_ast_node(AST_Node* node, int indent_level) {
 
 void print_symb_tbl(Symbol* cur) {
     printf("---------------------------------------------------------------------------------------------------------------------\n");
-    printf("| %-10s | %-5s | %-4s | %-10s | %-8s | %-9s | %-11s | %-10s | %-5s | %-5s |\n", 
+    printf("| %-15s | %-5s | %-4s | %-10s | %-8s | %-9s | %-11s | %-10s | %-5s | %-5s |\n", 
            "ID", "Scope", "Nest", "Mem Type", "Mem Mod", "Mem Sto", "Access Type", "Type", "Line", "Col");
     printf("---------------------------------------------------------------------------------------------------------------------\n");
     while (cur != NULL) {
-        printf("| %-10d | %-5u | %-4u | %-10d | %-8d | %-9d | %-11d | %-10s | %-5d | %-5d |\n", 
+        printf("| %-15d | %-5u | %-4u | %-10d | %-8d | %-9d | %-11d | %-10s | %-5d | %-5d |\n", 
                cur->data.id, cur->data.scope, cur->data.nest, cur->data.mem_type, cur->data.mem_mod, cur->data.mem_sto, 
                cur->data.access_type, 
                cur->data.type == SYMBOL_VARIABLE ? "Variable" : 
