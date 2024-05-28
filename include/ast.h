@@ -91,6 +91,12 @@ typedef struct ASTN_CallParams {
 } ASTN_CallParams;
 
 typedef struct ASTN_Call {
+    enum {
+        CALL_FN,
+        CALL_STRUCT,
+        CALL_CLASS
+    } type;
+
     int32_t identifier;
     ASTN_CallParams* params;
 } ASTN_Call;
@@ -211,8 +217,7 @@ typedef struct ASTN_Expression {
         EXPR_FUNCTION_CALL,
         EXPR_IDENTIFIER,
         EXPR_LITERAL,
-        EXPR_BINARY_OP,
-        EXPR_PRIMARY,
+        EXPR_NEST,
         EXPR_FACTOR,
         EXPR_TERM,
         EXPR_MULTIPLICATION,
@@ -223,13 +228,9 @@ typedef struct ASTN_Expression {
 
     union {
         ASTN_Call function_call;
-        char* identifier;
+        AST_Node* nest;
+        int32_t identifier;
         ASTN_Literal literal;
-        struct {
-            int op;
-            struct ASTN_Expression* left;
-            struct ASTN_Expression* right;
-        } binary_op;
         ASTN_PrimaryExpr primary;
         ASTN_FactorExpr factor;
         ASTN_TermExpr term;
