@@ -340,7 +340,7 @@ ASTN_PrimaryExpr parser_parse_prim_expr(Parser* parser) {
         expr.data.literal = lit;
         return expr;
     }
-    
+
     if (parser->cur->type == TOK_IDEN) {
         Symbol* symb = symtbl_lookup(parser->tbl, parser->cur->value, 0);
         if (symb) {
@@ -360,6 +360,7 @@ ASTN_PrimaryExpr parser_parse_prim_expr(Parser* parser) {
         
         return expr;
     }
+
 
     if (parser->cur->type == TOK_LPAREN) {
         parser_consume(parser);
@@ -386,7 +387,6 @@ ASTN_FactorExpr parser_parse_factor_expr(Parser* parser) {
     ASTN_FactorExpr expr;
     expr.type = -1;
 
-
     if (parser->cur->type == TOK_MINUS_MINUS || parser->cur->type == TOK_ADD_ADD || parser->cur->type == TOK_MINUS || parser->cur->type == TOK_BANG) {
         expr.type = FACTOR_UNARY_OP;
         expr.data.unary_op.op = parser->cur->type;
@@ -398,9 +398,14 @@ ASTN_FactorExpr parser_parse_factor_expr(Parser* parser) {
         return expr;
     }
 
-    expr.type = FACTOR_PRIMARY;
     expr.data.primary = parser_parse_prim_expr(parser);
 
+    if (expr.data.primary.type == -1) {
+        REPORT_ERROR(parser->lexer, "E_PROP_EXP", parser->cur->value);
+        return expr;
+    }
+
+    expr.type = FACTOR_PRIMARY;
 
     if (parser->cur->type == TOK_MINUS_MINUS || parser->cur->type == TOK_ADD_ADD) {
         ASTN_FactorExpr post_expr;
@@ -416,7 +421,6 @@ ASTN_FactorExpr parser_parse_factor_expr(Parser* parser) {
         return post_expr;
     }
 
-
     return expr;
 }
 
@@ -425,54 +429,170 @@ ASTN_TermExpr parser_parse_term_expr(Parser* parser) {
     ASTN_TermExpr expr;
     expr.type = -1;
 
-    if ((parser->cur->type != TOK_IDEN) && !IS_LITERAL(parser->cur->type)) {        
-        expr.type = TERM_FACTOR;
-        expr.data.factor = parser_parse_factor_expr(parser);
+
+    expr.data.factor = parser_parse_factor_expr(parser);
+
+    if (expr.data.factor.type == -1) {
+        return expr;
+    }
+
+    expr.type = TERM_FACTOR;
+
+    if (parser->cur->type == TOK_ASTK_ASTK) {
+        ASTN_TermExpr new_expr;
+        new_expr.type = TERM_BINARY_OP;
+        new_expr.data.binary_op.left = expr.data.factor;
+
+        new_expr.data.binary_op.op = parser->cur->type;
+        parser_consume(parser);
+
+        new_expr.data.binary_op.right = parser_parse_factor_expr(parser);
+        if (new_expr.data.binary_op.right.type == -1) {
+            return expr;
+        }
+
+        expr.type = TERM_BINARY_OP;
+        expr.data = new_expr.data;
+    }
+
+    return expr;
+}   
+
+
+ASTN_MultiplicationExpr parser_parse_mult_expr(Parser* parser) {
+    ASTN_MultiplicationExpr expr;
+    expr.type = -1;
+
+    expr.data.term = parser_parse_term_expr(parser);
     
+    if (expr.data.term.type == -1) {
         return expr;
     }
+    
+    expr.type = MULTIPLICATION_TERM;
 
-    expr.data.binary_op.left = parser_parse_factor_expr(parser);
 
-    if (expr.data.binary_op.left.type == -1) {
-        return expr;
+    if (parser->cur->type == TOK_ASTK || parser->cur->type == TOK_SLASH || parser->cur->type == TOK_PERC) {
+        ASTN_MultiplicationExpr new_expr;
+        new_expr.type = MULTIPLICATION_BINARY_OP;
+        new_expr.data.binary_op.left = expr.data.term;
+
+        new_expr.data.binary_op.op = parser->cur->type;
+
+        parser_consume(parser);
+
+
+        new_expr.data.binary_op.right = parser_parse_term_expr(parser);
+
+        if (new_expr.data.binary_op.right.type == -1) {
+            return expr;
+        }
+
+        expr = new_expr;
     }
-
-    if (!parser_expect(parser, TOK_ASTK_ASTK)) {
-        return expr;
-    }
-
-    expr.data.binary_op.right = parser_parse_factor_expr(parser);
-
-    if (expr.data.binary_op.right.type == -1) {
-        return expr;
-    }
-
-    expr.type = TERM_BINARY_OP;
 
     return expr;
 }
 
-
-ASTN_MultiplicationExpr parser_parse_mult_expr(Parser* parser) {
-    ASTN_MultiplicationExpr multiplication;
-    multiplication.type = MULTIPLICATION_TERM;
-    multiplication.data.term = parser_parse_term_expr(parser);
-    return multiplication;
-}
-
 ASTN_AdditionExpr parser_parse_add_expr(Parser* parser) {
-    ASTN_AdditionExpr addition;
-    addition.type = ADDITION_MULTIPLICATION;
-    addition.data.multiplication = parser_parse_mult_expr(parser);
-    return addition;
+    ASTN_AdditionExpr expr;
+    expr.type = -1;
+
+    expr.data.multiplication = parser_parse_mult_expr(parser);
+
+    if (expr.data.multiplication.type == -1) {
+        return expr;
+    }
+    
+    expr.type = ADDITION_MULTIPLICATION;
+
+
+    if (parser->cur->type == TOK_ADD || parser->cur->type == TOK_MINUS) {
+        ASTN_AdditionExpr new_expr;
+        new_expr.type = ADDITION_BINARY_OP;
+        new_expr.data.binary_op.left = expr.data.multiplication;
+
+        new_expr.data.binary_op.op = parser->cur->type;
+
+        parser_consume(parser);
+
+        new_expr.data.binary_op.right = parser_parse_mult_expr(parser);
+
+        if (new_expr.data.binary_op.right.type == -1) {
+            return expr;
+        }
+
+        expr = new_expr;
+    }
+
+    return expr;
 }
 
 ASTN_BitwiseExpr parser_parse_bitw_expr(Parser* parser) {
-    ASTN_BitwiseExpr bitwise;
-    bitwise.type = BITWISE_ADDITION;
-    bitwise.data.addition = parser_parse_add_expr(parser);
-    return bitwise;
+    ASTN_BitwiseExpr expr;
+    expr.type = -1;
+
+    expr.data.addition = parser_parse_add_expr(parser);
+
+    if (expr.data.addition.type == -1) {
+        return expr;
+    }
+    
+    expr.type = BITWISE_ADDITION;
+
+
+    if (parser->cur->type == TOK_AMPER || parser->cur->type == TOK_PIPE || parser->cur->type == TOK_GT_GT  || parser->cur->type == TOK_LT_LT) {
+        ASTN_BitwiseExpr new_expr;
+        new_expr.type = BITWISE_BINARY_OP;
+        new_expr.data.binary_op.left = expr.data.addition;
+
+        new_expr.data.binary_op.op = parser->cur->type;
+
+        parser_consume(parser);
+
+        new_expr.data.binary_op.right = parser_parse_add_expr(parser);
+
+        if (new_expr.data.binary_op.right.type == -1) {
+            return expr;
+        }
+
+        expr = new_expr;
+    }
+
+    return expr;
+}
+
+ASTN_ComparisonExpr parser_parse_comp_expr(Parser* parser) {
+    ASTN_ComparisonExpr expr;
+    expr.type = -1;
+
+    expr.data.bitwise = parser_parse_bitw_expr(parser);
+
+    if (expr.data.bitwise.type == -1) {
+        return expr;
+    }
+    
+    expr.type = BITWISE_ADDITION;
+
+    if (parser->cur->type == TOK_LT_EQ || parser->cur->type == TOK_GT_EQ || parser->cur->type == TOK_BANG_EQ  || parser->cur->type == TOK_EQ_EQ || parser->cur->type == TOK_LT || parser->cur->type == TOK_GT) {
+        ASTN_ComparisonExpr new_expr;
+        new_expr.type = COMPARISON_BINARY_OP;
+        new_expr.data.binary_op.left = expr.data.bitwise;
+
+        new_expr.data.binary_op.op = parser->cur->type;
+
+        parser_consume(parser);
+
+        new_expr.data.binary_op.right = parser_parse_bitw_expr(parser);
+
+        if (new_expr.data.binary_op.right.type == -1) {
+            return expr;
+        }
+
+        expr = new_expr;
+    }
+
+    return expr;
 }
 
 ASTN_Expression parser_parse_expression(Parser* parser) {
@@ -492,12 +612,12 @@ ASTN_Expression parser_parse_expression(Parser* parser) {
             expr.data.factor = parser_parse_factor_expr(parser);
             break;
         case TOK_IDEN:
-            expr.type = EXPR_BITWISE;
-            expr.data.bitwise = parser_parse_bitw_expr(parser);
+            expr.type = EXPR_COMPARISON;
+            expr.data.comparison = parser_parse_comp_expr(parser);
             break;
         default:
-            expr.type = EXPR_BITWISE;
-            expr.data.bitwise = parser_parse_bitw_expr(parser);
+            expr.type = EXPR_COMPARISON;
+            expr.data.comparison = parser_parse_comp_expr(parser);
             break;
     }
 
@@ -508,9 +628,6 @@ ASTN_Expression parser_parse_expression(Parser* parser) {
 AST_Node* parser_parse_expr(Parser* parser) {
     AST_Node* node = ast_init(EXPR);    
     node->data.expr = parser_parse_expression(parser);
-
-    ASTN_FactorExpr FACTOR = node->data.expr.data.bitwise.data.addition.data.multiplication.data.term.data.factor;
-
     return node;
 }
 

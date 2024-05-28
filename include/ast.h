@@ -16,6 +16,7 @@ typedef struct ASTN_TermExpr ASTN_TermExpr;
 typedef struct ASTN_MultiplicationExpr ASTN_MultiplicationExpr;
 typedef struct ASTN_AdditionExpr ASTN_AdditionExpr;
 typedef struct ASTN_BitwiseExpr ASTN_BitwiseExpr;
+typedef struct ASTN_ComparisonExpr ASTN_ComparisonExpr;
 typedef struct ASTN_Parameters ASTN_Parameters;
 typedef struct ASTN_Module ASTN_Module;
 typedef struct ASTN_ImportDecl ASTN_ImportDecl;
@@ -189,6 +190,22 @@ typedef struct ASTN_BitwiseExpr {
     } data;
 } ASTN_BitwiseExpr;
 
+typedef struct ASTN_ComparisonExpr {
+    enum {
+        COMPARISON_BITWISE,
+        COMPARISON_BINARY_OP
+    } type;
+
+    union {
+        ASTN_BitwiseExpr bitwise;
+        struct {
+            int op;
+            ASTN_BitwiseExpr left;
+            ASTN_BitwiseExpr right;
+        } binary_op;
+    } data;
+} ASTN_ComparisonExpr;
+
 typedef struct ASTN_Expression {
     enum {
         EXPR_FUNCTION_CALL,
@@ -200,7 +217,8 @@ typedef struct ASTN_Expression {
         EXPR_TERM,
         EXPR_MULTIPLICATION,
         EXPR_ADDITION,
-        EXPR_BITWISE
+        EXPR_BITWISE,
+        EXPR_COMPARISON
     } type;
 
     union {
@@ -218,6 +236,7 @@ typedef struct ASTN_Expression {
         ASTN_MultiplicationExpr multiplication;
         ASTN_AdditionExpr addition;
         ASTN_BitwiseExpr bitwise;
+        ASTN_ComparisonExpr comparison;
     } data;
 } ASTN_Expression;
 

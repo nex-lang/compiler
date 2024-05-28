@@ -624,7 +624,8 @@ struct ErrorTemplate templates[] = {
     {"E_CHAR_TERMINATOR", "Expected a (') character literal terminator after starting of character literal"},
     {"E_STRING_TERMINATOR", "Expected a (\") string literal terminator after starting of string literal"},
     {"E_DTS_FN_PARAM", "Expected a valid data type specifier while specifying parameters for a function, '%s' needs a type"},
-    {"E_MEP_MATCH_LBRACK", "Expected a '}' to match brackets for MEP, found '%s'"}
+    {"E_MEP_MATCH_LBRACK", "Expected a '}' to match brackets for MEP, found '%s'"},
+    {"E_PROP_EXP", "Expected a propper expression, got '%s'"}
 };
 
 char* lexer_get_reference(Lexer* lexer) {

@@ -32,6 +32,7 @@ ASTN_TermExpr parser_parse_term_expr(Parser* parser);
 ASTN_MultiplicationExpr parser_parse_mult_expr(Parser* parser);
 ASTN_AdditionExpr parser_parse_add_expr(Parser* parser);
 ASTN_BitwiseExpr parser_parse_bitw_expr(Parser* parser);
+ASTN_ComparisonExpr parser_parse_comp_expr(Parser* parser);
 ASTN_Expression parser_parse_expression(Parser* parser);
 AST_Node* parser_parse_expr(Parser* parser);
 

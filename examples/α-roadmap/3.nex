@@ -1,5 +1,5 @@
-import this_is_a_literal;
+import this_is_a_literal, this_is_also_a_literal;
 
 fn xyz => () {
-    return 6 ** 2;
+    return (this_is_a_literal > this_is_also_a_literal);
 }
