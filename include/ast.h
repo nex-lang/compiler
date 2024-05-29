@@ -272,15 +272,15 @@ typedef struct ASTN_VariableDecl {
     int access,
     storage;
     ASTN_DataTypeSpecifier data_type_specifier;
-    char* identifier;
+    int identifier;
     AST_Node* expr;
 } ASTN_VariableDecl;
 
 typedef struct ASTN_FunctionDecl {
-    int access, storage;
+    int access, storage, identifier;
     ASTN_DataTypeSpecifier data_type_specifier;
     ASTN_Parameters* parameters;
-    ASTN_Statements statements;
+    ASTN_Statements* statements;
 } ASTN_FunctionDecl;
 
 typedef struct ASTN_StructMemberDecl {
@@ -291,6 +291,7 @@ typedef struct ASTN_StructMemberDecl {
 
 typedef struct ASTN_StructDecl {
     int access;
+    int identifier;
     struct {
         ASTN_StructMemberDecl** items;
         size_t size;
@@ -301,7 +302,7 @@ typedef struct ASTN_StructDecl {
 typedef struct ASTN_ClassDecl {
     int access;
     char generic;
-    char* identifier;
+    int identifier;
 
     ASTN_FunctionDecl init, free;
 
@@ -318,7 +319,7 @@ typedef struct ASTN_ClassDecl {
 } ASTN_ClassDecl;
 
 typedef struct ASTN_EnumDecl {
-    char* identifier;
+    int identifier;
     struct {
         char** items;
         size_t size;
@@ -433,6 +434,7 @@ typedef struct ASTN_MEP {
 struct AST_Node {
     enum {
         STMT,
+        MEP,
         EXPR,
         ROOT
     } type;
