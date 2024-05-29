@@ -8,6 +8,7 @@ typedef struct Parser {
     Lexer* lexer;
     Token* cur;
     AST_Node* tree;
+    AST_Node* root;
     SymTable* tbl;
 } Parser;
 
@@ -59,7 +60,7 @@ ASTN_TryStm parser_parse_try_stm(Parser* parser);
 ASTN_WhileStm parser_parse_while_stm(Parser* parser);
 ASTN_ReturnStm parser_parse_return_stm(Parser* parser);
 
-ASTN_Statement* parser_parse_statement(Parser* parser);
+ASTN_Statement parser_parse_statement(Parser* parser);
 ASTN_Statements* parser_parse_statements(Parser* parser);
 
 AST_Node* parser_parse_mep_decl(Parser* parser);
