@@ -12,6 +12,8 @@ Parser* parser_init(char* filename) {
     parser->tbl = symtbl_init();
     parser->tree = ast_init(ROOT);
 
+    parser->root = parser->tree;
+
     return (Parser*)parser;
 }
 
@@ -27,9 +29,10 @@ void parser_free(Parser* parser) {
     lexer_free(parser->lexer);
     token_free(parser->cur);
 
-    PRINT_AST_NODE(parser->tree, 0);
+    PRINT_AST_NODE(parser->root, 0);
 
     ast_free(parser->tree);
+    ast_free(parser->root);
 
     Symbol* cur = parser->tbl->symbol;
     PRINT_SYMB_TBL(cur);
@@ -84,7 +87,9 @@ void parser_consume(Parser* parser) {
 }
 
 void parser_parse(Parser* parser) {
+    int i = 0;
     while (parser->cur->type != TOK_EOF) {
+        i += 1;
         switch (parser->cur->type) {
             case TOK_IMPORT:
                 parser->tree->right = parser_parse_import(parser);
@@ -97,10 +102,12 @@ void parser_parse(Parser* parser) {
                 break;
             case TOK_IDEN:  
                 parser->tree->right = parser_parse_expr(parser);
+                break;
             default:
                 break;
         }
         
+
         if (!(parser->tree && parser->tree->right)) {
             break;
         }
@@ -110,6 +117,7 @@ void parser_parse(Parser* parser) {
         parser->tree = tmp;
         parser_consume(parser);
     }
+
 
     return;
 }
@@ -857,6 +865,7 @@ AST_Node* parser_parse_function_decl(Parser* parser) {
     }
 
     AST_Node* node = ast_init(STMT);
+    node->data.stm.type = STMT_FUNCTION_DECL;
     node->data.stm.data.function_decl.parameters = parser_parse_parameters(parser);
     if (node->data.stm.data.function_decl.parameters == NULL) {
         return NULL;
@@ -864,14 +873,17 @@ AST_Node* parser_parse_function_decl(Parser* parser) {
 
     parser_expect(parser, TOK_LBRACE);
 
-    node->data.mep.statements = parser_parse_statements(parser);
-    if (node->data.mep.statements == NULL) {
+    node->data.stm.data.function_decl.statements = parser_parse_statements(parser);
+    if (node->data.stm.data.function_decl.statements == NULL) {
         return NULL;
     }
 
-    symtbl_insert(parser->tbl, symbol_init(
-        (char*)name_tok->value, SYMBOL_FUNCTION, 0, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc
-    ));
+    Symbol* symb = symbol_init((char*)name_tok->value, SYMBOL_FUNCTION, 0, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc);
+    
+    node->data.stm.data.function_decl.identifier = symb->data.id;
+    symb->data.data = node;
+    
+    symtbl_insert(parser->tbl, symb);
 
     return node;
 }
@@ -921,7 +933,6 @@ ASTN_ReturnStm parser_parse_return_stm(Parser* parser) {
     parser_consume(parser);
     ASTN_ReturnStm statement;
 
-
     statement.expr = parser_parse_expr(parser);
 
     return statement;    
@@ -929,14 +940,14 @@ ASTN_ReturnStm parser_parse_return_stm(Parser* parser) {
 
 
 
-ASTN_Statement* parser_parse_statement(Parser* parser) {
-    ASTN_Statement* stm = malloc(sizeof(ASTN_Statement));
-    stm->type = -1;
+ASTN_Statement parser_parse_statement(Parser* parser) {
+    ASTN_Statement stm;
+    stm.type = -1;
 
     switch (parser->cur->type) {
         case TOK_RETURN:
-            stm->type = STMT_RETURN;
-            stm->data.return_stm = parser_parse_return_stm(parser);
+            stm.type = STMT_RETURN;
+            stm.data.return_stm = parser_parse_return_stm(parser);
             break;
         default:
             break;
@@ -945,7 +956,7 @@ ASTN_Statement* parser_parse_statement(Parser* parser) {
 
     if (!(parser_expect(parser, TOK_SC))) {
         REPORT_ERROR(parser->lexer, "E_SC_AFSTM");
-        return NULL;
+        return stm;
     }
 
     return stm;
@@ -958,10 +969,13 @@ ASTN_Statements* parser_parse_statements(Parser* parser) {
     stms->item_size = sizeof(ASTN_Statement*);
 
     while (parser->cur->type != TOK_EOF && parser->cur->type != TOK_RBRACE) {
-        ASTN_Statement* statement = parser_parse_statement(parser);
-        if (statement != NULL) {
+        AST_Node* node = ast_init(STMT);
+        node->data.stm = parser_parse_statement(parser);
+        
+        if (node->data.stm.type != -1) {
             stms->statement = realloc(stms->statement, (stms->size + 1) * stms->item_size);
-            stms->statement[stms->size++] = statement;
+            stms->statement[stms->size] = node;
+            stms->size += 1;
         }
     }
 
@@ -990,7 +1004,7 @@ AST_Node* parser_parse_mep_decl(Parser* parser) {
         return NULL;
     }
 
-    AST_Node* node = ast_init(STMT);
+    AST_Node* node = ast_init(MEP);
     node->data.mep.parameters = parser_parse_parameters(parser);
     if (node->data.mep.parameters == NULL) {
         return NULL;
