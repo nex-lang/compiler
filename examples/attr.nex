@@ -6,7 +6,7 @@ pub: class Hominoldea {
     pub var str: species;
 }
 
-attr Homo ext Hominoldea => {
+attr Homo ext Homininidae.sub_family, Homininidae.genus => {
     sub_family = "Homininidae";
     genus = "Homo";
 }
