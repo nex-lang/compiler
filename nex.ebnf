@@ -1,4 +1,4 @@
-# version: 1.0.0 "linda"
+# version: v-α.1.2
 
 program ::= (main_entry_point statements* | statements* main_entry_point) "\0"
 
@@ -105,7 +105,7 @@ struct_declaration ::= access_specifier ':' 'struct' identifier ';'
 
     struct_member_declaration ::=  storage_specifier [data_type_specifier] ':' identifier ';'
 
-class_declaration ::=  access_specifier ':' 'class' identifier ['<' letter '>'] ['ext' identifier] '{' (class_spec_function_declaration | class_function_declaration | class_variable_declaration)* '}'
+class_declaration ::=  access_specifier ':' 'class' identifier ['ext' expression (',' expression)*] '{' (class_spec_function_declaration | class_function_declaration | class_variable_declaration)* '}'
 
     class_variable_declaration ::= storage_specifier access_specifier [data_type_specifier] ':' identifier ';' 
         | storage_specifier access_specifier [data_type_specifier] ':' identifier '=' expression ';'
@@ -118,6 +118,12 @@ class_declaration ::=  access_specifier ':' 'class' identifier ['<' letter '>'] 
 
 enum_declaration ::= access_specifier ':' 'enum' identifier ';'
     | access_specifier ':' 'enum' identifier '{' identifier (',' identifier)* '}'
+
+attr_declaration ::= 'attr' (identifier ['ext' identifier] '=>' '{' (attr_body_declaration)* '}' ';')+
+
+attr_body_declaration ::= 'fn' identifier '=>' parameters '{' statements '}'
+                        | identifier '=' expression ';'
+                        | class_variable_declaration
 
 # Control Statements
 
