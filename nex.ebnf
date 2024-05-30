@@ -105,7 +105,7 @@ struct_declaration ::= access_specifier ':' 'struct' identifier ';'
 
     struct_member_declaration ::=  storage_specifier [data_type_specifier] ':' identifier ';'
 
-class_declaration ::=  access_specifier ':' 'class' identifier ['ext' expression (',' expression)*] '{' (class_spec_function_declaration | class_function_declaration | class_variable_declaration)* '}'
+class_declaration ::= 'class' identifier ['ext' (expression | 'attr' '.' expression) (',' (expression | 'attr' '.' expression) )*] '{' (class_spec_function_declaration | class_function_declaration | class_variable_declaration)* '}'
 
     class_variable_declaration ::= storage_specifier access_specifier [data_type_specifier] ':' identifier ';' 
         | storage_specifier access_specifier [data_type_specifier] ':' identifier '=' expression ';'
