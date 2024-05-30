@@ -1,5 +1,9 @@
 import this_is_a_literal, this_is_also_a_literal;
 
+fn abc => (int: xa, str: y) {
+    return (xa + y);
+}
+
 fn xyz => (int: x, str: y) {
-    return (x + y);
+    return abc();
 }
