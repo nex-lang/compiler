@@ -20,6 +20,9 @@ typedef struct ASTN_ComparisonExpr ASTN_ComparisonExpr;
 typedef struct ASTN_Parameters ASTN_Parameters;
 typedef struct ASTN_Module ASTN_Module;
 typedef struct ASTN_ImportDecl ASTN_ImportDecl;
+typedef struct ASTN_AttributeUnit ASTN_AttributeUnit;
+typedef struct ASTN_AttributeList ASTN_AttributeList;
+typedef struct ASTN_AttributeDecl ASTN_AttributeDecl;
 typedef struct ASTN_VariableDecl ASTN_VariableDecl;
 typedef struct ASTN_FunctionDecl ASTN_FunctionDecl;
 typedef struct ASTN_StructDecl ASTN_StructDecl;
@@ -268,6 +271,33 @@ typedef struct ASTN_ImportDecl {
     char* alias;
 } ASTN_ImportDecl;
 
+
+typedef struct ASTN_AttributeUnit {
+    // attributes are decl's that require access specifiers
+    enum {
+        ATTR_FUNCTION,
+        ATTR_VARIABLE
+    } type;
+
+    union {
+        ASTN_VariableDecl* var;
+        ASTN_FunctionDecl* fn;
+    } data;
+} ASTN_AttributeUnit;
+
+typedef struct ASTN_AttributeList {
+    AST_Node** items;
+    size_t size;
+    size_t item_size;
+} ASTN_AttributeList;
+
+
+typedef struct ASTN_AttributeDecl {
+    ASTN_AttributeList list;
+    int identifier;
+} ASTN_AttributeDecl;
+
+
 typedef struct ASTN_VariableDecl {
     int access,
     storage;
@@ -300,22 +330,15 @@ typedef struct ASTN_StructDecl {
 } ASTN_StructDecl;
 
 typedef struct ASTN_ClassDecl {
-    int access;
-    char generic;
     int identifier;
 
     ASTN_FunctionDecl init, free;
 
     struct {
-        ASTN_VariableDecl** items;
+        AST_Node** attributes;
         size_t size;
         size_t item_size;
-    } variables;
-    struct {
-        ASTN_FunctionDecl** items;
-        size_t size;
-        size_t item_size;
-    } functions;
+    } attributes;
 } ASTN_ClassDecl;
 
 typedef struct ASTN_EnumDecl {
@@ -392,6 +415,8 @@ typedef struct ASTN_ReturnStm {
 
 typedef struct ASTN_Statement {
     enum {
+        STMT_ATTR_UNIT,
+        STMT_ATTR_DECL,
         STMT_VARIABLE_DECL,
         STMT_FUNCTION_DECL,
         STMT_STRUCT_DECL,
@@ -410,6 +435,8 @@ typedef struct ASTN_Statement {
     } type;
 
     union {
+        ASTN_AttributeUnit attribute_unit;
+        ASTN_AttributeDecl attribute_decl;
         ASTN_VariableDecl variable_decl;
         ASTN_FunctionDecl function_decl;
         ASTN_StructDecl struct_decl;
