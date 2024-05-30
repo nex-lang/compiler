@@ -10,6 +10,10 @@ typedef struct Parser {
     AST_Node* tree;
     AST_Node* root;
     SymTable* tbl;
+
+    __uint128_t root_scope;
+    __uint128_t scope;
+    uint8_t nest;
 } Parser;
 
 Parser* parser_init(char* filename);
@@ -18,7 +22,14 @@ void parser_free(Parser* parser);
 bool parser_expectsq(Parser* parser, ...);
 bool parser_expect(Parser* parser, uint8_t expected);
 void parser_consume(Parser* parser);
-void parser_parse(Parser* parser);
+
+#define PES(parser) ((parser)->scope += 1)
+#define PER(parser) ((parser)->root_scope += 1)
+#define PEN(parser) ((parser)->nest += 1)
+
+#define PRS(parser) ((parser)->scope = (parser)->root_scope)
+#define PRN(parser) ((parser)->nest = 0)
+#define PRR(parser) ((parser)->root_scope = 0)
 
 int parse_stospec(Parser* parser, bool expect_further);
 int parse_accspec(Parser* parser, bool expect_further);
