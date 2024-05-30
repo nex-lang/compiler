@@ -11,8 +11,11 @@ Parser* parser_init(char* filename) {
     parser->cur = lexer_next_token(parser->lexer);
     parser->tbl = symtbl_init();
     parser->tree = ast_init(ROOT);
-
     parser->root = parser->tree;
+
+    parser->root_scope = 0;
+    parser->scope = 0;
+    parser->nest = 0;
 
     return (Parser*)parser;
 }
@@ -284,7 +287,7 @@ ASTN_DataTypeSpecifier parser_parse_dt_spec(Parser* parser, bool expect_further)
 
 ASTN_Call parser_parse_call(Parser* parser) {
     ASTN_Call call;
-    Symbol* symb = symtbl_lookup(parser->tbl, parser->cur->value, 0);
+    Symbol* symb = symtbl_lookup(parser->tbl, parser->cur->value, 0, 0);
 
     if (symb == NULL || symb->data.type != SYMBOL_FUNCTION) {
         call.identifier = 0;
@@ -350,25 +353,36 @@ ASTN_PrimaryExpr parser_parse_prim_expr(Parser* parser) {
         return expr;
     }
 
+
     if (parser->cur->type == TOK_IDEN) {
-        Symbol* symb = symtbl_lookup(parser->tbl, parser->cur->value, 0);
+        Symbol* symb = symtbl_lookup(parser->tbl, parser->cur->value, 0, 0);
+
         if (symb) {
-            if (symb->data.type == SYMBOL_FUNCTION || symb->data.type == SYMBOL_CLASS || symb->data.type == SYMBOL_STRUCT) {
+            if (symb->data.type == SYMBOL_FUNCTION || symb->data.type == SYMBOL_CLASS ||
+                symb->data.type == SYMBOL_STRUCT) {
                 expr.type = PRIMARY_CALL;
                 expr.data.call = parser_parse_call(parser);
-            } else {
+            } else if (symb->data.type == SYMBOL_MODULE) {
                 expr.type = PRIMARY_IDENTIFIER;
                 expr.data.identifier = symb->data.id;
                 parser_consume(parser);
             }
-        } else {
-            REPORT_ERROR(parser->lexer, "U_USOF_UNDEFV");
-            expr.type = PRIMARY_IDENTIFIER;
-            expr.data.identifier = 0;
+        }  else {
+            Symbol* symb2 = symtbl_lookup(parser->tbl, parser->cur->value, parser->scope, 0);
+            if (symb2) {
+                expr.type = PRIMARY_IDENTIFIER;
+                expr.data.identifier = symb2->data.id;
+                parser_consume(parser);
+            } else {
+                REPORT_ERROR(parser->lexer, "U_USOF_UNDEFV");
+                expr.type = PRIMARY_IDENTIFIER;
+                expr.data.identifier = 0;
+            }
         }
         
         return expr;
     }
+
 
 
     if (parser->cur->type == TOK_LPAREN) {
@@ -714,6 +728,10 @@ ASTN_Parameters* parser_parse_parameters(Parser* parser) {
     while (parser->cur->type != TOK_RPAREN) {
         params->parameter[params->size] = parser_parse_parameter(parser);
 
+        symtbl_insert(parser->tbl, symbol_init(
+            (char*)params->parameter[params->size]->identifier, SYMBOL_VARIABLE, parser->scope, parser->nest, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc
+        ));
+
         if (!(parser_expect(parser, TOK_COMMA)) && (parser->cur->type != TOK_RPAREN)) {
             REPORT_ERROR(parser->lexer, "E_PARAMS_COMMA", parser->cur->value);
             return NULL;
@@ -864,6 +882,9 @@ AST_Node* parser_parse_function_decl(Parser* parser) {
         return NULL;
     }
 
+    PES(parser);
+    PRN(parser);
+
     AST_Node* node = ast_init(STMT);
     node->data.stm.type = STMT_FUNCTION_DECL;
     node->data.stm.data.function_decl.parameters = parser_parse_parameters(parser);
@@ -878,7 +899,7 @@ AST_Node* parser_parse_function_decl(Parser* parser) {
         return NULL;
     }
 
-    Symbol* symb = symbol_init((char*)name_tok->value, SYMBOL_FUNCTION, 0, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc);
+    Symbol* symb = symbol_init((char*)name_tok->value, SYMBOL_FUNCTION, parser->root_scope, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc);
     
     node->data.stm.data.function_decl.identifier = symb->data.id;
     symb->data.data = node;
@@ -985,7 +1006,7 @@ ASTN_Statements* parser_parse_statements(Parser* parser) {
 
 AST_Node* parser_parse_mep_decl(Parser* parser) {
     symtbl_insert(parser->tbl, symbol_init(
-        (char*)"MEP", SYMBOL_MEP, 0, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc
+        (char*)"MEP", SYMBOL_MEP, parser->scope, parser->nest, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc
     ));
 
     parser_consume(parser);
