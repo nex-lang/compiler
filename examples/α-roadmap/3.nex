@@ -1,5 +1,5 @@
 import this_is_a_literal, this_is_also_a_literal;
 
 fn xyz => (int: x, str: y) {
-    return (this_is_a_literal > this_is_also_a_literal);
+    return (x + y);
 }
