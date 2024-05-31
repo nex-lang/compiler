@@ -80,4 +80,6 @@ ASTN_Statements* parser_parse_statements(Parser* parser);
 
 AST_Node* parser_parse_mep_decl(Parser* parser);
 
+void symtbl_insert(Parser* table, Symbol* symbol);
+
 #endif // PARSER_H

@@ -47,7 +47,6 @@ void symtbl_free(SymTable* table);
 Symbol* symbol_init(char* id, unsigned int type, unsigned int scope, unsigned int nest, uint8_t mem_type, 
     uint8_t mem_mod, uint8_t mem_sto, uint8_t  access_type, uint8_t decl_line, uint8_t decl_col);
 
-void symtbl_insert(SymTable* table, Symbol* symbol);
 Symbol* symtbl_lookup(SymTable* table, char* id,  unsigned int scope, uint8_t scope_offset);
 
 int32_t symtbl_hash(const char* key, unsigned int scope);
