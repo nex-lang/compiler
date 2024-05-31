@@ -280,8 +280,8 @@ typedef struct ASTN_AttributeUnit {
     } type;
 
     union {
-        ASTN_VariableDecl* var;
-        ASTN_FunctionDecl* fn;
+        AST_Node* var;
+        AST_Node* fn;
     } data;
 } ASTN_AttributeUnit;
 
@@ -294,7 +294,7 @@ typedef struct ASTN_AttributeList {
 
 typedef struct ASTN_AttributeDecl {
     ASTN_AttributeList list;
-    int identifier;
+    int32_t identifier;
 } ASTN_AttributeDecl;
 
 
