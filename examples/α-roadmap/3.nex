@@ -1,8 +1,9 @@
-import Sprite from juego;
+attr Entity => {
+    var int: posx, poxy, dimx, dimy;
+}
 
 fn abc => (int: xa, str: y) {
-    var: x, y, z;
-    return Sprite;
+    return xa;
 }
 
 fn xyz => (int: x, str: y) {
