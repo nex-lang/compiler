@@ -302,7 +302,14 @@ typedef struct ASTN_VariableDecl {
     int access,
     storage;
     ASTN_DataTypeSpecifier data_type_specifier;
-    int identifier;
+    union {
+        int sg;
+        struct {
+            int* items;
+            size_t size;
+        } mult;
+    } iden;
+
     AST_Node* expr;
 } ASTN_VariableDecl;
 
