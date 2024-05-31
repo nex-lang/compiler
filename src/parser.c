@@ -685,6 +685,7 @@ ASTN_Expression parser_parse_expression(Parser* parser) {
 AST_Node* parser_parse_expr(Parser* parser) {
     AST_Node* node = ast_init(EXPR);    
     node->data.expr = parser_parse_expression(parser);
+
     return node;
 }
 
@@ -859,9 +860,112 @@ AST_Node* parser_parse_import(Parser* parser) {
     return statement;
 }
 
-AST_Node* parser_parse_var_decl(Parser* parser) {
-    (void)0;
+ASTN_VariableDecl parser_parse_var_decl(Parser* parser) {
+    ASTN_VariableDecl var;
+    var.storage = -1;
+
+
+    if (!(parser->cur->type == TOK_VAR || parser->cur->type == TOK_CONST || parser->cur->type == TOK_MUT)) {
+        REPORT_ERROR(parser->lexer, "E_ACCSPEC_VAR_DECL");
+        return var;
+    }
+
+    var.storage = parser->cur->type;
+    parser_consume(parser);
+
+    bool has_dts = false, has_acc = false;
+
+    while (parser->cur->type != TOK_COLON && (!(has_dts && has_acc))) {
+        if (!has_dts) {
+            ASTN_DataTypeSpecifier dts = parser_parse_dt_spec(parser, false);
+            if (dts.data.prim != 0) {
+                var.data_type_specifier = dts;
+                has_dts = true;
+                continue;
+            }
+        }
+        
+        if (!has_acc && (parser->cur->type == TOK_PUB || parser->cur->type == TOK_PRIV || parser->cur->type == TOK_GLOB)) {
+            var.access = parser->cur->type;
+            has_acc = true;
+            parser_consume(parser);
+            continue;
+        }
+
+        break;
+    }
+
+
+    if (!parser_expect(parser, TOK_COLON)) {
+        REPORT_ERROR(parser->lexer, "E_COLON_VAR_DECL");
+        var.storage = -1;
+        return var;
+    }
+
+
+    int* identifiers = calloc(1, sizeof(int));
+    size_t size = 0;
+
+    while (parser->cur->type == TOK_IDEN) {
+        identifiers = realloc(identifiers, (size + 1) * sizeof(int));
+
+
+        Symbol* symb = symbol_init((char*)parser->cur->value, SYMBOL_VARIABLE, parser->scope, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc);
+        symtbl_insert(parser->tbl, symb);
+
+        parser_consume(parser);
+
+        identifiers[size++] = symb->data.id;
+        
+        if (parser->cur->type == TOK_COMMA) {
+            parser_consume(parser);
+        } else {
+            break;
+        }
+    }
+
+    if (size == 0) {
+        REPORT_ERROR(parser->lexer, "E_IDENTIFIER_VAR_DECL");
+        free(identifiers);
+        var.storage = -1;
+        return var;
+    }
+
+    if (size == 1) {
+        var.iden.sg = identifiers[0];
+        free(identifiers);
+    } else {
+        var.iden.mult.items = identifiers;
+        var.iden.mult.size = size;
+    }
+
+
+    if (parser_expect(parser, TOK_SC)) {
+        return var;
+    } 
+
+
+    if (parser->cur->type == TOK_EQ) {
+        parser_consume(parser);
+
+
+        if (size > 1) {
+            REPORT_ERROR(parser->lexer, "U_MULT_VAL_ASSGN");
+            var.storage = -1;
+            return var;
+        }
+        
+        var.expr = parser_parse_expr(parser);
+    
+        if (var.expr->data.expr.type == -1) {
+            var.storage = -1;
+            return var;
+        }
+    }
+
+    return var;
 }
+
 
 
 AST_Node* parser_parse_function_decl(Parser* parser) {        
@@ -1066,10 +1170,14 @@ ASTN_Statement parser_parse_statement(Parser* parser) {
             stm.type = STMT_RETURN;
             stm.data.return_stm = parser_parse_return_stm(parser);
             break;
+        case TOK_VAR:
+        case TOK_CONST:
+        case TOK_MUT:
+            stm.type = STMT_VARIABLE_DECL;
+            stm.data.variable_decl = parser_parse_var_decl(parser);
         default:
             break;
     }
-
 
     if (!(parser_expect(parser, TOK_SC))) {
         REPORT_ERROR(parser->lexer, "E_SC_AFSTM");

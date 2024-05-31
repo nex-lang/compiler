@@ -57,7 +57,7 @@ AST_Node* parser_parse_import(Parser* parser);
 AST_Node* parser_parse_attr_decl(Parser* parser);
 // void parser_parse_extend_attr(Parser* parser, ASTN_AttributeList* src, ASTN_AttributeList* dest);
 
-AST_Node* parser_parse_var_decl(Parser* parser);
+ASTN_VariableDecl parser_parse_var_decl(Parser* parser);
 AST_Node* parser_parse_function_decl(Parser* parser);
 
 ASTN_StructMemberDecl parser_parse_struct_mem(Parser* parser);
