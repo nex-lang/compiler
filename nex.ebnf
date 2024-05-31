@@ -93,7 +93,7 @@ import_declaration ::= '@import' (import_module_name | import_module_names)
     import_module_names ::= import_module_name (',' import_module_name)*
     import_module_name ::= identifier ('.' identifier)*
 
-variable_declaration ::= storage_specifier [access_specifier] [data_type_specifier] ':' identifier ';' 
+variable_declaration ::= storage_specifier [access_specifier] [data_type_specifier] ':' identifier [(',' identifier)*] ';' 
     | storage_specifier [access_specifier] [data_type_specifier] ':' identifier '=' expression
 
 function_declaration ::= [storage_specifier] [access_specifier] [data_type_specifier] [':'] 'fn' identifier '=>' parameters '{' statements '}'
