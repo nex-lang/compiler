@@ -1,3 +1,4 @@
-fn main => (int: argc, str[]: argv) {
-    return 2 * 3;
+fn x => (int: argc, str[]: argv) {
+    var pub int: x = 2;
+    return x * 3;
 }
