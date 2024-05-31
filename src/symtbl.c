@@ -53,25 +53,6 @@ Symbol* symbol_init(char* id, unsigned int type, unsigned int scope, unsigned in
     return symb;
 }
 
-void symtbl_insert(SymTable* table, Symbol* symbol) {
-    if (!table) {
-        exit(EXIT_FAILURE);
-        return;
-    }
-
-    if (table->symbol == NULL) {
-        table->symbol = symbol;
-        return;
-    }
-
-    Symbol* current = table->symbol;
-
-    while (current->next != NULL) {
-        current = current->next;
-    }
-
-    current->next = symbol;
-}
 
 Symbol* symtbl_lookup(SymTable* table, char* id, unsigned int scope, uint8_t scope_offset) {
     Symbol* current = table->symbol;

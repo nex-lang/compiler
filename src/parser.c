@@ -736,7 +736,7 @@ ASTN_Parameters* parser_parse_parameters(Parser* parser) {
     while (parser->cur->type != TOK_RPAREN) {
         params->parameter[params->size] = parser_parse_parameter(parser);
 
-        symtbl_insert(parser->tbl, symbol_init(
+        symtbl_insert(parser, symbol_init(
             (char*)params->parameter[params->size]->identifier, SYMBOL_VARIABLE, parser->scope, parser->nest, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc
         ));
 
@@ -797,7 +797,7 @@ ASTN_Module* parser_parse_module(Parser* parser) {
         parser_consume(parser);
     }
     
-    symtbl_insert(parser->tbl, symbol_init(
+    symtbl_insert(parser, symbol_init(
         current_module->module, SYMBOL_MODULE, 0, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc 
     ));
 
@@ -880,7 +880,7 @@ ASTN_AttributeDecl parser_parse_attr_decl(Parser* parser) {
 
     Symbol* symb = symbol_init((char*)parser->cur->value, SYMBOL_ATTR, parser->scope, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc);
     attr.identifier = symb->data.id; 
-    symtbl_insert(parser->tbl, symb);
+    symtbl_insert(parser, symb);
 
     parser_consume(parser);
 
@@ -996,7 +996,7 @@ ASTN_VariableDecl parser_parse_var_decl(Parser* parser) {
 
 
         Symbol* symb = symbol_init((char*)parser->cur->value, SYMBOL_VARIABLE, parser->scope, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc);
-        symtbl_insert(parser->tbl, symb);
+        symtbl_insert(parser, symb);
 
         parser_consume(parser);
 
@@ -1093,7 +1093,7 @@ AST_Node* parser_parse_function_decl(Parser* parser) {
     node->data.stm.data.function_decl.identifier = symb->data.id;
     symb->data.data = node;
     
-    symtbl_insert(parser->tbl, symb);
+    symtbl_insert(parser, symb);
 
     PRS(parser);
 
@@ -1201,7 +1201,7 @@ AST_Node* parser_parse_struct_decl(Parser* parser) {
 //     // node->data.stm.data.function_decl.identifier = symb->data.id;
 //     // symb->data.data = node;
     
-//     // symtbl_insert(parser->tbl, symb);
+//     // symtbl_insert(parser, symb);
 
 //     return node;
 // }
@@ -1295,7 +1295,7 @@ ASTN_Statements* parser_parse_statements(Parser* parser) {
 
 
 AST_Node* parser_parse_mep_decl(Parser* parser) {
-    symtbl_insert(parser->tbl, symbol_init(
+    symtbl_insert(parser, symbol_init(
         (char*)"MEP", SYMBOL_MEP, parser->scope, parser->nest, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc
     ));
 
@@ -1331,3 +1331,31 @@ AST_Node* parser_parse_mep_decl(Parser* parser) {
     return node;
 }
 
+void symtbl_insert(Parser* parser, Symbol* symbol) {
+    if (!parser->tbl) {
+        exit(EXIT_FAILURE);
+        return;
+    }
+
+    if (parser->tbl->symbol == NULL) {
+        parser->tbl->symbol = symbol;
+        return;
+    }
+
+    Symbol* checks = parser->tbl->symbol;
+    while (checks != NULL) {
+        if (checks->data.id == symbol->data.id) {
+            REPORT_ERROR(parser->lexer, "U_ATO_DPRED");
+            return;
+        }
+        checks = checks->next;
+    }
+
+    Symbol* current = parser->tbl->symbol;
+
+    while (current->next != NULL) {
+        current = current->next;
+    }
+
+    current->next = symbol;
+}
