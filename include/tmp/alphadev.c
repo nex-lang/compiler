@@ -19,7 +19,17 @@ void print_ast_node(AST_Node* node, int indent_level) {
             switch (node->data.stm.type) {
                 case STMT_VARIABLE_DECL:
                     print_indent(indent_level + 2);
-                    printf("Variable Declaration\n");
+                    printf("Variable Declaration (symb: ");
+                    if (node->data.stm.data.variable_decl.iden.mult.size) {
+                        for (int i = 0; i < node->data.stm.data.variable_decl.iden.mult.size; i++) {
+                            printf("%i, ", node->data.stm.data.variable_decl.iden.mult.items[i]);
+                        }
+                    } else {
+                        printf("%i", node->data.stm.data.variable_decl.iden.sg);
+                    }
+
+                    printf(")\n");
+
                     break;
                 case STMT_FUNCTION_DECL:
                     print_indent(indent_level + 2);
