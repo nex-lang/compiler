@@ -1,11 +1,19 @@
 attr Entity => {
     var int: posx, poxy, dimx, dimy;
+
+    fn draw => ();
 }
 
-fn abc => (int: xa, str: y) {
-    return xa;
+attr HasVoice => {
+    var str: path;
 }
 
-fn xyz => (int: x, str: y) {
-    return abc();
+attr CanDance => {
+    var str: finally_got_it_to_Work;
 }
+
+class Player ext attr.Entity, attr.HasVoice, attr.CanDance => {
+    var str: test;
+}
+
+class Block ext attr.Entity;
