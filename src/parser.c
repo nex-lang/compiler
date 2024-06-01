@@ -91,6 +91,7 @@ void parser_consume(Parser* parser) {
 
 void parser_parse(Parser* parser) {
     int i = 0;
+    AST_Node* node;
     while (parser->cur->type != TOK_EOF) {
         i += 1;
         switch (parser->cur->type) {
@@ -107,11 +108,10 @@ void parser_parse(Parser* parser) {
                 parser->tree->right = parser_parse_expr(parser);
                 break;
             case TOK_ATTR:
-                AST_Node* node = ast_init(STMT);
-                node->data.stm.type = STMT_ATTR_DECL;
-                node->data.stm.data.attribute_decl = parser_parse_attr_decl(parser);
-                
-                 parser->tree->right = node;
+                parser->tree->right = parser_parse_attr_decl(parser);                
+                break;
+            case TOK_CLASS:                
+                parser->tree->right = parser_parse_class_decl(parser);;
                 break;
             default:
                 break;
@@ -867,33 +867,29 @@ AST_Node* parser_parse_import(Parser* parser) {
     return statement;
 }
 
-ASTN_AttributeDecl parser_parse_attr_decl(Parser* parser) {
+AST_Node* parser_parse_attr_decl(Parser* parser) {
     ASTN_AttributeDecl attr;
 
     parser_consume(parser);
 
     if (parser->cur->type != TOK_IDEN) {
         REPORT_ERROR(parser->lexer, "E_FN_NAME", parser->cur->value);
-        attr.identifier = 0;
-        return attr;
+        return NULL;
     }
 
     Symbol* symb = symbol_init((char*)parser->cur->value, SYMBOL_ATTR, parser->scope, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc);
     attr.identifier = symb->data.id; 
-    symtbl_insert(parser, symb);
 
     parser_consume(parser);
 
     if (!(parser_expect(parser, TOK_FN_ARROW))) {
         REPORT_ERROR(parser->lexer, "E_ATTR_ARROW", parser->cur->value);
-        attr.identifier = 0;
-        return attr;
+        return NULL;
     }
 
     if (!(parser_expect(parser, TOK_LBRACE))) {
         REPORT_ERROR(parser->lexer, "E_ATTR_BRACE", parser->cur->value);
-        attr.identifier = 0;
-        return attr;
+        return NULL;
     }
 
     PES(parser);
@@ -937,12 +933,22 @@ ASTN_AttributeDecl parser_parse_attr_decl(Parser* parser) {
                 REPORT_ERROR(parser->lexer, "U_TOK_ATTR");
                 free(list->items);
                 free(list);
-                attr.identifier = -1;
-                return attr;
+                return NULL;
         }
     }
 
-    return attr;
+    attr.list = list;
+
+    AST_Node* node = ast_init(STMT);
+    node->data.stm.type = STMT_ATTR_DECL;
+    node->data.stm.data.attribute_decl = attr;
+
+    symb->data.data = node;
+    symtbl_insert(parser, symb);
+
+    PRS(parser);
+
+    return node;
 }
 
 ASTN_VariableDecl parser_parse_var_decl(Parser* parser) {
@@ -1109,80 +1115,232 @@ AST_Node* parser_parse_struct_decl(Parser* parser) {
 }
 
 
-// bool parser_parse_extend_attr(Parser* parser, ASTN_AttributeList* list) {
-//     char* iden;
-//     while (parser->cur->type != TOK_LBRACE) {
-//         if (parser->cur->type != TOK_IDEN) {
-//             REPORT_ERROR(parser->lexer, "E_IDENTIFIER_EXPECTED", parser->cur->value);
-//             return false;
-//         }
+bool parser_parse_extend_attr(Parser* parser, ASTN_AttributeList* list) {
+    while (parser->cur->type != TOK_FN_ARROW && parser->cur->type != TOK_SC) {
+        char* iden  = "\0";
 
-//         iden = parser->cur->value;
+        if (parser->cur->type != TOK_ATTR) {
+            REPORT_ERROR(parser->lexer, "E_ATTR_AF_EXT", parser->cur->value);
+            return false;
+        }
 
-//         parser_consume(parser);
 
-//         if (parser_expect(parser, TOK_PERIOD)) {
-//             continue;
-//         } else if (parser_expect(parser, TOK_COMMA)) {
-//             Symbol* symb = symtbl_lookup(parser->tbl, iden, 0, 0);
+        parser_consume(parser);
 
-//             if (symb->data.type != SYMBOL_ATTR) {
-//                 REPORT_ERROR(parser->lexer, "E_VALID_ATTR_AFKW", parser->cur->value);
-//                 return false;
-//             }
+        while (true) {
+            if (parser->cur->type ==  TOK_IDEN) {
+                REPORT_ERROR(parser->lexer, "E_EXPECTED_IDEN", parser->cur->value);
+                return false;
+            }
 
-//             for (size_t i = 0; i < symb->data.data->data.stm.data.attribute_decl.list.size; i++) {
-//                 list->items = realloc(list->items, (list->size + 1) * list->item_size);
-//                 list->items[list->size++] = symb->data.data->data.stm.data.attribute_decl.list.items[i];
-//             }
+            parser_consume(parser); 
 
-//             continue;
-//         } else {
-//             REPORT_ERROR(parser->lexer, "E_", parser->cur->value);
-//             return false;
-//         }
-//     }
-    
-//     return true;
-// }
+            if (!parser_expect(parser, TOK_PERIOD)) {
+                break; 
+            }
+        }
+
+        iden = parser->cur->value;
+        parser_consume(parser);
+
+        if (parser_expect(parser, TOK_COMMA)) {
+            Symbol* symb = symtbl_lookup(parser->tbl, iden, 0, 0);
+            
+            if (!symb) {
+                REPORT_ERROR(parser->lexer, "U_REF_UDEV", parser->cur->value);
+                return false;
+            }
+
+            if (symb->data.type != SYMBOL_ATTR) {
+                REPORT_ERROR(parser->lexer, "E_VALID_ATTR_AFKW", parser->cur->value);
+                return false;
+            }
+            
+
+            for (size_t i = 0; i < symb->data.data->data.stm.data.attribute_decl.list->size; i++) {
+                list->items = realloc(list->items, (list->size + 1) * list->item_size);
+                list->items[list->size++] = symb->data.data->data.stm.data.attribute_decl.list->items[i];
+            }
+
+            continue;
+        } else if (parser->cur->type == TOK_FN_ARROW || parser->cur->type == TOK_SC) {
+            Symbol* symb = symtbl_lookup(parser->tbl, iden, 0, 0);
+
+            if (!symb) {
+                REPORT_ERROR(parser->lexer, "U_REF_UDEV", parser->cur->value);
+                return false;
+            }
+
+            if (symb->data.type != SYMBOL_ATTR) {
+                REPORT_ERROR(parser->lexer, "E_VALID_ATTR_AFKW", parser->cur->value);
+                return false;
+            }
+
+            for (size_t i = 0; i < symb->data.data->data.stm.data.attribute_decl.list->size; i++) {
+                list->items = realloc(list->items, (list->size + 1) * list->item_size);
+                list->items[list->size++] = symb->data.data->data.stm.data.attribute_decl.list->items[i];
+            }
+
+            break;
+        } else {
+            REPORT_ERROR(parser->lexer, "E_UNEXPECTED_TOKEN", parser->cur->value);
+            return false;
+        }
+    }
+
+
+    return true;
+}
+
+
+AST_Node* parser_parse_class_decl(Parser* parser) {
+    ASTN_ClassDecl stm;
+    stm.identifier = 0;
+
+    if (!(parser_expect(parser, TOK_CLASS))) {
+        return NULL;
+    }
+
+    if (parser->cur->type != TOK_IDEN) {
+        REPORT_ERROR(parser->lexer, "E_CLASS_NAME", parser->cur->value);
+        return NULL;
+    }
+
+    char* iden = parser->cur->value;
+
+    parser_consume(parser);
+
+    PES(parser);
+    PRN(parser);
+
+    if (parser_expect(parser, TOK_EXT)) {
+        ASTN_AttributeList* list = calloc(1, sizeof(ASTN_AttributeList));
+
+        list->size = 0;
+        list->item_size = sizeof(AST_Node*);
+        list->items = calloc(1, sizeof(AST_Node*));
+
+        if (!parser_parse_extend_attr(parser, list)) {
+            return NULL;
+        }
+
+        stm.attributes = list;
+    }
+
+    Symbol* symb = symbol_init(iden, SYMBOL_CLASS, parser->root_scope, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc);
+    stm.identifier = symb->data.id;
+
+    AST_Node* node = ast_init(STMT);
+    node->data.stm.type = STMT_CLASS_DECL;
+
+    if (parser->cur->type == TOK_SC) {
+        node->data.stm.data.class_decl = stm;
+        symb->data.data = node;
+
+        symtbl_insert(parser, symb);
+        parser_consume(parser);
+        
+        return NULL;
+    }
+
+    if (!parser_expect(parser, TOK_FN_ARROW)) {
+        return NULL;
+    }
+
+    if (!parser_expect(parser, TOK_LBRACE)) {
+        return NULL;
+    }
+
+
+    ASTN_AttributeList* list = calloc(1, sizeof(ASTN_AttributeList));
+    list->size = 0;
+    list->item_size = sizeof(AST_Node*);
+    list->items = calloc(1, list->item_size);
+
+    while (parser->cur->type != TOK_RBRACE) {
+        AST_Node* node = NULL; 
+        switch (parser->cur->type) {
+            case TOK_FN:
+                node = ast_init(STMT);
+                node->data.stm.type = STMT_ATTR_UNIT;
+                node->data.stm.data.attribute_unit.type = ATTR_FUNCTION;
+                node->data.stm.data.attribute_unit.data.fn = parser_parse_function_decl(parser);
+
+                list->items = realloc(list->items, (list->size + 1) * list->item_size);
+                list->items[list->size++] = node;
+                break;
+
+            case TOK_VAR:
+            case TOK_MUT:
+            case TOK_CONST: {
+                AST_Node* tmpnode = ast_init(STMT);
+                tmpnode->data.stm.type = STMT_VARIABLE_DECL;
+                tmpnode->data.stm.data.variable_decl = parser_parse_var_decl(parser);
+
+                node = ast_init(STMT); // Initialize node again
+                node->data.stm.type = STMT_ATTR_UNIT;
+                node->data.stm.data.attribute_unit.type = ATTR_VARIABLE;
+                node->data.stm.data.attribute_unit.data.var = tmpnode;
+
+                list->items = realloc(list->items, (list->size + 1) * list->item_size);
+                list->items[list->size++] = node;
+                break;
+            }
+
+            default:
+                REPORT_ERROR(parser->lexer, "U_TOK_ATTR");
+                free(list->items);
+                free(list);
+                return NULL;
+        }
+    }
+
+    stm.attributes = list;
+    node->data.stm.data.class_decl = stm;
+    symb->data.data = node;
+
+    symtbl_insert(parser, symb);
+
+    return node;
+}
 
 // AST_Node* parser_parse_class_decl(Parser* parser) {
-//     if (!(parser_expect(parser, TOK_CLASS))) {
-//         return NULL;
-//     }
+    // if (!(parser_expect(parser, TOK_CLASS))) {
+    //     return NULL;
+    // }
 
-//     Token* name_tok = parser->cur;
-//     if (name_tok->type != TOK_IDEN) {
-//         REPORT_ERROR(parser->lexer, "E_CLASS_NAME", parser->cur->value);
-//         return NULL;
-//     }
+    // Token* name_tok = parser->cur;
+    // if (name_tok->type != TOK_IDEN) {
+    //     REPORT_ERROR(parser->lexer, "E_CLASS_NAME", parser->cur->value);
+    //     return NULL;
+    // }
 
-//     parser_consume(parser);
+    // parser_consume(parser);
 
-//     AST_Node* node = ast_init(STMT);
-//     node->data.stm.type = STMT_CLASS_DECL;
+    // AST_Node* node = ast_init(STMT);
+    // node->data.stm.type = STMT_CLASS_DECL;
 
-//     PES(parser);
-//     PRN(parser);
+    // PES(parser);
+    // PRN(parser);
 
-//     if (parser_expect(parser, TOK_EXT)) {
-//         ASTN_AttributeList* list = calloc(1, sizeof(ASTN_AttributeList));
+    // if (parser_expect(parser, TOK_EXT)) {
+    //     ASTN_AttributeList* list = calloc(1, sizeof(ASTN_AttributeList));
 
-//         list->size = 0;
-//         list->item_size = sizeof(AST_Node*);
-//         list->items = calloc(1, sizeof(AST_Node*));
+    //     list->size = 0;
+    //     list->item_size = sizeof(AST_Node*);
+    //     list->items = calloc(1, sizeof(AST_Node*));
 
-//         while (!(parser_expect(parser, TOK_LBRACE))) {
-//             if (parser->cur->type == TOK_ATTR) {
-//                 if (!parser_parse_extend_attr(parser, list)) {
-//                     return NULL;
-//                 }
-//             } else {
-//                 REPORT_ERROR(parser->lexer, "E_ATTR_KEYWORD_EXPECTED", parser->cur->value);
-//                 return NULL;
-//             }
-//         }
-//     }
+    //     while (!(parser_expect(parser, TOK_LBRACE))) {
+    //         if (parser->cur->type == TOK_ATTR) {
+    //             if (!parser_parse_extend_attr(parser, list)) {
+    //                 return NULL;
+    //             }
+    //         } else {
+    //             REPORT_ERROR(parser->lexer, "E_ATTR_KEYWORD_EXPECTED", parser->cur->value);
+    //             return NULL;
+    //         }
+    //     }
+    // }
 
 //     // node->data.stm.data.function_decl.parameters = parser_parse_parameters(parser);
 //     // if (node->data.stm.data.function_decl.parameters == NULL) {
@@ -1337,18 +1495,19 @@ void symtbl_insert(Parser* parser, Symbol* symbol) {
         return;
     }
 
-    if (parser->tbl->symbol == NULL) {
-        parser->tbl->symbol = symbol;
-        return;
-    }
-
     Symbol* checks = parser->tbl->symbol;
     while (checks != NULL) {
         if (checks->data.id == symbol->data.id) {
             REPORT_ERROR(parser->lexer, "U_ATO_DPRED");
-            return;
+            return; 
         }
         checks = checks->next;
+    }
+
+
+    if (parser->tbl->symbol == NULL) {
+        parser->tbl->symbol = symbol;
+        return;
     }
 
     Symbol* current = parser->tbl->symbol;
