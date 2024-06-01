@@ -72,7 +72,10 @@ void print_ast_node(AST_Node* node, int indent_level) {
                     printf("Return Statement\n");
                     print_ast_node(node->data.stm.data.return_stm.expr, indent_level + 2);
                     break;
-                // Add cases for other statement types as needed
+                case STMT_ATTR_DECL:
+                    print_indent(indent_level + 2);
+                    printf("Attribute Statement\n");
+                    break;
                 default:
                     print_indent(indent_level + 2);
                     printf("Unknown Statement Type\n");
@@ -171,6 +174,7 @@ void print_symb_tbl(Symbol* cur) {
         printf("| %-15d | %-5u | %-4u | %-10d | %-8d | %-9d | %-11d | %-10s | %-5d | %-5d |\n", 
                cur->data.id, cur->data.scope, cur->data.nest, cur->data.mem_type, cur->data.mem_mod, cur->data.mem_sto, 
                cur->data.access_type, 
+               cur->data.type == SYMBOL_ATTR ? "Attribute" : 
                cur->data.type == SYMBOL_VARIABLE ? "Variable" : 
                cur->data.type == SYMBOL_FUNCTION ? "Function" : 
                cur->data.type == SYMBOL_STRUCT ? "Struct" : 
