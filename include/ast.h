@@ -293,7 +293,7 @@ typedef struct ASTN_AttributeList {
 
 
 typedef struct ASTN_AttributeDecl {
-    ASTN_AttributeList list;
+    ASTN_AttributeList* list;
     int32_t identifier;
 } ASTN_AttributeDecl;
 
@@ -341,11 +341,7 @@ typedef struct ASTN_ClassDecl {
 
     ASTN_FunctionDecl init, free;
 
-    struct {
-        AST_Node** attributes;
-        size_t size;
-        size_t item_size;
-    } attributes;
+    ASTN_AttributeList* attributes;
 } ASTN_ClassDecl;
 
 typedef struct ASTN_EnumDecl {
