@@ -1,5 +1,3 @@
-import numpy as np;
-
 attr X => {
     fn a => ();
     fn b => ();
