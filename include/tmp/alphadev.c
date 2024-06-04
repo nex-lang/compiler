@@ -76,6 +76,10 @@ void print_ast_node(AST_Node* node, int indent_level) {
                     print_indent(indent_level + 2);
                     printf("Attribute Statement\n");
                     break;
+                case STMT_CLASS_DECL:
+                    print_indent(indent_level + 2);
+                    printf("Class Statement\n");
+                    break;
                 default:
                     print_indent(indent_level + 2);
                     printf("Unknown Statement Type\n");
