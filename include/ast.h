@@ -427,6 +427,7 @@ typedef struct ASTN_Statement {
         STMT_ATTR_DECL,
         STMT_VARIABLE_DECL,
         STMT_FUNCTION_DECL,
+        STMT_CALL,
         STMT_STRUCT_DECL,
         STMT_CLASS_DECL,
         STMT_ENUM_DECL,
@@ -447,6 +448,7 @@ typedef struct ASTN_Statement {
         ASTN_AttributeDecl attribute_decl;
         ASTN_VariableDecl variable_decl;
         ASTN_FunctionDecl function_decl;
+        ASTN_Call call;
         ASTN_StructDecl struct_decl;
         ASTN_ClassDecl class_decl;
         ASTN_EnumDecl enum_decl;
