@@ -1,10 +1,37 @@
-attr Hominoldea => {
-    var str: sub_family;
-    var str: genus;
-    var str: species;
+fn play_text_to_voice => (str: buf) {
+    return 19;
 }
 
-attr Homo ext attr.Hominoldea => {
+attr Hominoldea => {
+    var: sub_family;
+    var: genus;
+    var: species;
+}
+
+class Homo ext attr.Hominoldea => {
     sub_family = "Homininidae";
     genus = "Homo";
+}
+
+
+attr talk => {
+    fn talk => (str: words) {   
+        play_text_to_voice(words);
+    }
+}
+
+class Sapien ext Homo, attr.talk => {
+    species = "Sapien";
+}
+
+class Rich => {
+    var l_long int: net;
+}
+
+class BillGates ext Sapien, Rich => {
+    net = 126_800_000_000;
+}
+
+: fn main => () {
+
 }
