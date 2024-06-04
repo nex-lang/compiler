@@ -111,6 +111,9 @@ void parser_parse(Parser* parser) {
             case TOK_CLASS:                
                 parser->tree->right = parser_parse_class_decl(parser);;
                 break;
+            case TOK_STRUCT:
+                parser->tree->right = parser_parse_struct_decl(parser);;
+                break;
             default:
                 break;
         }
@@ -1329,12 +1332,105 @@ AST_Node* parser_parse_function_decl(Parser* parser) {
 }
 
 ASTN_StructMemberDecl parser_parse_struct_mem(Parser* parser) {
-    (void)0;
+    ASTN_StructMemberDecl stm;
+    stm.storage = -1;
+
+
+    if (!(parser->cur->type == TOK_VAR || parser->cur->type == TOK_CONST || parser->cur->type == TOK_MUT)) {
+        REPORT_ERROR(parser->lexer, "E_ACCSPEC_VAR_DECL");
+        return stm;
+    }
+
+    stm.storage = parser->cur->type;
+    parser_consume(parser);
+
+    ASTN_DataTypeSpecifier dts = parser_parse_dt_spec(parser, false);
+    if (dts.data.prim != 0) {
+        stm.data_type_specifier = dts;
+    }
+
+    if (!parser_expect(parser, TOK_COLON)) {
+        REPORT_ERROR(parser->lexer, "E_COLON_VAR_DECL");
+        stm.storage = -1;
+        return stm;
+    }
+
+    if (parser->cur->type != TOK_IDEN) {
+        REPORT_ERROR(parser->lexer, "E_IDEN_DECL");
+        stm.storage = -1;
+        return stm;
+    }
+
+    Symbol* symb = symbol_init(parser->cur->value, SYMBOL_VARIABLE, parser->scope, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc);
+    symtbl_insert(parser, symb);
+    parser_consume(parser);
+    
+    stm.identifier = symb->data.id;
+
+    if (!parser_expect(parser, TOK_SC)) {
+        REPORT_ERROR(parser->lexer, "E_SC");
+        stm.storage = -1;
+        return stm;
+    }
+
+    return stm;
 }
 
 AST_Node* parser_parse_struct_decl(Parser* parser) {
-    (void)0;
+    ASTN_StructDecl stm;
+
+    parser_consume(parser);
+
+    if (parser->cur->type != TOK_IDEN) {
+        REPORT_ERROR(parser->lexer, "E_IDEN_DECL");
+        return NULL;
+    }
+
+    AST_Node* node = ast_init(STMT);
+    node->data.stm.type = STMT_STRUCT_DECL;
+
+    Symbol* symb = symbol_init(parser->cur->value, SYMBOL_STRUCT, 0, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc);
+    parser_consume(parser);
+
+    stm.identifier = symb->data.id;
+
+    if (parser_expect(parser, TOK_SC)) {
+        node->data.stm.data.struct_decl = stm;
+        symb->data.data = node;
+        symtbl_insert(parser, symb);
+
+        return node;
+    }
+
+    if (!parser_expect(parser, TOK_LBRACE)) {
+        REPORT_ERROR(parser->lexer, "E_LBRACE");
+        return NULL;
+    }
+
+    stm.members.size = 0;
+    stm.members.item_size = sizeof(ASTN_StructMemberDecl);
+    stm.members.items = calloc(1, sizeof(ASTN_StructMemberDecl));
+
+    while (parser->cur->type != TOK_RBRACE) {
+        ASTN_StructMemberDecl mem = parser_parse_struct_mem(parser);
+        if (mem.storage == -1) {
+            return NULL;
+        }
+
+        stm.members.items = realloc(stm.members.items, (stm.members.size + 1) * stm.members.item_size);
+        stm.members.items[stm.members.size++] = mem;
+    }
+
+    parser_consume(parser);
+
+    node->data.stm.data.struct_decl = stm;
+    symb->data.data = node;
+    
+    symtbl_insert(parser, symb);
+
+    return node;
 }
+
 
 
 

@@ -100,8 +100,8 @@ function_declaration ::= [storage_specifier] [access_specifier] [data_type_speci
 
     function_call_statement ::= identifier '(' parameters ')' [';']
 
-struct_declaration ::= access_specifier ':' 'struct' identifier ';'
-    | access_specifier ':' 'struct' identifier '{' struct_member_declaration (struct_member_declaration)* '}'
+struct_declaration ::= 'struct' identifier ';'
+    | 'struct' identifier '{' struct_member_declaration (struct_member_declaration)* '}'
 
     struct_member_declaration ::=  storage_specifier [data_type_specifier] ':' identifier ';'
 

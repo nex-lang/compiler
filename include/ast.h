@@ -328,14 +328,14 @@ typedef struct ASTN_FunctionDecl {
 typedef struct ASTN_StructMemberDecl {
     int storage;
     ASTN_DataTypeSpecifier data_type_specifier;
-    char* identifier;
+    int32_t identifier;
 } ASTN_StructMemberDecl;
 
 typedef struct ASTN_StructDecl {
     int access;
-    int identifier;
+    int32_t identifier;
     struct {
-        ASTN_StructMemberDecl** items;
+        ASTN_StructMemberDecl* items;
         size_t size;
         size_t item_size;
     } members;

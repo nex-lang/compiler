@@ -1,17 +1,5 @@
-attr X => {
-    fn a => ();
-    fn b => ();
-    fn c => ();
-}
-
-attr Y ext attr.X => {
-    var: d;
-}
-
-attr Z ext attr.Y => {
-    fn a => () {
-        var str : req = "please";
-    }
-
-    d = 10;
+struct FoodMacro {
+    var int: carb;
+    var int: fat;
+    var int: prot;
 }
