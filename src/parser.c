@@ -86,13 +86,12 @@ void parser_consume(Parser* parser) {
         exit(0);
     }
 
+
     parser->cur = lexer_next_token(parser->lexer);
 }
 
 void parser_parse(Parser* parser) {
-    int i = 0;
     while (parser->cur->type != TOK_EOF) {
-        i += 1;
         switch (parser->cur->type) {
             case TOK_IMPORT:
                 parser->tree->right = parser_parse_import(parser);
@@ -124,7 +123,6 @@ void parser_parse(Parser* parser) {
         AST_Node* tmp = parser->tree->right; 
 
         parser->tree = tmp;
-        parser_consume(parser);
     }
 
 
@@ -293,12 +291,14 @@ ASTN_DataTypeSpecifier parser_parse_dt_spec(Parser* parser, bool expect_further)
 
 ASTN_Call parser_parse_call(Parser* parser) {
     ASTN_Call call;
+    
     Symbol* symb = symtbl_lookup(parser->tbl, parser->cur->value, 0, 0);
 
     if (symb == NULL || symb->data.type != SYMBOL_FUNCTION) {
         call.identifier = 0;
         return call;
     }
+
 
     parser_consume(parser);
 
@@ -312,8 +312,8 @@ ASTN_Call parser_parse_call(Parser* parser) {
     ASTN_CallParams* params = calloc(1, sizeof(ASTN_CallParams));
 
     params->size = 0;
-    params->item_size = sizeof(ASTN_Parameter*);
-    params->parameter = calloc(1, sizeof(ASTN_Parameter*));
+    params->item_size = sizeof(AST_Node*);
+    params->parameter = calloc(1, sizeof(AST_Node*));
 
 
     while (parser->cur->type != TOK_RPAREN) {
@@ -326,7 +326,7 @@ ASTN_Call parser_parse_call(Parser* parser) {
             return call;
         }         
 
-        
+        params->parameter = realloc(params->parameter, (params->size + 1) * sizeof(AST_Node));
         params->size += 1;
     }
 
@@ -359,7 +359,6 @@ ASTN_PrimaryExpr parser_parse_prim_expr(Parser* parser) {
         return expr;
     }
 
-
     if (parser->cur->type == TOK_IDEN) {
         Symbol* symb = symtbl_lookup(parser->tbl, parser->cur->value, 0, 0);
 
@@ -375,6 +374,7 @@ ASTN_PrimaryExpr parser_parse_prim_expr(Parser* parser) {
             }
         }  else {
             Symbol* symb2 = symtbl_lookup(parser->tbl, parser->cur->value, parser->scope, 0);
+                        
             if (symb2) {
                 expr.type = PRIMARY_IDENTIFIER;
                 expr.data.identifier = symb2->data.id;
@@ -735,6 +735,7 @@ ASTN_Parameters* parser_parse_parameters(Parser* parser) {
     while (parser->cur->type != TOK_RPAREN) {
         params->parameter[params->size] = parser_parse_parameter(parser);
 
+
         symtbl_insert(parser, symbol_init(
             (char*)params->parameter[params->size]->identifier, SYMBOL_VARIABLE, parser->scope, parser->nest, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc
         ));
@@ -991,6 +992,8 @@ AST_Node* parser_parse_attr_decl(Parser* parser) {
                 return NULL;
         }
     }
+
+    parser_consume(parser);
 
     attr.list = list;
 
@@ -1277,6 +1280,10 @@ AST_Node* parser_parse_function_decl(Parser* parser) {
         return NULL;
     }
 
+    Symbol* symb = symbol_init((char*)name_tok->value, SYMBOL_FUNCTION, parser->scope, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc);
+
+
+    PES(parser);
     PRN(parser);
 
     AST_Node* node = ast_init(STMT);
@@ -1286,11 +1293,10 @@ AST_Node* parser_parse_function_decl(Parser* parser) {
         return NULL;
     }
 
+
     if (parser->cur->type == TOK_SC) {
         parser_consume(parser);
         node->data.stm.data.function_decl.statements = NULL;
-
-        Symbol* symb = symbol_init((char*)name_tok->value, SYMBOL_FUNCTION, parser->scope, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc);
         
         node->data.stm.data.function_decl.identifier = symb->data.id;
         symb->data.data = node;
@@ -1302,9 +1308,6 @@ AST_Node* parser_parse_function_decl(Parser* parser) {
 
     parser_expect(parser, TOK_LBRACE);
 
-    Symbol* symb = symbol_init((char*)name_tok->value, SYMBOL_FUNCTION, parser->scope, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc);
-
-    PES(parser);
 
     node->data.stm.data.function_decl.statements = parser_parse_statements(parser);
     if (node->data.stm.data.function_decl.statements == NULL) {
@@ -1338,18 +1341,40 @@ AST_Node* parser_parse_struct_decl(Parser* parser) {
 bool parser_parse_extend_attr(Parser* parser, ASTN_AttributeList* list) {
     while (parser->cur->type != TOK_FN_ARROW && parser->cur->type != TOK_SC) {
         char* iden = "\0";
+        bool is_class = false;
+        __uint128_t scope;
+        Symbol* symb;
 
-        if (parser->cur->type != TOK_ATTR) {
-            REPORT_ERROR(parser->lexer, "E_ATTR_AF_EXT", parser->cur->value);
+        if (parser->cur->type != TOK_ATTR && parser->cur->type != TOK_IDEN) {
+            REPORT_ERROR(parser->lexer, "E_ATTRS_AF_EXT", parser->cur->value);
             return false;
         }
 
-        parser_consume(parser);
+        if (parser->cur->type == TOK_IDEN) {
+            symb = symtbl_lookup(parser->tbl, parser->cur->value, 0, 0);
+
+            if (!symb) {
+                REPORT_ERROR(parser->lexer, "E_VALID_ATTR", parser->cur->value);
+                return false;
+            }
+
+            if (symb->data.type == SYMBOL_CLASS) {
+                scope = symb->data.scope + 1;
+                is_class = true;
+            } else if (symb->data.type != SYMBOL_ATTR) {
+                REPORT_ERROR(parser->lexer, "E_VALID_ATTR", parser->cur->value);
+                return false;
+            }
+        }
+
+        if (parser->cur->type != TOK_IDEN) {
+            parser_consume(parser);
+            parser_consume(parser);
+        }
 
         while (true) {
             if (parser->cur->type == TOK_IDEN) {
-                REPORT_ERROR(parser->lexer, "E_EXPECTED_IDEN", parser->cur->value);
-                return false;
+                break;
             }
 
             parser_consume(parser);
@@ -1359,54 +1384,41 @@ bool parser_parse_extend_attr(Parser* parser, ASTN_AttributeList* list) {
             }
         }
 
+
+
         iden = parser->cur->value;
+
+        symb = symtbl_lookup(parser->tbl, parser->cur->value, 0, 0);
+
         parser_consume(parser);
 
+        if (!symb) {
+            REPORT_ERROR(parser->lexer, "U_REF_UDEV", parser->cur->value);
+            return false;
+        }
+
+
+        if (is_class) {
+            for (size_t i = 0; i < symb->data.data->data.stm.data.class_decl.attributes->size; i++) {
+                list->items = realloc(list->items, (list->size + 1) * sizeof(AST_Node*));
+                AST_Node* itm = symb->data.data->data.stm.data.class_decl.attributes->items[i];
+                itm->data.stm.data.attribute_unit.re_scope = parser->scope;
+                list->items[list->size] = itm;
+                list->size++;
+            }
+        } else if (symb->data.type == SYMBOL_ATTR) {
+            for (size_t i = 0; i < symb->data.data->data.stm.data.attribute_decl.list->size; i++) {
+                list->items = realloc(list->items, (list->size + 1) * sizeof(AST_Node*));
+                AST_Node* itm = symb->data.data->data.stm.data.attribute_decl.list->items[i];
+                itm->data.stm.data.attribute_unit.re_scope = parser->scope;
+                list->items[list->size] = itm;
+                list->size++;
+            }
+        }
 
         if (parser_expect(parser, TOK_COMMA)) {
-            Symbol* symb = symtbl_lookup(parser->tbl, iden, 0, 0);
-
-            if (!symb) {
-                REPORT_ERROR(parser->lexer, "U_REF_UDEV", parser->cur->value);
-                return false;
-            }
-
-            if (symb->data.type != SYMBOL_ATTR) {
-                REPORT_ERROR(parser->lexer, "E_VALID_ATTR_AFKW", parser->cur->value);
-                return false;
-            }
-
-            for (size_t i = 0; i < symb->data.data->data.stm.data.attribute_decl.list->size; i++) {
-                list->items = realloc(list->items, (list->size + 1) * sizeof(AST_Node*));
-                AST_Node* itm = symb->data.data->data.stm.data.attribute_decl.list->items[i];
-                itm->data.stm.data.attribute_unit.re_scope = parser->scope;
-                list->items[list->size] = itm;
-                list->size++;
-            }
-
             continue;
         } else if (parser->cur->type == TOK_FN_ARROW || parser->cur->type == TOK_SC) {
-            Symbol* symb = symtbl_lookup(parser->tbl, iden, 0, 0);
-
-            if (!symb) {
-                REPORT_ERROR(parser->lexer, "U_REF_UDEV", parser->cur->value);
-                return false;
-            }
-
-            if (symb->data.type != SYMBOL_ATTR) {
-                REPORT_ERROR(parser->lexer, "E_VALID_ATTR_AFKW", parser->cur->value);
-                return false;
-            }
-
-
-            for (size_t i = 0; i < symb->data.data->data.stm.data.attribute_decl.list->size; i++) {
-                list->items = realloc(list->items, (list->size + 1) * sizeof(AST_Node*));
-                AST_Node* itm = symb->data.data->data.stm.data.attribute_decl.list->items[i];
-                itm->data.stm.data.attribute_unit.re_scope = parser->scope;
-                list->items[list->size] = itm;
-                list->size++;
-            }
-
             break;
         } else {
             REPORT_ERROR(parser->lexer, "E_UNEXPECTED_TOKEN", parser->cur->value);
@@ -1418,14 +1430,11 @@ bool parser_parse_extend_attr(Parser* parser, ASTN_AttributeList* list) {
 }
 
 
-
 AST_Node* parser_parse_class_decl(Parser* parser) {
     ASTN_ClassDecl stm;
     stm.attributes = NULL;
 
-    if (!(parser_expect(parser, TOK_CLASS))) {
-        return NULL;
-    }
+    parser_consume(parser);    
 
     if (parser->cur->type != TOK_IDEN) {
         REPORT_ERROR(parser->lexer, "E_CLASS_NAME", parser->cur->value);
@@ -1437,13 +1446,14 @@ AST_Node* parser_parse_class_decl(Parser* parser) {
     parser_consume(parser);
 
     PES(parser);
-    PRN(parser);
 
     if (parser_expect(parser, TOK_EXT)) {
         ASTN_AttributeList* ext_list = calloc(1, sizeof(ASTN_AttributeList));
         ext_list->size = 0;
         ext_list->item_size = sizeof(AST_Node*);
         ext_list->items = calloc(1, sizeof(AST_Node*));
+
+
 
         if (!parser_parse_extend_attr(parser, ext_list)) {
             return NULL;
@@ -1468,6 +1478,7 @@ AST_Node* parser_parse_class_decl(Parser* parser) {
         return NULL;
     }
 
+
     if (!parser_expect(parser, TOK_FN_ARROW)) {
         return NULL;
     }
@@ -1475,6 +1486,9 @@ AST_Node* parser_parse_class_decl(Parser* parser) {
     if (!parser_expect(parser, TOK_LBRACE)) {
         return NULL;
     }
+
+
+    int extendedn = -1;
 
     ASTN_AttributeList* list;
     if (stm.attributes == NULL) {
@@ -1484,26 +1498,41 @@ AST_Node* parser_parse_class_decl(Parser* parser) {
         list->items = calloc(1, list->item_size);
         stm.attributes = list;
     } else {
+        extendedn = stm.attributes->size;
         list = stm.attributes;
         list->items = realloc(list->items, (list->size + 1) * list->item_size);
     }
 
     while (parser->cur->type != TOK_RBRACE) {
         AST_Node* node = NULL;
+        AST_Node* tmpnode = NULL;
         switch (parser->cur->type) {
             case TOK_FN:
                 node = ast_init(STMT);
                 node->data.stm.type = STMT_ATTR_UNIT;
                 node->data.stm.data.attribute_unit.type = ATTR_FUNCTION;
                 node->data.stm.data.attribute_unit.data.fn = parser_parse_function_decl(parser);
+                node->data.stm.data.attribute_unit.scope = parser->scope;
+
+                if (extendedn > -1) {
+                    for (size_t i = 0; i < extendedn; i++) {
+                        if (list->items[i]->data.stm.data.attribute_unit.data.fn->data.stm.data.function_decl.identifier == node->data.stm.data.attribute_unit.data.fn->data.stm.data.function_decl.identifier) {
+                            list->items[i]->data.stm.data.attribute_unit.data.fn = node->data.stm.data.attribute_unit.data.fn;
+                            break;
+                        }
+                    }
+                }
 
                 list->items = realloc(list->items, (list->size + 1) * list->item_size);
                 list->items[list->size++] = node;
+
+                
+
                 break;
             case TOK_VAR:
             case TOK_MUT:
             case TOK_CONST:
-                AST_Node* tmpnode = ast_init(STMT);
+                tmpnode = ast_init(STMT);
                 tmpnode->data.stm.type = STMT_VARIABLE_DECL;
                 tmpnode->data.stm.data.variable_decl = parser_parse_var_decl(parser);
 
@@ -1511,21 +1540,51 @@ AST_Node* parser_parse_class_decl(Parser* parser) {
                 node->data.stm.type = STMT_ATTR_UNIT;
                 node->data.stm.data.attribute_unit.type = ATTR_VARIABLE;
                 node->data.stm.data.attribute_unit.data.var = tmpnode;
+                node->data.stm.data.attribute_unit.scope = parser->scope;
 
                 list->items = realloc(list->items, (list->size + 1) * list->item_size);
                 list->items[list->size++] = node;
+
+                break;
+            case TOK_IDEN:
+                for (size_t i = 0; i < extendedn; i++) {
+                    if (list->items[i]->data.stm.data.attribute_unit.data.var->data.stm.data.variable_decl.iden.sg == symtbl_hash(parser->cur->value, list->items[i]->data.stm.data.attribute_unit.scope)) {
+                        parser_consume(parser);
+
+                        if (!parser_expect(parser, TOK_EQ)) {
+                            REPORT_ERROR(parser->lexer, "E_MOD_AFRATTR");
+                            return NULL;
+                        }
+
+                        list->items[i]->data.stm.data.attribute_unit.data.var->data.stm.data.variable_decl.expr = parser_parse_expr(parser);
+
+                        if (!parser_expect(parser, TOK_SC)) {
+                            REPORT_ERROR(parser->lexer, "E_SC");
+                            return NULL;
+                        }
+
+                        break;
+                    }
+                }
+                
+
                 break;
             default:
-                REPORT_ERROR(parser->lexer, "U_TOK_ATTR");
+                REPORT_ERROR(parser->lexer, "E_UNEXPECTED_TOKEN", parser->cur->value);
                 free(list->items);
                 free(list);
                 return NULL;
         }
     }
 
+
+    parser_consume(parser);
+
     stm.attributes = list;
     node->data.stm.data.class_decl = stm;
     symb->data.data = node;
+
+    printf("finally: %zu\n", node->data.stm.data.class_decl.attributes->size);
 
     symtbl_insert(parser, symb);
 
@@ -1646,6 +1705,10 @@ ASTN_Statement parser_parse_statement(Parser* parser) {
         case TOK_MUT:
             stm.type = STMT_VARIABLE_DECL;
             stm.data.variable_decl = parser_parse_var_decl(parser);
+            break;
+        case TOK_IDEN:
+            stm.type = STMT_CALL;
+            stm.data.call = parser_parse_call(parser);
             break;
         default:
             break;
