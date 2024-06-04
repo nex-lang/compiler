@@ -283,12 +283,17 @@ typedef struct ASTN_AttributeUnit {
         AST_Node* var;
         AST_Node* fn;
     } data;
+
+    __uint128_t re_scope;
+    __uint128_t scope;
 } ASTN_AttributeUnit;
 
 typedef struct ASTN_AttributeList {
     AST_Node** items;
+
     size_t size;
     size_t item_size;
+
 } ASTN_AttributeList;
 
 
