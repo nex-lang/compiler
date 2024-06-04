@@ -28,6 +28,10 @@ class Rich => {
     var l_long int: net;
 }
 
+attr Top10 ext Sapien, Rich => {
+    var s_short uint: rank;
+}
+
 class BillGates ext Sapien, Rich => {
     net = 126_800_000_000;
 }
