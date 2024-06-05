@@ -360,14 +360,14 @@ typedef struct ASTN_EnumDecl {
 
 typedef struct ASTN_ConditionalStm {
     AST_Node* if_condition;
-    AST_Node* if_statement;
+    ASTN_Statements* if_statements;
     struct {
         AST_Node** condition;
-        AST_Node** statements;
+        ASTN_Statements** statements;
         size_t size;
         size_t item_size_a, item_size_b;
     } elif_branches;
-    AST_Node* else_statements;
+    ASTN_Statements* else_statements;
 } ASTN_ConditionalStm;
 
 typedef struct ASTN_ForStm {

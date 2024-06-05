@@ -3,3 +3,19 @@ struct FoodMacro {
     var int: fat;
     var int: prot;
 }
+
+fn this => (int: x, int: y, int: z1, int: z2, int: z3, int: z4, int: z5) {
+    if (x > y) {
+        return z1;
+    } elif (y > WHY){
+        return z2;
+    } elif (y == WHY){
+        return z3;
+    } elif (z1 > WHY){
+        return z4;
+    } else {
+        return z5;
+    }
+
+    return WHY;
+}

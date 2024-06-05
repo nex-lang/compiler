@@ -55,19 +55,15 @@ Symbol* symbol_init(char* id, unsigned int type, unsigned int scope, unsigned in
 
 
 Symbol* symtbl_lookup(SymTable* table, char* id, unsigned int scope, uint8_t scope_offset) {
-    Symbol* current = table->symbol;
+    for (int i = 0; i <= scope_offset; i++) {
+        unsigned int current_scope = scope - i;
 
-    while (current != NULL) {
-        if (current->data.id == symtbl_hash((const char*)id, scope)) {
-            return current;
-        }
-        current = current->next;
-    }
-
-    if (scope_offset > 0 && scope > 0) {
-        Symbol* peek = symtbl_lookup(table, id, scope - 1, scope_offset);
-        if (peek != NULL && peek->data.nest >= 2) {
-            return peek;
+        Symbol* current = table->symbol;
+        while (current != NULL) {
+            if (current->data.id == symtbl_hash((const char*)id, current_scope)) {
+                return current;
+            }
+            current = current->next;
         }
     }
 

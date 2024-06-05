@@ -10,7 +10,8 @@
 char* keywords[NO_OF_KEYWORDS] = {
     "as", "attr", "bool", "char", "class", "const", "double", "enum", "ext",
     "false", "float", "fn", "from", "glob", "import", "int", "l_long", "long", "mut",
-    "priv", "pub", "return", "short", "s_short", "size", "str", "struct", "true", "uint", "var"
+    "priv", "pub", "return", "short", "s_short", "size", "str", "struct", "true", "uint", "var",
+    "if", "else", "elif", "switch", "case", "while", "for", "try", "except", "finally"
 };
 
 Lexer* lexer_init(char* filename) {
@@ -236,7 +237,8 @@ Token* lexer_handle_alpha(Lexer* lexer) {
     uint8_t KWCHAR_TYPE_MAP[NO_OF_KEYWORDS] = {
         TOK_AS, TOK_ATTR, TOK_BOOL, TOK_CHAR, TOK_CLASS, TOK_CONST, TOK_DOUBLE, TOK_ENUM, TOK_EXT,
         TOK_FALSE, TOK_FLOAT, TOK_FN, TOK_FROM, TOK_GLOB, TOK_IMPORT, TOK_INT, TOK_L_LONG, TOK_LONG, TOK_MUT,
-        TOK_PRIV, TOK_PUB, TOK_RETURN, TOK_SHORT, TOK_S_SHORT, TOK_SIZE, TOK_STRING, TOK_STRUCT, TOK_TRUE, TOK_UINT, TOK_VAR
+        TOK_PRIV, TOK_PUB, TOK_RETURN, TOK_SHORT, TOK_S_SHORT, TOK_SIZE, TOK_STRING, TOK_STRUCT, TOK_TRUE, TOK_UINT, TOK_VAR,
+        TOK_IF, TOK_ELSE, TOK_ELIF, TOK_SWITCH, TOK_CASE, TOK_WHILE, TOK_FOR, TOK_TRY, TOK_EXCEPT, TOK_FINALLY
     };
 
     for (uint8_t i = 0; i < NO_OF_KEYWORDS ; i++) {
