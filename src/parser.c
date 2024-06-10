@@ -352,10 +352,9 @@ ASTN_Call parser_parse_call(Parser* parser) {
 
 ASTN_PrimaryExpr parser_parse_prim_expr(Parser* parser) {
     ASTN_PrimaryExpr expr;
-    ASTN_Literal lit = parser_parse_literal(parser);
-
     expr.type = -1;
 
+    ASTN_Literal lit = parser_parse_literal(parser);
     if (lit.type != -1) {
         expr.type = PRIMARY_LITERAL;
         expr.data.literal = lit;
@@ -364,7 +363,6 @@ ASTN_PrimaryExpr parser_parse_prim_expr(Parser* parser) {
 
     if (parser->cur->type == TOK_IDEN) {
         Symbol* symb = symtbl_lookup(parser->tbl, parser->cur->value, 0, 0);
-
         if (symb) {
             if (symb->data.type == SYMBOL_FUNCTION || symb->data.type == SYMBOL_CLASS ||
                 symb->data.type == SYMBOL_STRUCT) {
@@ -375,9 +373,8 @@ ASTN_PrimaryExpr parser_parse_prim_expr(Parser* parser) {
                 expr.data.identifier = symb->data.id;
                 parser_consume(parser);
             }
-        }  else {
+        } else {
             Symbol* symb2 = symtbl_lookup(parser->tbl, parser->cur->value, parser->scope, 0);
-                        
             if (symb2) {
                 expr.type = PRIMARY_IDENTIFIER;
                 expr.data.identifier = symb2->data.id;
@@ -388,27 +385,6 @@ ASTN_PrimaryExpr parser_parse_prim_expr(Parser* parser) {
                 expr.data.identifier = 0;
             }
         }
-        
-        return expr;
-    }
-
-
-
-    if (parser->cur->type == TOK_LPAREN) {
-        parser_consume(parser);
-
-        expr.type = PRIMARY_EXPRESSION;
-        expr.data.expression = malloc(sizeof(ASTN_Expression));
-        
-        if (expr.data.expression == NULL) {
-            exit(EXIT_FAILURE);
-        }
-        
-        ASTN_Expression x = parser_parse_expression(parser);
-        expr.data.expression = &x;
-        
-        parser_consume(parser);
-        return expr;
     }
 
     return expr;
@@ -419,38 +395,34 @@ ASTN_FactorExpr parser_parse_factor_expr(Parser* parser) {
     ASTN_FactorExpr expr;
     expr.type = -1;
 
-    if (parser->cur->type == TOK_MINUS_MINUS || parser->cur->type == TOK_ADD_ADD || parser->cur->type == TOK_MINUS || parser->cur->type == TOK_BANG) {
+    if (parser->cur->type == TOK_MINUS_MINUS || parser->cur->type == TOK_ADD_ADD ||
+        parser->cur->type == TOK_MINUS || parser->cur->type == TOK_BANG) {
         expr.type = FACTOR_UNARY_OP;
         expr.data.unary_op.op = parser->cur->type;
-
         parser_consume(parser);
-        
-        expr.data.unary_op.expr = parser_parse_prim_expr(parser);
+        expr.data.unary_op.expr = parser_parse_expression(parser);
+        if (!expr.data.unary_op.expr) {
+            return expr;
+        }
+    } else {
+        expr.data.primary = parser_parse_prim_expr(parser);
 
-        return expr;
-    }
-
-    expr.data.primary = parser_parse_prim_expr(parser);
-
-    if (expr.data.primary.type == -1) {
-        REPORT_ERROR(parser->lexer, "E_PROP_EXP", parser->cur->value);
-        return expr;
-    }
-
-    expr.type = FACTOR_PRIMARY;
-
-    if (parser->cur->type == TOK_MINUS_MINUS || parser->cur->type == TOK_ADD_ADD) {
-        ASTN_FactorExpr post_expr;
-        
-        post_expr.type = FACTOR_UNARY_OP;
-        post_expr.data.unary_op.op = parser->cur->type;
-
-        
-        parser_consume(parser);
-        
-        post_expr.data.unary_op.expr = expr.data.primary;
-        
-        return post_expr;
+        if (expr.data.primary.type == -1) {
+            REPORT_ERROR(parser->lexer, "E_PROP_EXP", parser->cur->value);
+            return expr;
+        }
+        expr.type = FACTOR_PRIMARY;
+        if (parser->cur->type == TOK_MINUS_MINUS || parser->cur->type == TOK_ADD_ADD) {
+            ASTN_FactorExpr post_expr;
+            post_expr.type = FACTOR_UNARY_OP;
+            post_expr.data.unary_op.op = parser->cur->type;
+            parser_consume(parser);
+            post_expr.data.unary_op.expr = parser_parse_expression(parser);
+            if (!post_expr.data.unary_op.expr) {
+                return expr;
+            }
+            return post_expr;
+        }
     }
 
     return expr;
@@ -461,25 +433,45 @@ ASTN_TermExpr parser_parse_term_expr(Parser* parser) {
     ASTN_TermExpr expr;
     expr.type = -1;
 
-
     expr.data.factor = parser_parse_factor_expr(parser);
-
     if (expr.data.factor.type == -1) {
         return expr;
     }
-
     expr.type = TERM_FACTOR;
 
-    if (parser->cur->type == TOK_ASTK_ASTK) {
+    while (parser->cur->type == TOK_ASTK_ASTK) {
         ASTN_TermExpr new_expr;
         new_expr.type = TERM_BINARY_OP;
-        new_expr.data.binary_op.left = expr.data.factor;
 
-        new_expr.data.binary_op.op = parser->cur->type;
         parser_consume(parser);
 
-        new_expr.data.binary_op.right = parser_parse_factor_expr(parser);
-        if (new_expr.data.binary_op.right.type == -1) {
+        new_expr.data.binary_op.left = malloc(sizeof(ASTN_Expression));
+        if (!new_expr.data.binary_op.left) {
+            return expr;
+        }
+        
+        if (expr.type != -1) {
+            new_expr.data.binary_op.left->type = EXPR_ADDITION;
+            new_expr.data.binary_op.left->data.factor = expr.data.factor;
+        } else {
+            new_expr.data.binary_op.left = parser_parse_expression(parser);
+        }
+
+        new_expr.data.binary_op.op = TOK_ASTK_ASTK;
+
+        parser_consume(parser);
+
+        new_expr.data.binary_op.right = malloc(sizeof(ASTN_Expression));
+        if (!new_expr.data.binary_op.right) {
+            free(new_expr.data.binary_op.left);
+            return expr;
+        }
+
+        new_expr.data.binary_op.right = parser_parse_expression(parser); 
+        
+        if (!new_expr.data.binary_op.right) {
+            free(new_expr.data.binary_op.left);
+            free(new_expr.data.binary_op.right);
             return expr;
         }
 
@@ -488,39 +480,54 @@ ASTN_TermExpr parser_parse_term_expr(Parser* parser) {
     }
 
     return expr;
-}   
-
+}
 
 ASTN_MultiplicationExpr parser_parse_mult_expr(Parser* parser) {
     ASTN_MultiplicationExpr expr;
     expr.type = -1;
 
     expr.data.term = parser_parse_term_expr(parser);
-    
+
     if (expr.data.term.type == -1) {
         return expr;
     }
-    
+
     expr.type = MULTIPLICATION_TERM;
 
-
-    if (parser->cur->type == TOK_ASTK || parser->cur->type == TOK_SLASH || parser->cur->type == TOK_PERC) {
+    while (parser->cur->type == TOK_ASTK || parser->cur->type == TOK_SLASH || parser->cur->type == TOK_PERC) {
         ASTN_MultiplicationExpr new_expr;
         new_expr.type = MULTIPLICATION_BINARY_OP;
-        new_expr.data.binary_op.left = expr.data.term;
 
-        new_expr.data.binary_op.op = parser->cur->type;
+        new_expr.data.binary_op.left = malloc(sizeof(ASTN_Expression));
+        if (!new_expr.data.binary_op.left) {
+            return expr;
+        }
+        
+        if (expr.type != -1) {
+            new_expr.data.binary_op.left->type = EXPR_ADDITION;
+            new_expr.data.binary_op.left->data.term = expr.data.term;
+        } else {
+            new_expr.data.binary_op.left = parser_parse_expression(parser);
+        }
 
         parser_consume(parser);
 
-
-        new_expr.data.binary_op.right = parser_parse_term_expr(parser);
-
-        if (new_expr.data.binary_op.right.type == -1) {
+        new_expr.data.binary_op.right = malloc(sizeof(ASTN_Expression));
+        if (!new_expr.data.binary_op.right) {
+            free(new_expr.data.binary_op.left);
+            return expr;
+        }
+        
+        new_expr.data.binary_op.right = parser_parse_expression(parser);
+        
+        if (!new_expr.data.binary_op.right) {
+            free(new_expr.data.binary_op.left);
+            free(new_expr.data.binary_op.right);
             return expr;
         }
 
         expr = new_expr;
+
     }
 
     return expr;
@@ -535,22 +542,40 @@ ASTN_AdditionExpr parser_parse_add_expr(Parser* parser) {
     if (expr.data.multiplication.type == -1) {
         return expr;
     }
-    
+
     expr.type = ADDITION_MULTIPLICATION;
 
-
-    if (parser->cur->type == TOK_ADD || parser->cur->type == TOK_MINUS) {
+    while (parser->cur->type == TOK_ADD || parser->cur->type == TOK_MINUS) {
         ASTN_AdditionExpr new_expr;
         new_expr.type = ADDITION_BINARY_OP;
-        new_expr.data.binary_op.left = expr.data.multiplication;
+
+        new_expr.data.binary_op.left = malloc(sizeof(ASTN_Expression));
+        if (!new_expr.data.binary_op.left) {
+            return expr;
+        }
+        
+        if (expr.type != -1) {
+            new_expr.data.binary_op.left->type = EXPR_ADDITION;
+            new_expr.data.binary_op.left->data.multiplication = expr.data.multiplication;
+        } else {
+            new_expr.data.binary_op.left = parser_parse_expression(parser);
+        }
 
         new_expr.data.binary_op.op = parser->cur->type;
 
         parser_consume(parser);
 
-        new_expr.data.binary_op.right = parser_parse_mult_expr(parser);
-
-        if (new_expr.data.binary_op.right.type == -1) {
+        new_expr.data.binary_op.right = malloc(sizeof(ASTN_Expression));
+        if (!new_expr.data.binary_op.right) {
+            free(new_expr.data.binary_op.left);
+            return expr;
+        }
+        
+        new_expr.data.binary_op.right = parser_parse_expression(parser);
+        
+        if (!new_expr.data.binary_op.right) {
+            free(new_expr.data.binary_op.left);
+            free(new_expr.data.binary_op.right);
             return expr;
         }
 
@@ -569,22 +594,40 @@ ASTN_BitwiseExpr parser_parse_bitw_expr(Parser* parser) {
     if (expr.data.addition.type == -1) {
         return expr;
     }
-    
+
     expr.type = BITWISE_ADDITION;
 
-
-    if (parser->cur->type == TOK_AMPER || parser->cur->type == TOK_PIPE || parser->cur->type == TOK_GT_GT  || parser->cur->type == TOK_LT_LT) {
+    while (parser->cur->type == TOK_AMPER || parser->cur->type == TOK_PIPE || parser->cur->type == TOK_GT_GT || parser->cur->type == TOK_LT_LT) {
         ASTN_BitwiseExpr new_expr;
         new_expr.type = BITWISE_BINARY_OP;
-        new_expr.data.binary_op.left = expr.data.addition;
+
+        new_expr.data.binary_op.left = malloc(sizeof(ASTN_Expression));
+        if (!new_expr.data.binary_op.left) {
+            return expr;
+        }
+
+        if (expr.type != -1) {
+            new_expr.data.binary_op.left->type = EXPR_ADDITION;
+            new_expr.data.binary_op.left->data.addition = expr.data.addition;
+        } else {
+            new_expr.data.binary_op.left = parser_parse_expression(parser);
+        }
 
         new_expr.data.binary_op.op = parser->cur->type;
 
         parser_consume(parser);
 
-        new_expr.data.binary_op.right = parser_parse_add_expr(parser);
-
-        if (new_expr.data.binary_op.right.type == -1) {
+        new_expr.data.binary_op.right = malloc(sizeof(ASTN_Expression));
+        if (!new_expr.data.binary_op.right) {
+            free(new_expr.data.binary_op.left);
+            return expr;
+        }
+        
+        new_expr.data.binary_op.right = parser_parse_expression(parser);
+        
+        if (!new_expr.data.binary_op.right) {
+            free(new_expr.data.binary_op.left);
+            free(new_expr.data.binary_op.right);
             return expr;
         }
 
@@ -603,21 +646,41 @@ ASTN_ComparisonExpr parser_parse_comp_expr(Parser* parser) {
     if (expr.data.bitwise.type == -1) {
         return expr;
     }
-    
-    expr.type = BITWISE_ADDITION;
 
-    if (parser->cur->type == TOK_LT_EQ || parser->cur->type == TOK_GT_EQ || parser->cur->type == TOK_BANG_EQ  || parser->cur->type == TOK_EQ_EQ || parser->cur->type == TOK_LT || parser->cur->type == TOK_GT) {
+    expr.type = COMPARISON_BITWISE;
+
+    while (parser->cur->type == TOK_LT_EQ || parser->cur->type == TOK_GT_EQ || parser->cur->type == TOK_BANG_EQ || parser->cur->type == TOK_EQ_EQ || parser->cur->type == TOK_LT || parser->cur->type == TOK_GT) {
         ASTN_ComparisonExpr new_expr;
         new_expr.type = COMPARISON_BINARY_OP;
-        new_expr.data.binary_op.left = expr.data.bitwise;
+
+        new_expr.data.binary_op.left = malloc(sizeof(ASTN_Expression));
+        if (!new_expr.data.binary_op.left)  {
+            return expr;
+        }
+
+        if (expr.type != -1) {
+            new_expr.data.binary_op.left->type = EXPR_BITWISE;
+            new_expr.data.binary_op.left->data.bitwise = expr.data.bitwise;
+        } else {
+            new_expr.data.binary_op.left = parser_parse_expression(parser);
+        }
 
         new_expr.data.binary_op.op = parser->cur->type;
 
         parser_consume(parser);
 
-        new_expr.data.binary_op.right = parser_parse_bitw_expr(parser);
-
-        if (new_expr.data.binary_op.right.type == -1) {
+        new_expr.data.binary_op.right = malloc(sizeof(ASTN_Expression));
+        
+        if (!new_expr.data.binary_op.right) {
+            free(new_expr.data.binary_op.left);
+            return expr;
+        }
+        
+        new_expr.data.binary_op.right = parser_parse_expression(parser);
+        
+        if (!new_expr.data.binary_op.right) {
+            free(new_expr.data.binary_op.left);
+            free(new_expr.data.binary_op.right);
             return expr;
         }
 
@@ -627,57 +690,98 @@ ASTN_ComparisonExpr parser_parse_comp_expr(Parser* parser) {
     return expr;
 }
 
-ASTN_Expression parser_parse_expression(Parser* parser) {
-    ASTN_Expression expr;
-    expr.type = -1;
 
+
+ASTN_Expression* parser_parse_expression(Parser* parser) {
+    ASTN_Expression* expr = malloc(sizeof(ASTN_Expression));
+    if (expr == NULL) {
+        return NULL;
+    }
+
+    expr->type = -1;
+    bool expect_db_close;
 
     if (parser->cur->type == TOK_LPAREN) {
-        ASTN_PrimaryExpr p = parser_parse_prim_expr(parser); 
+        parser_consume(parser);
+        ASTN_Expression* nested_expr = parser_parse_expression(parser);
+        nested_expr->type = EXPR_NEST;
+        if (nested_expr == NULL) {
+            free(expr);
+            return NULL;
+        }
 
-        expr.type = EXPR_NEST;
-        expr.data.nest = p.data.expression;
+        if (parser->cur->type == TOK_RPAREN) parser_consume(parser);
 
+        while (parser->cur->type == TOK_ASTK_ASTK || parser->cur->type == TOK_ASTK || parser->cur->type == TOK_SLASH || parser->cur->type == TOK_PERC
+        || parser->cur->type == TOK_ADD || parser->cur->type == TOK_MINUS || parser->cur->type == TOK_AMPER || parser->cur->type == TOK_PIPE
+        || parser->cur->type == TOK_GT_GT || parser->cur->type == TOK_LT_LT || parser->cur->type == TOK_LT || parser->cur->type == TOK_GT
+        || parser->cur->type == TOK_ADD || parser->cur->type == TOK_MINUS || parser->cur->type == TOK_LT_EQ || parser->cur->type == TOK_GT_EQ
+        || parser->cur->type == TOK_BANG_EQ || parser->cur->type == TOK_EQ_EQ
+        ) {
+            expect_db_close = true;
+            int op_type = parser->cur->type;
+            parser_consume(parser); 
+
+            ASTN_Expression* right_expr = parser_parse_expression(parser);
+            if (right_expr == NULL) {
+                free(expr);
+                free(nested_expr);
+                return NULL;
+            }
+
+            ASTN_Expression* compound_expr = malloc(sizeof(ASTN_Expression));
+            if (compound_expr == NULL) {
+                free(expr);
+                free(nested_expr);
+                free(right_expr);
+                return NULL;
+            }
+            compound_expr->type = op_type;
+            compound_expr->data.nest.data.binary_op.left = nested_expr;
+            compound_expr->data.nest.data.binary_op.right = right_expr;
+
+            nested_expr = compound_expr;
+        }
+
+        if (parser->cur->type == TOK_RPAREN && expect_db_close) parser_consume(parser);
+
+        *expr = *nested_expr;
         return expr;
     }
-            
+
     ASTN_ComparisonExpr x = parser_parse_comp_expr(parser);
 
     if (x.type == COMPARISON_BINARY_OP) {
-        expr.type = EXPR_COMPARISON;
-        expr.data.comparison = x;
+        expr->type = EXPR_COMPARISON;
+        expr->data.comparison = x;
     } else if (x.data.bitwise.type == BITWISE_BINARY_OP) {
-        expr.type = EXPR_BITWISE;
-        expr.data.bitwise = x.data.bitwise;
+        expr->type = EXPR_BITWISE;
+        expr->data.bitwise = x.data.bitwise;
     } else if (x.data.bitwise.data.addition.type == ADDITION_BINARY_OP) {
-        expr.type = EXPR_ADDITION;
-        expr.data.addition = x.data.bitwise.data.addition;
+        expr->type = EXPR_ADDITION;
+        expr->data.addition = x.data.bitwise.data.addition;
     } else if (x.data.bitwise.data.addition.data.multiplication.type == MULTIPLICATION_BINARY_OP) {
-        expr.type = EXPR_MULTIPLICATION;
-        expr.data.multiplication = x.data.bitwise.data.addition.data.multiplication;
+        expr->type = EXPR_MULTIPLICATION;
+        expr->data.multiplication = x.data.bitwise.data.addition.data.multiplication;
     } else if (x.data.bitwise.data.addition.data.multiplication.data.term.type == TERM_BINARY_OP) {
-        expr.type = EXPR_TERM;
-        expr.data.term = x.data.bitwise.data.addition.data.multiplication.data.term;
+        expr->type = EXPR_TERM;
+        expr->data.term = x.data.bitwise.data.addition.data.multiplication.data.term;
     } else if (x.data.bitwise.data.addition.data.multiplication.data.term.data.factor.type == FACTOR_UNARY_OP) {
-        expr.type = EXPR_FACTOR;
-        expr.data.factor = x.data.bitwise.data.addition.data.multiplication.data.term.data.factor;
+        expr->type = EXPR_FACTOR;
+        expr->data.factor = x.data.bitwise.data.addition.data.multiplication.data.term.data.factor;
     } else if (x.data.bitwise.data.addition.data.multiplication.data.term.data.factor.type == FACTOR_PRIMARY) {
         switch (x.data.bitwise.data.addition.data.multiplication.data.term.data.factor.data.primary.type) {
             case PRIMARY_IDENTIFIER:
-                expr.type = EXPR_IDENTIFIER;
-                expr.data.identifier = x.data.bitwise.data.addition.data.multiplication.data.term.data.factor.data.primary.data.identifier;
+                expr->type = EXPR_IDENTIFIER;
+                expr->data.identifier = x.data.bitwise.data.addition.data.multiplication.data.term.data.factor.data.primary.data.identifier;
                 break;
             case PRIMARY_LITERAL:
-                expr.type = EXPR_LITERAL;
-                expr.data.literal = x.data.bitwise.data.addition.data.multiplication.data.term.data.factor.data.primary.data.literal;
-                break;
-            case PRIMARY_EXPRESSION:
-                expr.type = EXPR_NEST;
-                expr.data.nest = x.data.bitwise.data.addition.data.multiplication.data.term.data.factor.data.primary.data.expression;
+                expr->type = EXPR_LITERAL;
+                expr->data.literal = x.data.bitwise.data.addition.data.multiplication.data.term.data.factor.data.primary.data.literal;
                 break;
             case PRIMARY_CALL:
-                expr.type = EXPR_FUNCTION_CALL;
-                expr.data.function_call = x.data.bitwise.data.addition.data.multiplication.data.term.data.factor.data.primary.data.call;
+                expr->type = EXPR_FUNCTION_CALL;
+                expr->data.function_call = x.data.bitwise.data.addition.data.multiplication.data.term.data.factor.data.primary.data.call;
                 break;
         }
     } else {
@@ -693,7 +797,7 @@ ASTN_Expression parser_parse_expression(Parser* parser) {
 
 AST_Node* parser_parse_expr(Parser* parser) {
     AST_Node* node = ast_init(EXPR);    
-    node->data.expr = parser_parse_expression(parser);
+    node->data.expr = *parser_parse_expression(parser);
 
     return node;
 }

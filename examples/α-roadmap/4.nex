@@ -1,5 +1,3 @@
-struct FoodMacro {
-    var int: carb;
-    var int: fat;
-    var int: prot;
+fn calc_calories => (int: carb, int: fat, int: prot, int: alc) {
+    return ((fat * 9) + (carb * 4) + (prot * 4) + (alc * 9));
 }
