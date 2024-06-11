@@ -84,6 +84,14 @@ void print_ast_node(AST_Node* node, int indent_level) {
                     print_indent(indent_level + 2);
                     printf("Conditional Statement\n");
                     break;
+                case STMT_WHILE_LOOP:
+                    print_indent(indent_level + 2);
+                    printf("While Statement\n");
+                    break;
+                case STMT_SWITCH:
+                    print_indent(indent_level + 2);
+                    printf("Switch Statement\n");
+                    break;
                 default:
                     print_indent(indent_level + 2);
                     printf("Unknown Statement Type\n");

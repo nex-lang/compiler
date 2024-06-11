@@ -11,7 +11,7 @@ typedef struct Parser {
     AST_Node* root;
     SymTable* tbl;
 
-    __uint128_t root_scope;
+    __uint128_t highest_scope;
     __uint128_t scope;
     uint8_t nest;
 } Parser;
@@ -23,7 +23,18 @@ bool parser_expectsq(Parser* parser, ...);
 bool parser_expect(Parser* parser, uint8_t expected);
 void parser_consume(Parser* parser);
 
-#define PES(parser) ((parser)->scope += 1)
+#define PES(parser)                                \
+    do {                                           \
+        if ((parser)->scope < (parser)->highest_scope) { \
+            (parser)->scope = (parser)->highest_scope + 1; \
+        } else {                                   \
+            (parser)->scope += 1;                  \
+        }                                          \
+        if ((parser)->scope > (parser)->highest_scope) { \
+            (parser)->highest_scope = (parser)->scope; \
+        }                                          \
+    } while (0)
+
 #define PER(parser) ((parser)->root_scope += 1)
 #define PEN(parser) ((parser)->nest += 1)
 
