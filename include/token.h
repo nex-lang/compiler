@@ -3,7 +3,7 @@
 
 #include "p_info.h"
 
-#define NO_OF_KEYWORDS 40
+#define NO_OF_KEYWORDS 42
 #define KEYWORDS keywords
 #define MAX_KEYWORD_LEN 7
 
@@ -99,6 +99,8 @@ typedef struct Token {
         TOK_TRY,
         TOK_EXCEPT,
         TOK_FINALLY,
+        TOK_BREAK,
+        TOK_CONTINUE,
 
         // Literals
         TOK_L_SSINT,            // 8-bit signed integer

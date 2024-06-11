@@ -413,7 +413,7 @@ typedef struct ASTN_TryStm {
 
 typedef struct ASTN_WhileStm {
     AST_Node* condition_expr;
-    AST_Node* statements;
+    ASTN_Statements* statements;
 } ASTN_WhileStm;
 
 typedef struct ASTN_Keyword {
@@ -466,6 +466,8 @@ typedef struct ASTN_Statement {
         ASTN_WhileStm while_loop;
         ASTN_Expression expression;
         ASTN_ReturnStm return_stm;
+        bool brak;
+        bool cont;
     } data;
 } ASTN_Statement;
 
