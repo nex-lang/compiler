@@ -92,6 +92,10 @@ void print_ast_node(AST_Node* node, int indent_level) {
                     print_indent(indent_level + 2);
                     printf("Switch Statement\n");
                     break;
+                case STMT_TRY:
+                    print_indent(indent_level + 2);
+                    printf("Try Statement\n");
+                    break;
                 default:
                     print_indent(indent_level + 2);
                     printf("Unknown Statement Type\n");
@@ -197,6 +201,7 @@ void print_symb_tbl(Symbol* cur) {
                cur->data.type == SYMBOL_CLASS ? "Class" : 
                cur->data.type == SYMBOL_ENUM ? "Enum" : 
                cur->data.type == SYMBOL_MEP ? "MEP" : 
+               cur->data.type == SYMBOL_ERR ? "ERR" : 
                cur->data.type == SYMBOL_MODULE ? "Module" : "Unknown",
                cur->data.decl_line, cur->data.decl_col);
 

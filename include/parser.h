@@ -75,12 +75,13 @@ AST_Node* parser_parse_struct_decl(Parser* parser);
 
 bool parser_parse_extend_attr(Parser* parser, ASTN_AttributeList* list);
 AST_Node* parser_parse_class_decl(Parser* parser);
+AST_Node* parser_parse_err_decl(Parser* parser);
+
 AST_Node* parser_parse_enum_decl(Parser* parser);
 
 ASTN_ConditionalStm parser_parse_cond_stm(Parser* parser, uint8_t scopeOS);
 ASTN_ForStm parser_parse_for_stm(Parser* parser, uint8_t scopeOS);
 ASTN_SwitchStm parser_parse_switch_stm(Parser* parser, uint8_t scopeOS);
-ASTN_CaseClause parser_parse_case_clause(Parser* parser, uint8_t scopeOS);
 ASTN_TryStm parser_parse_try_stm(Parser* parser, uint8_t scopeOS);
 ASTN_WhileStm parser_parse_while_stm(Parser* parser, uint8_t scopeOS);
 ASTN_ReturnStm parser_parse_return_stm(Parser* parser, uint8_t scopeOS);

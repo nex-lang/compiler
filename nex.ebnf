@@ -125,6 +125,11 @@ attr_body_declaration ::= 'fn' identifier '=>' parameters '{' statements '}'
                         | identifier '=' expression ';'
                         | class_variable_declaration
 
+error_declaration ::= 'err' identifier ';'
+    | 'err' identifier '{' [error_member_declaration (',' error_member_declaration)*] '}'
+
+    error_member_declaration ::=  data_type_specifier ':' identifier 
+
 # Control Statements
 
 conditional_statement ::= 'if' '(' expression ')' '{' statements '}'

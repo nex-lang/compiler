@@ -28,10 +28,10 @@ typedef struct ASTN_FunctionDecl ASTN_FunctionDecl;
 typedef struct ASTN_StructDecl ASTN_StructDecl;
 typedef struct ASTN_ClassDecl ASTN_ClassDecl;
 typedef struct ASTN_EnumDecl ASTN_EnumDecl;
+typedef struct ASTN_ErrDecl ASTN_ErrDecl;
 typedef struct ASTN_ConditionalStm ASTN_ConditionalStm;
 typedef struct ASTN_ForStm ASTN_ForStm;
 typedef struct ASTN_SwitchStm ASTN_SwitchStm;
-typedef struct ASTN_CaseClause ASTN_CaseClause;
 typedef struct ASTN_TryStm ASTN_TryStm;
 typedef struct ASTN_WhileStm ASTN_WhileStm;
 typedef struct ASTN_ReturnStm ASTN_ReturnStm;
@@ -347,7 +347,7 @@ typedef struct ASTN_StructDecl {
 } ASTN_StructDecl;
 
 typedef struct ASTN_ClassDecl {
-    int identifier;
+    int32_t identifier;
 
     ASTN_FunctionDecl init, free;
 
@@ -355,13 +355,23 @@ typedef struct ASTN_ClassDecl {
 } ASTN_ClassDecl;
 
 typedef struct ASTN_EnumDecl {
-    int identifier;
+    int32_t identifier;
     struct {
         char** items;
         size_t size;
         size_t item_size;
     } members;
 } ASTN_EnumDecl;
+
+typedef struct ASTN_ErrDecl {
+    int32_t identifier;
+    struct {
+        ASTN_DataTypeSpecifier* dtss;
+        uint32_t* identifiers;
+        size_t size;
+        size_t item_size;
+    } members;
+} ASTN_ErrDecl;
 
 typedef struct ASTN_ConditionalStm {
     AST_Node* if_condition;
@@ -395,11 +405,6 @@ typedef struct ASTN_SwitchStm {
     } clauses;
 } ASTN_SwitchStm;
 
-typedef struct ASTN_CaseClause {
-    AST_Node* condition_expr;
-    ASTN_Statements* statements;
-} ASTN_CaseClause;
-
 typedef struct ASTN_TryStm {
     ASTN_Statements* try_statements;
     struct {
@@ -429,6 +434,7 @@ typedef struct ASTN_Statement {
         STMT_CALL,
         STMT_STRUCT_DECL,
         STMT_CLASS_DECL,
+        STMT_ERR_DECL,
         STMT_ENUM_DECL,
         STMT_IMPORT_DECL,
         STMT_CONDITIONAL,
@@ -450,6 +456,7 @@ typedef struct ASTN_Statement {
         ASTN_Call call;
         ASTN_StructDecl struct_decl;
         ASTN_ClassDecl class_decl;
+        ASTN_ErrDecl err_decl;
         ASTN_EnumDecl enum_decl;
         ASTN_ImportDecl import_decl;
         ASTN_ConditionalStm conditional;

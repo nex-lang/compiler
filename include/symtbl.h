@@ -21,7 +21,8 @@ typedef struct Symbol {
             SYMBOL_ENUM,
             SYMBOL_MEP,
             SYMBOL_MODULE,
-            SYMBOL_ATTR
+            SYMBOL_ATTR,
+            SYMBOL_ERR
         } type;
         
         AST_Node* data;

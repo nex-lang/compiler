@@ -109,7 +109,10 @@ void parser_parse(Parser* parser) {
                 parser->tree->right = parser_parse_attr_decl(parser);                
                 break;
             case TOK_CLASS:                
-                parser->tree->right = parser_parse_class_decl(parser);;
+                parser->tree->right = parser_parse_class_decl(parser);
+                break;
+            case TOK_ERR: 
+                parser->tree->right = parser_parse_err_decl(parser);
                 break;
             case TOK_STRUCT:
                 parser->tree->right = parser_parse_struct_decl(parser);;
@@ -1648,6 +1651,84 @@ AST_Node* parser_parse_class_decl(Parser* parser) {
     return node;
 }
 
+AST_Node* parser_parse_err_decl(Parser* parser) {
+    ASTN_ErrDecl stm;
+
+    parser_consume(parser);
+
+    if (parser->cur->type != TOK_IDEN) {
+        REPORT_ERROR(parser->lexer, "E_IDEN_DECL");
+        return NULL;
+    }
+
+    AST_Node* node = ast_init(STMT);
+    node->data.stm.type = STMT_ERR_DECL;
+
+    Symbol* symb = symbol_init(parser->cur->value, SYMBOL_ERR, 0, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc);
+    parser_consume(parser);
+
+    stm.identifier = symb->data.id;
+
+    if (parser_expect(parser, TOK_SC)) {
+        node->data.stm.data.err_decl = stm;
+        symb->data.data = node;
+        symtbl_insert(parser, symb);
+
+        return node;
+    }
+
+    if (!parser_expect(parser, TOK_LBRACE)) {
+        REPORT_ERROR(parser->lexer, "E_LBRACE");
+        return NULL;
+    }
+
+    PES(parser);
+
+    stm.members.size = 0;
+    stm.members.dtss = calloc(1, sizeof(ASTN_DataTypeSpecifier));
+    stm.members.identifiers = calloc(1, sizeof(uint32_t));
+
+    while (parser->cur->type != TOK_RBRACE) {
+        ASTN_DataTypeSpecifier dts = parser_parse_dt_spec(parser, false);
+        
+        if (!parser_expect(parser, TOK_COLON)) {
+            REPORT_ERROR(parser->lexer, "E_COLON_VAR_DECL");
+            return NULL;
+        }
+
+        if (parser->cur->type != TOK_IDEN) {
+            REPORT_ERROR(parser->lexer, "E_IDEN_DECL");
+            return NULL;
+        }
+
+        Symbol* symb = symbol_init(parser->cur->value, SYMBOL_VARIABLE, parser->scope, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc);
+        symtbl_insert(parser, symb);
+
+        parser_consume(parser);
+
+        stm.members.identifiers = realloc(stm.members.identifiers, (stm.members.size + 1) * sizeof(uint8_t));
+        stm.members.identifiers[stm.members.size] = symb->data.id; 
+
+        stm.members.dtss = realloc(stm.members.dtss, (stm.members.size + 1) * sizeof(ASTN_DataTypeSpecifier));
+        stm.members.dtss[stm.members.size] = dts;
+
+        stm.members.size += 1;
+
+        if (!parser_expect(parser, TOK_COMMA)) {
+            break;
+        }
+    }
+
+    parser_consume(parser);
+    node->data.stm.data.err_decl = stm;
+    symb->data.data = node;
+    
+    symtbl_insert(parser, symb);
+
+    return node;
+}
+
+
 AST_Node* parser_parse_enum_decl(Parser* parser) {
     (void)0;
 }
@@ -1855,10 +1936,6 @@ ASTN_SwitchStm parser_parse_switch_stm(Parser* parser, uint8_t scopeOS) {
     return stm;
 }
 
-
-ASTN_CaseClause parser_parse_case_clause(Parser* parser, uint8_t scopeOS) {
-    (void)0;
-}
 
 ASTN_TryStm parser_parse_try_stm(Parser* parser, uint8_t scopeOS) {
     (void)0;

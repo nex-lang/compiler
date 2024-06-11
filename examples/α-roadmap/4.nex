@@ -1,8 +1,10 @@
+err THIS_RANDOM_ERROR {int: code, str: fmt_msg}
+
 fn print => (str: buffer) {
     return buffer;
 }
 
-fn calc_calories => (int: carb, int: fat, int: prot, int: alc) {
+fn expressions_X => (int: carb, int: fat, int: prot, int: alc) {
     var: init = 100;
     if (fat > 30) {
         print("HIGH IN FAT");
@@ -17,14 +19,14 @@ fn calc_calories => (int: carb, int: fat, int: prot, int: alc) {
     return ((fat * 9) + (carb * 4) + (prot * 4) + (alc * 9));
 }
 
-fn loop => () {
+fn while_X => () {
     var int: i = 10;
     while (i > -2) {
         i + 1;
     }
 }
 
-fn switchx => (int: x) {
+fn switch_X => (int: x) {
     switch (x) {
         case 2:
             return 3131;
@@ -33,4 +35,8 @@ fn switchx => (int: x) {
         case 12:
             return 2332;
     }
+}
+
+fn for_X => () {
+
 }
