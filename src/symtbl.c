@@ -55,12 +55,21 @@ Symbol* symbol_init(char* id, unsigned int type, unsigned int scope, unsigned in
 
 
 Symbol* symtbl_lookup(SymTable* table, char* id, unsigned int scope, uint8_t scope_offset) {
-    for (int i = 0; i <= scope_offset; i++) {
-        unsigned int current_scope = scope - i;
+    uint32_t hash_id = symtbl_hash((const char*)id, scope);
+    Symbol* current = table->symbol;
 
-        Symbol* current = table->symbol;
+    while (current != NULL) {
+        if (current->data.id == hash_id) {
+            return current;
+        }
+        current = current->next;
+    }
+
+    for (unsigned int i = 1; i <= scope_offset && scope >= i; ++i) {
+        current = table->symbol;
+        hash_id = symtbl_hash((const char*)id, scope - i);
         while (current != NULL) {
-            if (current->data.id == symtbl_hash((const char*)id, current_scope)) {
+            if (current->data.id == hash_id) {
                 return current;
             }
             current = current->next;
@@ -69,7 +78,6 @@ Symbol* symtbl_lookup(SymTable* table, char* id, unsigned int scope, uint8_t sco
 
     return NULL;
 }
-
 
 
 int32_t symtbl_hash(const char* key, unsigned int scope) {

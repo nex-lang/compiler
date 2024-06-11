@@ -8,7 +8,6 @@ set(LIB_SOURCES
     include/tmp/alphadev.c
     src/io.c
     src/symtbl.c
-    src/stack.c
     src/lexer.c
     src/ast.c
     src/parser.c
@@ -22,7 +21,6 @@ set(HEADERS
     include/tmp/alphadev.h
     include/p_info.h
     include/io.h
-    include/stack.h
     include/token.h
     include/symtbl.h
     include/lexer.h

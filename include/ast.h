@@ -109,14 +109,12 @@ typedef struct ASTN_PrimaryExpr {
         PRIMARY_CALL,
         PRIMARY_IDENTIFIER,
         PRIMARY_LITERAL,
-        PRIMARY_EXPRESSION
     } type;
 
     union {
         ASTN_Call call;
         int32_t identifier;
         ASTN_Literal literal;
-        AST_Node* expression;
     } data;
 } ASTN_PrimaryExpr;
 
@@ -130,7 +128,7 @@ typedef struct ASTN_FactorExpr {
         ASTN_PrimaryExpr primary;
         struct {
             int op;
-            ASTN_PrimaryExpr expr;
+            ASTN_Expression* expr;
         } unary_op;
     } data;
 } ASTN_FactorExpr;
@@ -145,8 +143,8 @@ typedef struct ASTN_TermExpr {
         ASTN_FactorExpr factor;
         struct {
             int op;
-            ASTN_FactorExpr right;
-            ASTN_FactorExpr left;
+            ASTN_Expression* left;
+            ASTN_Expression* right;
         } binary_op;
     } data;
 } ASTN_TermExpr;
@@ -161,8 +159,8 @@ typedef struct ASTN_MultiplicationExpr {
         ASTN_TermExpr term;
         struct {
             int op;
-            ASTN_TermExpr right;
-            ASTN_TermExpr left;
+            ASTN_Expression* left;
+            ASTN_Expression* right;
         } binary_op;
     } data;
 } ASTN_MultiplicationExpr;
@@ -177,8 +175,8 @@ typedef struct ASTN_AdditionExpr {
         ASTN_MultiplicationExpr multiplication;
         struct {
             int op;
-            ASTN_MultiplicationExpr right;
-            ASTN_MultiplicationExpr left;
+            ASTN_Expression* left;
+            ASTN_Expression* right;
         } binary_op;
     } data;
 } ASTN_AdditionExpr;
@@ -193,8 +191,8 @@ typedef struct ASTN_BitwiseExpr {
         ASTN_AdditionExpr addition;
         struct {
             int op;
-            ASTN_AdditionExpr right;
-            ASTN_AdditionExpr left;
+            ASTN_Expression* left;
+            ASTN_Expression* right;
         } binary_op;
     } data;
 } ASTN_BitwiseExpr;
@@ -209,8 +207,8 @@ typedef struct ASTN_ComparisonExpr {
         ASTN_BitwiseExpr bitwise;
         struct {
             int op;
-            ASTN_BitwiseExpr left;
-            ASTN_BitwiseExpr right;
+            ASTN_Expression* left;
+            ASTN_Expression* right;
         } binary_op;
     } data;
 } ASTN_ComparisonExpr;
@@ -220,19 +218,27 @@ typedef struct ASTN_Expression {
         EXPR_FUNCTION_CALL,
         EXPR_IDENTIFIER,
         EXPR_LITERAL,
-        EXPR_NEST,
+        EXPR_PRIMARY,
         EXPR_FACTOR,
         EXPR_TERM,
         EXPR_MULTIPLICATION,
         EXPR_ADDITION,
         EXPR_BITWISE,
-        EXPR_COMPARISON
+        EXPR_COMPARISON,
+        EXPR_NEST
     } type;
 
     union {
         ASTN_Call function_call;
-        AST_Node* nest;
         int32_t identifier;
+        struct {
+            union {
+                struct {
+                    ASTN_Expression* left;
+                    ASTN_Expression* right;
+                } binary_op;
+            } data;
+        } nest;
         ASTN_Literal literal;
         ASTN_PrimaryExpr primary;
         ASTN_FactorExpr factor;
@@ -362,12 +368,12 @@ typedef struct ASTN_ConditionalStm {
     AST_Node* if_condition;
     ASTN_Statements* if_statements;
     struct {
-        AST_Node** condition;
+        AST_Node** conditions;
         ASTN_Statements** statements;
         size_t size;
         size_t item_size_a, item_size_b;
     } elif_branches;
-    ASTN_Statements* else_statements;
+    AST_Node* else_statements;
 } ASTN_ConditionalStm;
 
 typedef struct ASTN_ForStm {
