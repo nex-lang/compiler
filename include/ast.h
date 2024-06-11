@@ -34,7 +34,6 @@ typedef struct ASTN_SwitchStm ASTN_SwitchStm;
 typedef struct ASTN_CaseClause ASTN_CaseClause;
 typedef struct ASTN_TryStm ASTN_TryStm;
 typedef struct ASTN_WhileStm ASTN_WhileStm;
-typedef struct ASTN_Keyword ASTN_Keyword;
 typedef struct ASTN_ReturnStm ASTN_ReturnStm;
 
 typedef struct ASTN_Statements ASTN_Statements;
@@ -383,13 +382,14 @@ typedef struct ASTN_ForStm {
     AST_Node* condition_expr;
     AST_Node* next_expr;
 
-    AST_Node* statements;
+    ASTN_Statements* statements;
 } ASTN_ForStm;
 
 typedef struct ASTN_SwitchStm {
     AST_Node* condition_expr;
     struct {
-        AST_Node** items;
+        AST_Node** value;
+        ASTN_Statements** statements;
         size_t size;
         size_t item_size;
     } clauses;
@@ -397,31 +397,24 @@ typedef struct ASTN_SwitchStm {
 
 typedef struct ASTN_CaseClause {
     AST_Node* condition_expr;
-    AST_Node* statements;
+    ASTN_Statements* statements;
 } ASTN_CaseClause;
 
 typedef struct ASTN_TryStm {
-    AST_Node* try_statements;
+    ASTN_Statements* try_statements;
     struct {
         AST_Node** condition;
-        AST_Node** statements;
+        ASTN_Statements** statements;
         size_t size;
         size_t item_size_a, item_size_b;
     } except_branches;
-    AST_Node* finally_statements;
+    ASTN_Statements* finally_statements;
 } ASTN_TryStm;
 
 typedef struct ASTN_WhileStm {
     AST_Node* condition_expr;
     ASTN_Statements* statements;
 } ASTN_WhileStm;
-
-typedef struct ASTN_Keyword {
-    union {
-        int break_;
-        int continue_;
-    } type;
-} ASTN_Keyword;
 
 typedef struct ASTN_ReturnStm {
     AST_Node* expr;

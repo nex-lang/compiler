@@ -16,3 +16,10 @@ fn calc_calories => (int: carb, int: fat, int: prot, int: alc) {
 
     return ((fat * 9) + (carb * 4) + (prot * 4) + (alc * 9));
 }
+
+fn loop => () {
+    var int: i = 10;
+    while (i > -2) {
+        i + 1;
+    }
+}

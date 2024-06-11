@@ -302,7 +302,6 @@ ASTN_Call parser_parse_call(Parser* parser, uint8_t scopeOS) {
         return call;
     }
 
-
     parser_consume(parser);
 
     if (!(parser_expect(parser, TOK_LPAREN))) {
@@ -1791,8 +1790,40 @@ ASTN_TryStm parser_parse_try_stm(Parser* parser) {
     (void)0;
 }
 
-ASTN_WhileStm parser_parse_while_stm(Parser* parser) {
-    (void)0;
+ASTN_WhileStm parser_parse_while_stm(Parser* parser, uint8_t scopeOS) {
+    ASTN_WhileStm stm;
+    parser_consume(parser);
+
+    __uint128_t temp = parser->scope;
+
+    if (!parser_expect(parser, TOK_LPAREN)) {
+        REPORT_ERROR(parser->lexer, "E_LPAREN");
+        return stm;
+    }
+
+    stm.condition_expr = parser_parse_expr(parser, scopeOS);
+
+    if (!parser_expect(parser, TOK_RPAREN)) {
+        REPORT_ERROR(parser->lexer, "E_RPAREN");
+        return stm;
+    }
+
+    if (!parser_expect(parser, TOK_LBRACE)) {
+        REPORT_ERROR(parser->lexer, "E_LBRACE");
+        return stm;
+    }
+
+    PES(parser);
+    scopeOS += 1;
+
+    stm.statements = parser_parse_statements(parser, scopeOS);
+
+    if (!parser_expect(parser, TOK_RBRACE)) {
+        REPORT_ERROR(parser->lexer, "E_RBRACE");
+        return stm;
+    }
+
+    return stm;
 }
 
 ASTN_ReturnStm parser_parse_return_stm(Parser* parser, uint8_t scopeOS) {
@@ -1823,11 +1854,28 @@ ASTN_Statement parser_parse_statement(Parser* parser, uint8_t scopeOS) {
         case TOK_IDEN:
             stm.type = STMT_CALL;
             stm.data.call = parser_parse_call(parser, scopeOS);
+            if (stm.data.call.identifier != 0) { break; }
+            
+            stm.type = STMT_EXPRESSION;
+            stm.data.expression = *parser_parse_expression(parser, scopeOS);
             break;
         case TOK_IF:
             stm.type = STMT_CONDITIONAL;
             stm.data.conditional = parser_parse_cond_stm(parser, scopeOS);
             return stm; break;
+        case TOK_WHILE:
+            stm.type = STMT_WHILE_LOOP;
+            stm.data.while_loop = parser_parse_while_stm(parser, scopeOS);
+            return stm; break;
+        case TOK_BREAK:
+            parser_consume(parser);
+            stm.type = STMT_BREAK;
+            stm.data.brak = true;
+            break;
+        case TOK_CONTINUE:
+            parser_consume(parser);
+            stm.type = STMT_CONTINUE;
+            stm.data.cont = true;
         default:
             break;
     }
