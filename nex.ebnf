@@ -50,12 +50,14 @@ comp_data_type_specifier ::= prim_data_type_specifier '[' [expression] ']'
 
 statements ::= statement (';' statement)*
 statement ::= (expression | import_declaration | variable_declaration | function_declaration
-    | struct_declaration | class_declaration | enum_declaration | conditional_statement 
-    | for_statement | switch_statement | try_statement | while_statement 
-    | function_call_statement | loop_control_statement | return_statement)
+    | attr_declaration | error_declaration | struct_declaration | class_declaration 
+    | enum_declaration | conditional_statement  | for_statement | switch_statement 
+    | try_statement | while_statement | function_call_statement | loop_control_statement 
+    | return_statement | throw_statement)
 
     loop_control_statement ::= ('break' | 'continue') ';'
     return_statement ::= 'return' expression ';'
+    throw_statement ::= 'throw' identifier ';'
 
 expression ::= comparison_expression
     comparison_expression ::= bitwise_expression

@@ -35,6 +35,7 @@ typedef struct ASTN_SwitchStm ASTN_SwitchStm;
 typedef struct ASTN_TryStm ASTN_TryStm;
 typedef struct ASTN_WhileStm ASTN_WhileStm;
 typedef struct ASTN_ReturnStm ASTN_ReturnStm;
+typedef struct ASTN_ThrowStm ASTN_ThrowStm;
 
 typedef struct ASTN_Statements ASTN_Statements;
 typedef struct ASTN_MEP ASTN_MEP;
@@ -425,6 +426,10 @@ typedef struct ASTN_ReturnStm {
     AST_Node* expr;
 } ASTN_ReturnStm;
 
+typedef struct ASTN_ThrowStm {
+    uint8_t iden;
+} ASTN_ThrowStm;
+
 typedef struct ASTN_Statement {
     enum {
         STMT_ATTR_UNIT,
@@ -444,6 +449,7 @@ typedef struct ASTN_Statement {
         STMT_WHILE_LOOP,
         STMT_EXPRESSION,
         STMT_RETURN,
+        STMT_THROW,
         STMT_BREAK,
         STMT_CONTINUE
     } type;
@@ -466,6 +472,7 @@ typedef struct ASTN_Statement {
         ASTN_WhileStm while_loop;
         ASTN_Expression expression;
         ASTN_ReturnStm return_stm;
+        ASTN_ThrowStm throw_stm;
         bool brak;
         bool cont;
     } data;

@@ -28,6 +28,8 @@ fn while_X => () {
 
 fn switch_X => (int: x) {
     switch (x) {
+        case 0:
+            throw THIS_RANDOM_ERROR;
         case 2:
             return 3131;
         case 6:

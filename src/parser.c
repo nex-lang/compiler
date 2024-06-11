@@ -1988,6 +1988,28 @@ ASTN_ReturnStm parser_parse_return_stm(Parser* parser, uint8_t scopeOS) {
     return statement;    
 }
 
+ASTN_ThrowStm parser_parse_throw_stm(Parser* parser) {
+    parser_consume(parser);
+    ASTN_ThrowStm statement;
+
+    if (parser->cur->type != TOK_IDEN) {
+        REPORT_ERROR(parser->lexer, "E_THROW_IDEN");
+        return statement;
+    }
+
+    Symbol* sym = symtbl_lookup(parser->tbl, parser->cur->value, 0, 0);
+    if (!sym || sym->data.type != SYMBOL_ERR) {
+        REPORT_ERROR(parser->lexer, "E_PROP_ERRTT");
+        return statement;
+    }
+
+    parser_consume(parser);
+
+    statement.iden = sym->data.id;
+
+    return statement;
+}
+
 
 ASTN_Statement parser_parse_statement(Parser* parser, uint8_t scopeOS) {
     ASTN_Statement stm;
@@ -1997,6 +2019,10 @@ ASTN_Statement parser_parse_statement(Parser* parser, uint8_t scopeOS) {
         case TOK_RETURN:
             stm.type = STMT_RETURN;
             stm.data.return_stm = parser_parse_return_stm(parser, scopeOS);
+            break;
+        case TOK_THROW:
+            stm.type = STMT_THROW;
+            stm.data.throw_stm = parser_parse_throw_stm(parser);
             break;
         case TOK_VAR:
         case TOK_CONST:
