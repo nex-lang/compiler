@@ -332,7 +332,7 @@ ASTN_Call parser_parse_call(Parser* parser, uint8_t scopeOS) {
         }         
 
         params->parameter = realloc(params->parameter, (params->size + 1) * sizeof(AST_Node));
-        params->size += 1;
+        params->size++;
     }
 
     call.params = params;
@@ -860,7 +860,7 @@ ASTN_Parameters* parser_parse_parameters(Parser* parser) {
             return NULL;
         }         
         
-        params->size += 1;
+        params->size++;
     }
 
     if (!(parser_expect(parser, TOK_RPAREN))) {
@@ -1712,7 +1712,7 @@ AST_Node* parser_parse_err_decl(Parser* parser) {
         stm.members.dtss = realloc(stm.members.dtss, (stm.members.size + 1) * sizeof(ASTN_DataTypeSpecifier));
         stm.members.dtss[stm.members.size] = dts;
 
-        stm.members.size += 1;
+        stm.members.size++;
 
         if (!parser_expect(parser, TOK_COMMA)) {
             break;
@@ -1938,7 +1938,111 @@ ASTN_SwitchStm parser_parse_switch_stm(Parser* parser, uint8_t scopeOS) {
 
 
 ASTN_TryStm parser_parse_try_stm(Parser* parser, uint8_t scopeOS) {
-    (void)0;
+    ASTN_TryStm stm;
+    parser_consume(parser);
+
+    __uint128_t temp = parser->scope;
+
+    if (!parser_expect(parser, TOK_LBRACE)) {
+        REPORT_ERROR(parser->lexer, "E_LBRACE");
+        return stm;
+    }
+
+    PES(parser);
+    scopeOS += 1;
+
+    stm.try_statements = parser_parse_statements(parser, scopeOS);
+
+    if (!parser_expect(parser, TOK_RBRACE)) {
+        REPORT_ERROR(parser->lexer, "E_RBRACE");
+        return stm;
+    }
+
+    if (parser->cur->type == TOK_FINALLY) {
+        parser_consume(parser);
+        if (!parser_expect(parser, TOK_LBRACE)) {
+            REPORT_ERROR(parser->lexer, "E_LBRACE");
+            return stm;
+        }
+
+        PES(parser);
+        scopeOS += 1;
+
+        stm.finally_statements = parser_parse_statements(parser, scopeOS);
+
+        if (!parser_expect(parser, TOK_RBRACE)) {
+            REPORT_ERROR(parser->lexer, "E_RBRACE");
+            return stm;
+        }
+    }
+
+    stm.except_branches.errors = calloc(1, sizeof(uint32_t));
+    stm.except_branches.statements = calloc(1, sizeof(ASTN_Statements));
+    stm.except_branches.size = 0;
+
+
+    while (parser->cur->type == TOK_EXCEPT) {
+        parser_consume(parser);
+        
+        if (parser->cur->type != TOK_IDEN) {
+            REPORT_ERROR(parser->lexer, "E_EXCPET_IDEN");
+            return stm;
+        }
+
+        Symbol* sym = symtbl_lookup(parser->tbl, parser->cur->value, 0, 0);
+        if (!sym || sym->data.type != SYMBOL_ERR) {
+            REPORT_ERROR(parser->lexer, "E_PROP_ERRTT");
+            return stm;
+        }
+
+        parser_consume(parser);
+
+        if (!parser_expect(parser, TOK_LBRACE)) {
+            REPORT_ERROR(parser->lexer, "E_LBRACE");
+            return stm;
+        }
+        
+        PES(parser);
+        scopeOS += 1;
+
+        ASTN_Statements* stms = parser_parse_statements(parser, scopeOS);
+
+        if (!parser_expect(parser, TOK_RBRACE)) {
+            REPORT_ERROR(parser->lexer, "E_RBRACE");
+            return stm;
+        }
+
+        stm.except_branches.errors = realloc(stm.except_branches.errors, (stm.except_branches.size + 1) * sizeof(uint32_t));
+        stm.except_branches.statements = realloc(stm.except_branches.statements, (stm.except_branches.size + 1) * sizeof(ASTN_Statements*));
+
+        stm.except_branches.errors[stm.except_branches.size] = sym->data.id;
+        stm.except_branches.statements[stm.except_branches.size] = stms;
+        stm.except_branches.size++;
+    }
+
+
+    if (parser->cur->type == TOK_FINALLY) {
+        parser_consume(parser);
+        if (!parser_expect(parser, TOK_LBRACE)) {
+            REPORT_ERROR(parser->lexer, "E_LBRACE");
+            return stm;
+        }
+
+        PES(parser);
+        scopeOS += 1;
+
+        stm.finally_statements = parser_parse_statements(parser, scopeOS);
+
+        if (!parser_expect(parser, TOK_RBRACE)) {
+            REPORT_ERROR(parser->lexer, "E_RBRACE");
+            return stm;
+        }
+    }
+
+
+    parser->scope = temp;
+
+    return stm;
 }
 
 ASTN_WhileStm parser_parse_while_stm(Parser* parser, uint8_t scopeOS) {
@@ -2050,6 +2154,10 @@ ASTN_Statement parser_parse_statement(Parser* parser, uint8_t scopeOS) {
             stm.type = STMT_SWITCH;
             stm.data.switch_stm = parser_parse_switch_stm(parser, scopeOS);
             return stm; break;
+        case TOK_TRY:
+            stm.type = STMT_TRY;
+            stm.data.try_stm = parser_parse_try_stm(parser, scopeOS);
+            return stm; break;
         case TOK_BREAK:
             parser_consume(parser);
             stm.type = STMT_BREAK;
@@ -2085,7 +2193,7 @@ ASTN_Statements* parser_parse_statements(Parser* parser, uint8_t scopeOS) {
         if (node->data.stm.type != -1) {
             stms->statement = realloc(stms->statement, (stms->size + 1) * stms->item_size);
             stms->statement[stms->size] = node;
-            stms->size += 1;
+            stms->size++;
         }
     }
 

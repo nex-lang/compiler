@@ -39,6 +39,12 @@ fn switch_X => (int: x) {
     }
 }
 
-fn for_X => () {
-
+fn try_X => (str: x) {
+    try {
+        print(x);
+    } except THIS_RANDOM_ERROR {
+        print("RANDOM ERROR TRIGGERED");
+    } finally {
+        print("YHAY");
+    }
 }

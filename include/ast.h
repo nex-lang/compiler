@@ -409,7 +409,7 @@ typedef struct ASTN_SwitchStm {
 typedef struct ASTN_TryStm {
     ASTN_Statements* try_statements;
     struct {
-        AST_Node** condition;
+        uint32_t* errors;
         ASTN_Statements** statements;
         size_t size;
         size_t item_size_a, item_size_b;
