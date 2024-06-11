@@ -1067,6 +1067,12 @@ AST_Node* parser_parse_attr_decl(Parser* parser) {
                 tmpnode->data.stm.type = STMT_VARIABLE_DECL;
                 tmpnode->data.stm.data.variable_decl = parser_parse_var_decl(parser, 0);
 
+                if (!parser_expect(parser, TOK_SC)) {
+                    REPORT_ERROR(parser->lexer, "E_SC");
+                    return NULL;
+                }
+
+
                 node = ast_init(STMT);
                 node->data.stm.type = STMT_ATTR_UNIT;
                 node->data.stm.data.attribute_unit.type = ATTR_VARIABLE;
@@ -1203,7 +1209,7 @@ ASTN_VariableDecl parser_parse_var_decl(Parser* parser, uint8_t scopeOS) {
     }
 
 
-    if (parser_expect(parser, TOK_SC)) {
+    if (parser->cur->value == TOK_SC) {
         return var;
     } 
 
@@ -1597,6 +1603,11 @@ AST_Node* parser_parse_class_decl(Parser* parser) {
                 tmpnode = ast_init(STMT);
                 tmpnode->data.stm.type = STMT_VARIABLE_DECL;
                 tmpnode->data.stm.data.variable_decl = parser_parse_var_decl(parser, 0);
+                
+                if (!parser_expect(parser, TOK_SC)) {
+                    REPORT_ERROR(parser->lexer, "E_SC");
+                    return NULL;
+                }
 
                 node = ast_init(STMT);
                 node->data.stm.type = STMT_ATTR_UNIT;
@@ -1856,7 +1867,51 @@ ASTN_ConditionalStm parser_parse_cond_stm(Parser* parser, uint8_t scopeOS) {
 }
 
 ASTN_ForStm parser_parse_for_stm(Parser* parser, uint8_t scopeOS) {
-    (void)0;
+    ASTN_ForStm stm;
+    parser_consume(parser);
+
+    if (!parser_expect(parser, TOK_LPAREN)) {
+        REPORT_ERROR(parser->lexer, "E_LPAREN");
+        return stm;
+    }
+
+    stm.var_decl = parser_parse_var_decl(parser, scopeOS);
+
+    if (!parser_expect(parser, TOK_SC)) {
+        REPORT_ERROR(parser->lexer, "E_SC");
+        return stm;
+    }
+
+    stm.condition_expr = parser_parse_expr(parser, scopeOS);
+
+    if (!parser_expect(parser, TOK_SC)) {
+        REPORT_ERROR(parser->lexer, "E_SC");
+        return stm;
+    }
+
+    stm.next_expr = parser_parse_expr(parser, scopeOS);
+
+    if (!parser_expect(parser, TOK_RPAREN)) {
+        REPORT_ERROR(parser->lexer, "E_RPAREN");
+        return stm;
+    }
+
+    if (!parser_expect(parser, TOK_LBRACE)) {
+        REPORT_ERROR(parser->lexer, "E_LBRACE");
+        return stm;
+    }
+
+    PES(parser);
+    scopeOS += 1;
+
+    stm.statements = parser_parse_statements(parser, scopeOS);
+
+    if (!parser_expect(parser, TOK_RBRACE)) {
+        REPORT_ERROR(parser->lexer, "E_RBRACE");
+        return stm;
+    }
+
+    return stm;
 }
 
 ASTN_SwitchStm parser_parse_switch_stm(Parser* parser, uint8_t scopeOS) {
@@ -2157,6 +2212,10 @@ ASTN_Statement parser_parse_statement(Parser* parser, uint8_t scopeOS) {
         case TOK_TRY:
             stm.type = STMT_TRY;
             stm.data.try_stm = parser_parse_try_stm(parser, scopeOS);
+            return stm; break;
+        case TOK_FOR:
+            stm.type = STMT_FOR_LOOP;
+            stm.data.for_loop = parser_parse_for_stm(parser, scopeOS);
             return stm; break;
         case TOK_BREAK:
             parser_consume(parser);

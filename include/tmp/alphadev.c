@@ -96,6 +96,10 @@ void print_ast_node(AST_Node* node, int indent_level) {
                     print_indent(indent_level + 2);
                     printf("Try Statement\n");
                     break;
+                case STMT_FOR_LOOP:
+                    print_indent(indent_level + 2);
+                    printf("For Statement\n");
+                    break;
                 default:
                     print_indent(indent_level + 2);
                     printf("Unknown Statement Type\n");

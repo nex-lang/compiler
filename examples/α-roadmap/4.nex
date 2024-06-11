@@ -48,3 +48,9 @@ fn try_X => (str: x) {
         print("YHAY");
     }
 }
+
+fn for_x => () {
+    for (var int: i = 0; i < 10; i++) {
+        print(i);
+    }
+}
