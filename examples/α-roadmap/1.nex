@@ -1,5 +1,3 @@
-import print from std.io as log;
-
-: fn main => (int: argc, str[]: argv) {
+: fn main => () {
     return 0;
 }

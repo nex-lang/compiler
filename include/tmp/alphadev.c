@@ -163,6 +163,24 @@ void print_ast_node(AST_Node* node, int indent_level) {
         case MEP:
             print_indent(indent_level + 1);
             printf("MEP\n");
+
+            print_indent(indent_level + 2);
+            printf("Parameters: %zu\n", node->data.mep.parameters->size);
+
+            for (int i = 0; i < node->data.mep.parameters->size; i++) {
+                print_indent(indent_level + 3);
+                printf("%i: %s \n", (i + 1), node->data.mep.parameters->parameter[i]->identifier);
+            }
+
+            print_indent(indent_level + 2);
+
+            printf("Statements: %zu\n", node->data.mep.statements->size);
+
+            for (int i = 0; i < node->data.mep.statements->size; i++) {
+                print_ast_node(node->data.mep.statements->statement[i], indent_level + 3);
+            }
+
+            break;
             break;
         default:
             print_indent(indent_level + 1);

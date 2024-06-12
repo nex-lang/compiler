@@ -1,3 +1,7 @@
 build/
 deps/
 .vscode/
+
+prog.asm
+prog.o
+prog

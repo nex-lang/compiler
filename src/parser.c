@@ -32,13 +32,13 @@ void parser_free(Parser* parser) {
     lexer_free(parser->lexer);
     token_free(parser->cur);
 
-    PRINT_AST_NODE(parser->root, 0);
+    // PRINT_AST_NODE(parser->root, 0);
 
     ast_free(parser->tree);
     ast_free(parser->root);
 
-    Symbol* cur = parser->tbl->symbol;
-    PRINT_SYMB_TBL(cur);
+    // Symbol* cur = parser->tbl->symbol;
+    // PRINT_SYMB_TBL(cur);
 
     symtbl_free(parser->tbl);
     parser = NULL;
@@ -342,7 +342,7 @@ ASTN_Call parser_parse_call(Parser* parser, uint8_t scopeOS) {
 
     parser_expect(parser, TOK_RPAREN);
 
-    printf("[STACK CALL]: %i\n", call.identifier);
+    // printf("[STACK CALL]: %i\n", call.identifier);
 
     // if (call.params && call.params->parameter) {
     //     for (size_t i = 0; i < call.params->size; i++) {
