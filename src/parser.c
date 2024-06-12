@@ -114,6 +114,9 @@ void parser_parse(Parser* parser) {
             case TOK_ERR: 
                 parser->tree->right = parser_parse_err_decl(parser);
                 break;
+            case TOK_ENUM:
+                parser->tree->right = parser_parse_enum_decl(parser);
+                break;
             case TOK_STRUCT:
                 parser->tree->right = parser_parse_struct_decl(parser);;
                 break;
@@ -323,7 +326,6 @@ ASTN_Call parser_parse_call(Parser* parser, uint8_t scopeOS) {
 
     while (parser->cur->type != TOK_RPAREN) {
         params->parameter[params->size] = parser_parse_expr(parser, scopeOS);
-
 
         if (!(parser_expect(parser, TOK_COMMA)) && (parser->cur->type != TOK_RPAREN)) {
             REPORT_ERROR(parser->lexer, "E_PARAMS_COMMA", parser->cur->value);
@@ -1741,7 +1743,55 @@ AST_Node* parser_parse_err_decl(Parser* parser) {
 
 
 AST_Node* parser_parse_enum_decl(Parser* parser) {
-    (void)0;
+    ASTN_EnumDecl stm;
+    parser_consume(parser);
+
+    if (parser->cur->type != TOK_IDEN) {
+        REPORT_ERROR(parser->lexer, "E_IDEN_DECL");
+        return NULL;
+    }
+
+    AST_Node* node = ast_init(STMT);
+    node->data.stm.type = STMT_ENUM_DECL;
+
+    Symbol* symb = symbol_init(parser->cur->value, SYMBOL_ENUM, 0, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc);
+    parser_consume(parser);
+
+    stm.identifier = symb->data.id;
+
+    if (!parser_expect(parser, TOK_LBRACE)) {
+        REPORT_ERROR(parser->lexer, "E_LBRACE");
+        return NULL;
+    }
+    
+    stm.members.size = 0;
+    stm.members.items = calloc(1, sizeof(uint32_t));
+
+    while (parser->cur->type != TOK_RBRACE) {
+        stm.members.items = realloc(stm.members.items, (stm.members.size + 1) * sizeof(uint32_t));
+
+        if (parser->cur->type == TOK_IDEN) {
+            Symbol* symb2 = symbol_init(parser->cur->value, SYMBOL_VARIABLE, 0, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc);
+            stm.members.items[stm.members.size] = symb2->data.id;
+            symtbl_insert(parser, symb2);
+            parser_consume(parser);
+        }
+        
+        if (!(parser_expect(parser, TOK_COMMA)) && (parser->cur->type != TOK_RBRACE)) {
+            REPORT_ERROR(parser->lexer, "E_PARAMS_COMMA", parser->cur->value);
+            return NULL;
+        }
+        stm.members.size++;     
+    }
+
+    parser_consume(parser);
+
+    node->data.stm.data.enum_decl = stm;
+    symb->data.data = node;
+
+    symtbl_insert(parser, symb);
+
+    return node;
 }
 
 
@@ -1927,8 +1977,6 @@ ASTN_SwitchStm parser_parse_switch_stm(Parser* parser, uint8_t scopeOS) {
 
     AST_Node* expr = parser_parse_expr(parser, scopeOS);
 
-    printf("%i\n", expr->data.expr.type);
-
     if (expr->data.expr.type != EXPR_IDENTIFIER && expr->data.expr.type != EXPR_LITERAL && expr->data.expr.type != EXPR_FUNCTION_CALL) {
         REPORT_ERROR(parser->lexer, "E_SWABLSTM");
         return stm;
@@ -1953,9 +2001,11 @@ ASTN_SwitchStm parser_parse_switch_stm(Parser* parser, uint8_t scopeOS) {
     stm.clauses.statements = calloc(1, sizeof(ASTN_Statements*));
     stm.clauses.size = 0;
 
+    bool default_case_found = false;
+
     while (parser->cur->type != TOK_RBRACE) {
-        while (parser->cur->type == TOK_CASE) {
-            parser_consume(parser); 
+        if (parser->cur->type == TOK_CASE) {
+            parser_consume(parser);
 
             AST_Node* expr = parser_parse_expr(parser, scopeOS);
 
@@ -1968,21 +2018,33 @@ ASTN_SwitchStm parser_parse_switch_stm(Parser* parser, uint8_t scopeOS) {
                 REPORT_ERROR(parser->lexer, "E_COLON");
                 return stm;
             }
+            
+            ASTN_Statements* stms = parser_parse_statements(parser, scopeOS);
 
+            stm.clauses.statements = realloc(stm.clauses.statements, (stm.clauses.size + 1) * sizeof(ASTN_Statements*));
             stm.clauses.value = realloc(stm.clauses.value, (stm.clauses.size + 1) * sizeof(AST_Node*));
             stm.clauses.value[stm.clauses.size] = expr;
+            stm.clauses.statements[stm.clauses.size] = stms;
 
             stm.clauses.size++;
+        } else if (parser->cur->type == TOK_DEFAULT) {
+            if (default_case_found) {
+                REPORT_ERROR(parser->lexer, "E_MULTIPLE_DEFAULT");
+                return stm;
+            }
+            default_case_found = true;
+
+            parser_consume(parser);
+
+            if (!parser_expect(parser, TOK_COLON)) {
+                REPORT_ERROR(parser->lexer, "E_COLON");
+                return stm;
+            }
+
+            ASTN_Statements* stms = parser_parse_statements(parser, scopeOS);
+
+            stm.default_stms = stms;
         }
-
-        ASTN_Statements* stms = parser_parse_statements(parser, scopeOS);
-
-        for (int i = 0; i < stm.clauses.size; ++i) {
-            stm.clauses.statements = realloc(stm.clauses.statements, (i + 1) * sizeof(ASTN_Statements*));
-            stm.clauses.statements[i] = stms;
-        }
-
-        stm.clauses.size = 0;
     }
 
     parser->scope = temp;
@@ -1990,6 +2052,7 @@ ASTN_SwitchStm parser_parse_switch_stm(Parser* parser, uint8_t scopeOS) {
 
     return stm;
 }
+
 
 
 ASTN_TryStm parser_parse_try_stm(Parser* parser, uint8_t scopeOS) {
@@ -2147,7 +2210,7 @@ ASTN_ReturnStm parser_parse_return_stm(Parser* parser, uint8_t scopeOS) {
     return statement;    
 }
 
-ASTN_ThrowStm parser_parse_throw_stm(Parser* parser) {
+ASTN_ThrowStm parser_parse_throw_stm(Parser* parser, uint8_t scopeOS) {
     parser_consume(parser);
     ASTN_ThrowStm statement;
 
@@ -2163,8 +2226,41 @@ ASTN_ThrowStm parser_parse_throw_stm(Parser* parser) {
     }
 
     parser_consume(parser);
-
+    
     statement.iden = sym->data.id;
+
+    if (parser->cur->type == TOK_SC) {
+        return statement;
+    }
+
+
+    if (!(parser_expect(parser, TOK_LPAREN))) {
+        return statement;
+    } 
+
+
+    ASTN_CallParams* params = calloc(1, sizeof(ASTN_CallParams));
+
+    params->size = 0;
+    params->item_size = sizeof(AST_Node*);
+    params->parameter = calloc(1, sizeof(AST_Node*));
+
+
+    while (parser->cur->type != TOK_RPAREN) {
+        params->parameter[params->size] = parser_parse_expr(parser, scopeOS);
+
+        if (!(parser_expect(parser, TOK_COMMA)) && (parser->cur->type != TOK_RPAREN)) {
+            REPORT_ERROR(parser->lexer, "E_PARAMS_COMMA", parser->cur->value);
+            return statement;
+        }         
+
+        params->parameter = realloc(params->parameter, (params->size + 1) * sizeof(AST_Node));
+        params->size++;
+    }
+
+    parser_consume(parser);
+
+    statement.params = params;
 
     return statement;
 }
@@ -2181,7 +2277,7 @@ ASTN_Statement parser_parse_statement(Parser* parser, uint8_t scopeOS) {
             break;
         case TOK_THROW:
             stm.type = STMT_THROW;
-            stm.data.throw_stm = parser_parse_throw_stm(parser);
+            stm.data.throw_stm = parser_parse_throw_stm(parser, scopeOS);
             break;
         case TOK_VAR:
         case TOK_CONST:
@@ -2245,7 +2341,7 @@ ASTN_Statements* parser_parse_statements(Parser* parser, uint8_t scopeOS) {
     stms->size = 0;
     stms->item_size = sizeof(ASTN_Statement*);
 
-    while (parser->cur->type != TOK_EOF && parser->cur->type != TOK_RBRACE && parser->cur->type != TOK_CASE) {
+    while (parser->cur->type != TOK_EOF && parser->cur->type != TOK_RBRACE && parser->cur->type != TOK_CASE && parser->cur->type != TOK_DEFAULT) {
         AST_Node* node = ast_init(STMT);
         node->data.stm = parser_parse_statement(parser, scopeOS);
         

@@ -1,6 +1,20 @@
 err THIS_RANDOM_ERROR {int: code, str: fmt_msg}
 
+enum ANOTHER_RANDOM_ENUM {
+    TOK_LPAREN,
+    TOK_RPAREN,
+    TOK_LBRACE,
+    TOK_RBRACE,
+    TOK_LBRACK,
+    TOK_RBRACK,
+    TOK_LT,
+    TOK_GT
+}
+
 fn print => (str: buffer) {
+    if (!buffer) {
+        throw THIS_RANDOM_ERROR(404, "PAGE NOT FOUND");
+    }
     return buffer;
 }
 
@@ -36,6 +50,8 @@ fn switch_X => (int: x) {
         case 9:
         case 12:
             return 2332;
+        default:
+            return 81;
     }
 }
 
@@ -50,7 +66,7 @@ fn try_X => (str: x) {
 }
 
 fn for_x => () {
-    for (var int: i = 0; i < 10; i++) {
+    for (var int: i = 0; i < 10; ++i) {
         print(i);
     }
 }

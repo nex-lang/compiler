@@ -85,7 +85,7 @@ ASTN_SwitchStm parser_parse_switch_stm(Parser* parser, uint8_t scopeOS);
 ASTN_TryStm parser_parse_try_stm(Parser* parser, uint8_t scopeOS);
 ASTN_WhileStm parser_parse_while_stm(Parser* parser, uint8_t scopeOS);
 ASTN_ReturnStm parser_parse_return_stm(Parser* parser, uint8_t scopeOS);
-ASTN_ThrowStm parser_parse_throw_stm(Parser* parser);
+ASTN_ThrowStm parser_parse_throw_stm(Parser* parser, uint8_t scopeOS);
 
 ASTN_Statement parser_parse_statement(Parser* parser, uint8_t scopeOS);
 ASTN_Statements* parser_parse_statements(Parser* parser, uint8_t scopeOS);

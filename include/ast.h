@@ -358,7 +358,7 @@ typedef struct ASTN_ClassDecl {
 typedef struct ASTN_EnumDecl {
     int32_t identifier;
     struct {
-        char** items;
+        uint32_t* items;
         size_t size;
         size_t item_size;
     } members;
@@ -398,6 +398,7 @@ typedef struct ASTN_ForStm {
 
 typedef struct ASTN_SwitchStm {
     AST_Node* condition_expr;
+    ASTN_Statement* default_stms;
     struct {
         AST_Node** value;
         ASTN_Statements** statements;
@@ -427,6 +428,8 @@ typedef struct ASTN_ReturnStm {
 } ASTN_ReturnStm;
 
 typedef struct ASTN_ThrowStm {
+    ASTN_CallParams* params;
+
     uint8_t iden;
 } ASTN_ThrowStm;
 
