@@ -29,7 +29,7 @@ int main(int argc, char* argv[]) {
     }
 
     char ld_cmd[100];
-    sprintf(ld_cmd, "ld %s.o -o %s -lc", "prog", "prog");
+    sprintf(ld_cmd, "ld %s.o -o %s", "prog", "prog");
     if (system(ld_cmd) != 0) {
         parser_free(parser);
         return 1;

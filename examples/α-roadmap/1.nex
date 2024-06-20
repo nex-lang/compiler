@@ -1,3 +1,7 @@
+fn random => (int: x) {
+    var: y = x * 10;
+}
+
 : fn main => () {
-    return 0;
+    return 20;
 }
