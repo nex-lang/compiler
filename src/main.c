@@ -22,7 +22,7 @@ int main(int argc, char* argv[]) {
     GEN(parser->root);
 
     char nasm_cmd[100];
-    sprintf(nasm_cmd, "nasm -f elf64 %s.asm -o %s.o", "prog", "prog");
+    sprintf(nasm_cmd, "as %s.asm -o %s.o", "prog", "prog");
     if (system(nasm_cmd) != 0) {
         parser_free(parser);
         return 1;

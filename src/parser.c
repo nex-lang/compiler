@@ -95,6 +95,7 @@ void parser_parse(Parser* parser) {
         switch (parser->cur->type) {
             case TOK_IMPORT:
                 parser->tree->right = parser_parse_import(parser);
+                printf(". %s\n", parser->cur->value);
                 break;
             case TOK_COLON:
                 parser->tree->right = parser_parse_mep_decl(parser);
@@ -303,7 +304,7 @@ ASTN_Call parser_parse_call(Parser* parser, uint8_t scopeOS) {
     
     Symbol* symb = symtbl_lookup(parser->tbl, parser->cur->value, 0, 0);
 
-    if (symb == NULL || symb->data.type != SYMBOL_FUNCTION) {
+    if (symb == NULL || (symb->data.type != SYMBOL_FUNCTION && symb->data.type != SYMBOL_MODULE)) {
         call.identifier = 0;
         return call;
     }
@@ -339,6 +340,7 @@ ASTN_Call parser_parse_call(Parser* parser, uint8_t scopeOS) {
 
     call.params = params;
     call.type = CALL_FN;
+
 
     parser_expect(parser, TOK_RPAREN);
 
@@ -980,6 +982,8 @@ AST_Node* parser_parse_import(Parser* parser) {
     }
 
     statement->data.stm.data.import_decl = import;
+    
+    parser_expect(parser, TOK_SC);
 
     return statement;
 }
@@ -2384,6 +2388,7 @@ AST_Node* parser_parse_mep_decl(Parser* parser) {
     }  
 
     parser_expect(parser, TOK_LBRACE);
+
 
     node->data.mep.statements = parser_parse_statements(parser, 0);
     if (node->data.mep.statements == NULL) {

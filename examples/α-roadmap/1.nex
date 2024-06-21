@@ -1,7 +1,6 @@
-fn random => (int: x) {
-    var: y = x * 10;
-}
+import fprint from std.io;
 
 : fn main => () {
-    return 20;
+    fprint("Hello, World!");
+    return 0;
 }
