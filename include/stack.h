@@ -1,20 +1,20 @@
 #ifndef STACK_H
 #define STACK_H
 
-#include <stdlib.h>
-#include <stdbool.h>
+#include <stddef.h>
+#include <stdint.h>
 
 typedef struct Stack {
-    __uint128_t* data;
+    int32_t *items;
     size_t size;
     size_t capacity;
 } Stack;
 
 Stack* stack_init();
-void stack_push(Stack* stack, __uint128_t value);
-__uint128_t stack_pop(Stack* stack);
-__uint128_t stack_peek(Stack* stack);
-bool stack_is_empty(Stack* stack);
+void stack_push(Stack* stack, int32_t item);
+int32_t stack_pop(Stack* stack);
+int32_t stack_peek(Stack* stack);
+int stack_is_empty(Stack* stack);
 void stack_free(Stack* stack);
 
 #endif // STACK_H

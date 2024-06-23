@@ -1,6 +1,9 @@
 import fprint from std.io;
 
 : fn main => () {
-    fprint("Hello, World!");
+    var int: x = 90021;
+    var int: y = 91;
+    var int: z = 0;
+    
     return 0;
 }

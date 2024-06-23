@@ -1,40 +1,63 @@
 #include "stack.h"
+#include <stdlib.h>
+#include <stdio.h>
 
 Stack* stack_init() {
-    Stack* stack = (Stack*)malloc(sizeof(Stack));
-    stack->capacity = 8;
+    Stack* stack = malloc(sizeof(Stack));
+    if (!stack) {
+        fprintf(stderr, "Error allocating memory for stack\n");
+        exit(EXIT_FAILURE);
+    }
+
+    stack->items = (int32_t *)malloc(sizeof(int32_t) * 1);
+    if (!stack->items) {
+        fprintf(stderr, "Error allocating memory for stack items\n");
+        free(stack);
+        exit(EXIT_FAILURE);
+    }
+    
     stack->size = 0;
-    stack->data = (__uint128_t*)malloc(stack->capacity * sizeof(__uint128_t));
+    stack->capacity = 1;
+
     return stack;
 }
 
-void stack_push(Stack* stack, __uint128_t value) {
+void stack_push(Stack *stack, int32_t item) {
     if (stack->size == stack->capacity) {
         stack->capacity *= 2;
-        stack->data = (__uint128_t*)realloc(stack->data, stack->capacity * sizeof(__uint128_t));
+        stack->items = (int32_t *)realloc(stack->items, sizeof(int32_t) * stack->capacity);
+        if (!stack->items) {
+            fprintf(stderr, "Error reallocating memory for stack items\n");
+            exit(EXIT_FAILURE);
+        }
     }
-    stack->data[stack->size++] = value;
+    stack->items[stack->size++] = item;
 }
 
-__uint128_t stack_pop(Stack* stack) {
-    if (stack->size == 0) {
-        return 0;
+int32_t stack_pop(Stack *stack) {
+    if (stack_is_empty(stack)) {
+        fprintf(stderr, "Error: Stack underflow\n");
+        exit(EXIT_FAILURE);
     }
-    return stack->data[--stack->size];
+    return stack->items[--stack->size];
 }
 
-__uint128_t stack_peek(Stack* stack) {
-    if (stack->size == 0) {
-        return 0;
+int32_t stack_peek(Stack *stack) {
+    if (stack_is_empty(stack)) {
+        fprintf(stderr, "Error: Stack is empty\n");
+        exit(EXIT_FAILURE);
     }
-    return stack->data[stack->size - 1];
+    return stack->items[stack->size - 1];
 }
 
-bool stack_is_empty(Stack* stack) {
+int stack_is_empty(Stack *stack) {
     return stack->size == 0;
 }
 
-void stack_free(Stack* stack) {
-    free(stack->data);
+void stack_free(Stack *stack) {
+    free(stack->items);
+    stack->items = NULL;
+    stack->size = 0;
+    stack->capacity = 0;
     free(stack);
 }

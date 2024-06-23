@@ -28,11 +28,11 @@ void symtbl_free(SymTable* table) {
     free(table);
 }
 
-Symbol* symbol_init(char* id, unsigned int type, unsigned int scope, unsigned int nest, uint8_t mem_type, 
+Symbol* symbol_init(int32_t id, unsigned int type, unsigned int scope, unsigned int nest, uint8_t mem_type, 
     uint8_t mem_mod, uint8_t mem_sto, uint8_t  access_type, uint8_t decl_line, uint8_t decl_col) {
     Symbol* symb = calloc(1, sizeof(Symbol));
 
-    symb->data.id = symtbl_hash((const char*)id, scope);
+    symb->data.id = id;
     symb->data.scope = scope;
     symb->data.nest = nest;
     symb->data.type = type;
@@ -54,26 +54,14 @@ Symbol* symbol_init(char* id, unsigned int type, unsigned int scope, unsigned in
 }
 
 
-Symbol* symtbl_lookup(SymTable* table, char* id, unsigned int scope, uint8_t scope_offset) {
-    uint32_t hash_id = symtbl_hash((const char*)id, scope);
+Symbol* symtbl_lookup(SymTable* table, int32_t id, unsigned int scope, uint8_t scope_offset) {
     Symbol* current = table->symbol;
 
     while (current != NULL) {
-        if (current->data.id == hash_id) {
+        if (current->data.id == id) {
             return current;
         }
         current = current->next;
-    }
-
-    for (unsigned int i = 1; i <= scope_offset && scope >= i; ++i) {
-        current = table->symbol;
-        hash_id = symtbl_hash((const char*)id, scope - i);
-        while (current != NULL) {
-            if (current->data.id == hash_id) {
-                return current;
-            }
-            current = current->next;
-        }
     }
 
     return NULL;
@@ -98,9 +86,9 @@ void symtbl_borrowsym(SymTable* table, Symbol* symbol, Symbol* borrower) {
         return;
     }
 
-    table->symbol->data.life.borrower_list = realloc(table->symbol->data.life.borrower_list, (table->symbol->data.life.borrower_size + 1) * sizeof(Symbol*));
+    symbol->data.life.borrower_list = realloc(symbol->data.life.borrower_list, (symbol->data.life.borrower_size + 1) * sizeof(Symbol*));
 
-    table->symbol->data.life.borrower_list[table->symbol->data.life.borrower_size] = borrower;
+    symbol->data.life.borrower_list[symbol->data.life.borrower_size] = borrower;
 
-    table->symbol->data.life.borrower_size += 1;
+    symbol->data.life.borrower_size += 1;
 }

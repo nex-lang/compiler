@@ -11,6 +11,7 @@ set(LIB_SOURCES
     src/lexer.c
     src/ast.c
     src/parser.c
+    src/stack.c
     src/sao.c
     src/codegen.c
 )
@@ -28,6 +29,7 @@ set(HEADERS
     include/lexer.h
     include/ast.h
     include/parser.h
+    include/stack.h
     include/sao.h
     include/codegen.h
 )
