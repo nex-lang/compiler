@@ -1,11 +1,9 @@
 import fprint from std.io;
 
 : fn main => () {
-    var int: x = 90021;
+    var float: x = 3.1415;
     var int: y = 91;
     var int: z = 12;
 
-    var str: fof, rt, ct;
-    
     return 0;
 }

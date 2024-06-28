@@ -27,11 +27,12 @@ typedef struct Generator {
     FILE* fp;
 } Generator;
 
+
 Generator* gen_init(char* filename);
 
 unsigned long hash_string(const char *str);
 
-void process_variable_decl(Generator* gen, ASTN_Expression* variable_decl, const char* var_name);
+void handle_literal_agn(Generator* gen, ASTN_Expression* variable_decl);
 unsigned long gen_str_symb(ASM_StringSymbol **head, const char *str, int *counter);
 void gen_string_lits(FILE* fp, ASM_StringSymbol* head);
 

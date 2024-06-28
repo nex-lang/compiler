@@ -272,7 +272,6 @@ Token* lexer_handle_numeric(Lexer* lexer, bool is_negative) {
 
     lexer_process_digits(lexer, &buf, false);
     type = lexer_process_int_type(buf);
-    
 
     if (lexer->c == '.') {
         // register decimal
@@ -478,21 +477,16 @@ uint8_t lexer_process_int_type(char* buf) {
     }
 
     if (signed_val >= INT8_MIN && signed_val <= INT8_MAX) {
-        printf("SSINT\n");
         return (signed_val >= 0) ? TOK_L_SSUINT : TOK_L_SSINT;
     } else if (signed_val >= INT16_MIN && signed_val <= INT16_MAX) {
-        printf("SINT\n");
         return (signed_val >= 0) ? TOK_L_SUINT : TOK_L_SINT;
     } else if (signed_val >= INT32_MIN && signed_val <= INT32_MAX) {
-        printf("INT\n");
         return (signed_val >= 0) ? TOK_L_UINT : TOK_L_INT;
     } else if (signed_val >= INT64_MIN && signed_val <= INT64_MAX) {
-        printf("LINT\n");
         return (signed_val >= 0) ? TOK_L_LUINT : TOK_L_LINT;
     } else {
         __int128_t signed_val_128 = (__int128_t)signed_val;
         if (signed_val_128 >= INT128_MIN && signed_val_128 <= INT128_MAX) {
-            printf("LLINT\n");
             return (signed_val_128 >= 0) ? TOK_L_LLUINT : TOK_L_LLINT;
         }
     }
