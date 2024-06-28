@@ -214,8 +214,11 @@ ASTN_Literal parser_parse_literal(Parser* parser) {
         case TOK_L_STRING:
             lit.value.string = parser->cur->value;
             break;
-        case TOK_L_BOOL:
-            lit.value.boolean = strtol(parser->cur->value, &endptr, 10) != 0;
+        case TOK_TRUE:
+            lit.value.boolean = 1;
+            break;
+        case TOK_FALSE:
+            lit.value.boolean = 0;
             break;
         case TOK_L_SIZE:
             lit.value.size = (size_t)strtoull(parser->cur->value, &endptr, 10);

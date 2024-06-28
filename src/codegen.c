@@ -316,24 +316,34 @@ void handle_literal_agn(Generator* gen, ASTN_VariableDecl* decl) {
             fprintf(gen->fp, "    mov rax, [%s]\n",value);
             fprintf(gen->fp, "    push rax\n");    
             break;
-        case TOK_L_BOOL:
+        case TOK_TRUE:
+        case TOK_FALSE:
             value_str_size = snprintf(NULL, 0, "%d", variable_decl->data.literal.value.boolean) + 1;
             value = malloc(value_str_size);
+            
             if (value == NULL) {
                 perror("Memory allocation failed");
                 exit(EXIT_FAILURE);
             }
-            snprintf(value, value_str_size, "%d", variable_decl->data.literal.value.boolean);
-            break;
 
+            snprintf(value, value_str_size, "%d", variable_decl->data.literal.value.boolean);
+            fprintf(gen->fp, "    mov rax, %s\n",value);
+            fprintf(gen->fp, "    push rax\n");
+
+            break;
         case TOK_L_SIZE:
             value_str_size = snprintf(NULL, 0, "%zu", variable_decl->data.literal.value.size) + 1;
             value = malloc(value_str_size);
+            
             if (value == NULL) {
                 perror("Memory allocation failed");
                 exit(EXIT_FAILURE);
             }
+
             snprintf(value, value_str_size, "%zu", variable_decl->data.literal.value.size);
+            fprintf(gen->fp, "    mov rax, %s\n",value);
+            fprintf(gen->fp, "    push rax\n");
+            
             break;
         default:
             fprintf(stderr, "Unsupported literal type\n");

@@ -8,7 +8,7 @@
 #define MAX_KEYWORD_LEN 7
 
 #define IS_LITERAL(type) \
-    ((type) >= TOK_L_SSINT && (type) <= TOK_L_SIZE)
+    (((type) >= TOK_L_SSINT && (type) <= TOK_L_SIZE) || (type) == TOK_TRUE || (type) == TOK_FALSE)
 
 #define INT128_MIN ((__int128_t)0x80000000000000000000000000000000)
 #define INT128_MAX ((__int128_t)0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF)
