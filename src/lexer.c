@@ -466,28 +466,39 @@ uint8_t lexer_process_decimal_type(char* buf, uint8_t diadc) {
 
 uint8_t lexer_process_int_type(char* buf) {
     /*
-	Processes provided buf-fer and resolutes type; TOK_ERROR if invalid
-	return: TOK_ERROR, TOK_L_(S|SS|L|LL)INT or TOK_L_(S|SS|L|LL)UINT 
-	*/
+    Processes provided buffer and resolves type; TOK_ERROR if invalid
+    return: TOK_ERROR, TOK_L_(S|SS|L|LL)INT or TOK_L_(S|SS|L|LL)UINT 
+    */
 
-    int64_t signed_val;
-    uint64_t unsigned_val;
+    char *endptr;
+    int64_t signed_val = strtoll(buf, &endptr, 10);
 
-    if (sscanf(buf, "%ld" SCNd64, &signed_val) == 1) {
-        return (signed_val >= 0) ? TOK_L_LUINT : TOK_L_LINT;
-    } else if (sscanf(buf, "%ld" SCNu64, &unsigned_val) == 1) {
-        return (unsigned_val >= 0) ? TOK_L_LLUINT : TOK_ERROR;
-    } else if (sscanf(buf, "%ld" SCNd32, &signed_val) == 1) {
-        return (signed_val >= 0) ? TOK_L_UINT : TOK_L_INT;
-    } else if (sscanf(buf, "%ld" SCNd16, &signed_val) == 1) {
-        return (signed_val >= 0) ? TOK_L_SUINT : TOK_L_SINT;
-    } else if (sscanf(buf, "%ld" SCNd8, &signed_val) == 1) {
+    if (endptr == buf || *endptr != '\0') {
+        return TOK_ERROR;
+    }
+
+    if (signed_val >= INT8_MIN && signed_val <= INT8_MAX) {
+        printf("SSINT\n");
         return (signed_val >= 0) ? TOK_L_SSUINT : TOK_L_SSINT;
+    } else if (signed_val >= INT16_MIN && signed_val <= INT16_MAX) {
+        printf("SINT\n");
+        return (signed_val >= 0) ? TOK_L_SUINT : TOK_L_SINT;
+    } else if (signed_val >= INT32_MIN && signed_val <= INT32_MAX) {
+        printf("INT\n");
+        return (signed_val >= 0) ? TOK_L_UINT : TOK_L_INT;
+    } else if (signed_val >= INT64_MIN && signed_val <= INT64_MAX) {
+        printf("LINT\n");
+        return (signed_val >= 0) ? TOK_L_LUINT : TOK_L_LINT;
+    } else {
+        __int128_t signed_val_128 = (__int128_t)signed_val;
+        if (signed_val_128 >= INT128_MIN && signed_val_128 <= INT128_MAX) {
+            printf("LLINT\n");
+            return (signed_val_128 >= 0) ? TOK_L_LLUINT : TOK_L_LLINT;
+        }
     }
 
     return TOK_ERROR;
 }
-
 Token* lexer_process_pos_singlechar(Lexer* lexer, char next_char,
     char c_pos1, char c_pos2,
     uint8_t t_pos0, uint8_t t_pos1, uint8_t t_pos2) {

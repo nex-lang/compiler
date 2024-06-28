@@ -10,6 +10,9 @@
 #define IS_LITERAL(type) \
     ((type) >= TOK_L_SSINT && (type) <= TOK_L_SIZE)
 
+#define INT128_MIN ((__int128_t)0x80000000000000000000000000000000)
+#define INT128_MAX ((__int128_t)0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF)
+
 typedef struct Token {
     unsigned int line, col;
     char* value;
