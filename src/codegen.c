@@ -6,29 +6,66 @@ Generator* gen_init(char* filename) {
         perror("Memory allocation failed");
         exit(EXIT_FAILURE);
     }
-    
+
     gen->fp = fopen(filename, "w");
     if (gen->fp == NULL) {
         perror("Error opening output file");
         free(gen);
         return NULL;
     }
-    
+
     gen->str_literals = malloc(sizeof(StringLiteralManager));
+    
     if (gen->str_literals == NULL) {
         perror("Memory allocation failed");
         fclose(gen->fp);
         free(gen);
         exit(EXIT_FAILURE);
     }
+    
     gen->str_literals->head = NULL;
     gen->str_literals->counter = 0;
+
+    gen->char_literals = malloc(sizeof(CharLiteralManager));
     
+    if (gen->char_literals == NULL) {
+        perror("Memory allocation failed");
+        fclose(gen->fp);
+        free(gen->str_literals);
+        free(gen);
+        exit(EXIT_FAILURE);
+    }
+    
+    gen->char_literals->head = NULL;
+    gen->char_literals->counter = 0;
+
     fprintf(gen->fp, ".global _start\n");
     fprintf(gen->fp, ".intel_syntax noprefix\n\n");
 
     return gen;
 }
+
+void gen_free(Generator* gen) {
+    fclose(gen->fp);
+
+    ASM_StringSymbol *current_string = gen->str_literals->head;
+    while (current_string != NULL) {
+        ASM_StringSymbol *str_next = current_string->next;
+        free(current_string->label);
+        free(current_string->value);
+        free(current_string);
+        current_string = str_next;
+    }
+
+    ASM_CharSymbol *current_char = gen->char_literals->head;
+    while (current_char != NULL) {
+        ASM_CharSymbol *char_next = current_char->next;
+        free(current_char->label);
+        free(current_char);
+        current_char = char_next;
+    }
+}
+
 
 unsigned long hash_string(const char *str) {
     unsigned long hash = 5381;
@@ -73,54 +110,12 @@ void float_to_ieee_hex(float value, char* hex_str) {
 }
 
 
-unsigned long gen_str_symb(ASM_StringSymbol **head, const char *str, int *counter) {
-    unsigned long hash = hash_string(str);
-
-    char label[32];
-    snprintf(label, sizeof(label), "str_%lu_%d", hash, (*counter)++);
-
-    size_t str_len = strlen(str);
-    char *new_value = malloc(str_len + 2);
-    if (new_value == NULL) {
-        perror("Memory allocation failed");
-        exit(EXIT_FAILURE);
-    }
-    strcpy(new_value, str);
-    new_value[str_len] = '\n';
-    new_value[str_len + 1] = '\0';
-
-    ASM_StringSymbol *new_node = malloc(sizeof(ASM_StringSymbol));
-    if (new_node == NULL) {
-        perror("Memory allocation failed");
-        exit(EXIT_FAILURE);
-    }
-    new_node->label = strdup(label);
-    if (new_node->label == NULL) {
-        perror("String duplication failed");
-        exit(EXIT_FAILURE);
-    }
-    new_node->value = new_value;
-    new_node->next = NULL;
-
-    if (*head == NULL) {
-        *head = new_node;
-    } else {
-        ASM_StringSymbol *current = *head;
-        while (current->next != NULL) {
-            current = current->next;
-        }
-        current->next = new_node;
-    }
-
-    return hash;
-}
-
-void handle_literal_agn(Generator* gen, ASTN_Expression* variable_decl) {
+void handle_literal_agn(Generator* gen, ASTN_VariableDecl* decl) {
     char* value;
-    char* reg;
     size_t value_str_size;
+    unsigned long label_hash;  
 
-    reg = "rax";
+    ASTN_Expression* variable_decl = &decl->expr->data.expr;
 
     switch (variable_decl->data.literal.type) {
         case TOK_L_SSINT:
@@ -295,25 +290,32 @@ void handle_literal_agn(Generator* gen, ASTN_Expression* variable_decl) {
             
             break;
         case TOK_L_CHAR:
-            value_str_size = snprintf(NULL, 0, "%c", variable_decl->data.literal.value.character) + 1;
-            value = malloc(value_str_size);
+            label_hash = gen_char_symb(&(gen->char_literals->head), variable_decl->data.literal.value.character, &(gen->char_literals->counter), true, decl->iden.sg);
+            
             if (value == NULL) {
                 perror("Memory allocation failed");
                 exit(EXIT_FAILURE);
             }
-            snprintf(value, value_str_size, "%c", variable_decl->data.literal.value.character);
+            
+            snprintf(value, value_str_size, "char_%ld_%d", label_hash, gen->char_literals->counter - 1);
+            
+            fprintf(gen->fp, "    mov rax, [%s]\n",value);
+            fprintf(gen->fp, "    push rax\n");    
+            
             break;
-
         case TOK_L_STRING:
-            value_str_size = snprintf(NULL, 0, "%s", variable_decl->data.literal.value.string) + 1;
-            value = malloc(value_str_size);
+            label_hash = gen_str_symb(&(gen->str_literals->head), variable_decl->data.literal.value.string, &(gen->str_literals->counter), true, decl->iden.sg);
+            
             if (value == NULL) {
                 perror("Memory allocation failed");
                 exit(EXIT_FAILURE);
             }
-            snprintf(value, value_str_size, "%s", variable_decl->data.literal.value.string);
-            break;
 
+            snprintf(value, value_str_size, "str_%ld_%d", label_hash, gen->str_literals->counter - 1);
+            
+            fprintf(gen->fp, "    mov rax, [%s]\n",value);
+            fprintf(gen->fp, "    push rax\n");    
+            break;
         case TOK_L_BOOL:
             value_str_size = snprintf(NULL, 0, "%d", variable_decl->data.literal.value.boolean) + 1;
             value = malloc(value_str_size);
@@ -339,6 +341,94 @@ void handle_literal_agn(Generator* gen, ASTN_Expression* variable_decl) {
     }
 }
 
+unsigned long gen_str_symb(ASM_StringSymbol** head, const char* str, int* counter, bool is_def, uint32_t dest_hash) {
+    unsigned long hash;
+
+    char label[32];
+    
+    if (is_def) {
+        hash = dest_hash;
+    } else if (dest_hash == 0 && str != NULL) {
+        hash = hash_string(str);
+    }
+
+    snprintf(label, sizeof(label), "str_%lu_%d", hash, (*counter)++);
+
+    size_t str_len = strlen(str);
+    char *new_value = malloc(str_len + 2);
+    if (new_value == NULL) {
+        perror("Memory allocation failed");
+        exit(EXIT_FAILURE);
+    }
+    strcpy(new_value, str);
+    new_value[str_len] = '\n';
+    new_value[str_len + 1] = '\0';
+
+    ASM_StringSymbol *new_node = malloc(sizeof(ASM_StringSymbol));
+    if (new_node == NULL) {
+        perror("Memory allocation failed");
+        exit(EXIT_FAILURE);
+    }
+    new_node->label = strdup(label);
+    if (new_node->label == NULL) {
+        perror("String duplication failed");
+        exit(EXIT_FAILURE);
+    }
+    new_node->value = new_value;
+    new_node->next = NULL;
+
+    if (*head == NULL) {
+        *head = new_node;
+    } else {
+        ASM_StringSymbol *current = *head;
+        while (current->next != NULL) {
+            current = current->next;
+        }
+        current->next = new_node;
+    }
+
+    return hash;
+}
+
+unsigned long gen_char_symb(ASM_CharSymbol** head, char ch, int* counter, bool is_def, uint32_t dest_hash) {
+    unsigned long hash;
+    char label[32];
+
+    if (is_def) {
+        hash = dest_hash;
+    } else {
+        hash = hash_string(&ch);
+    }
+
+    snprintf(label, sizeof(label), "char_%lu_%d", hash, (*counter)++);
+
+    ASM_CharSymbol* new_node = malloc(sizeof(ASM_CharSymbol));
+    if (new_node == NULL) {
+        perror("Memory allocation failed");
+        exit(EXIT_FAILURE);
+    }
+
+    new_node->label = strdup(label);
+    if (new_node->label == NULL) {
+        perror("String duplication failed");
+        exit(EXIT_FAILURE);
+    }
+    new_node->value = ch;
+    new_node->next = NULL;
+
+    if (*head == NULL) {
+        *head = new_node;
+    } else {
+        ASM_CharSymbol* current = *head;
+        while (current->next != NULL) {
+            current = current->next;
+        }
+        current->next = new_node;
+    }
+
+    return hash;
+}
+
 
 void gen_string_lits(FILE* fp, ASM_StringSymbol* head) {
     ASM_StringSymbol* current = head;
@@ -348,6 +438,17 @@ void gen_string_lits(FILE* fp, ASM_StringSymbol* head) {
         current = current->next;
     }
 }
+
+void gen_char_lits(FILE* fp, ASM_CharSymbol* head) {
+    ASM_CharSymbol* current = head;
+    while (current != NULL) {
+        fprintf(fp, "%s:\n", current->label);
+        fprintf(fp, "    .byte '%c'\n", current->value);
+        current = current->next;
+    }
+}
+
+
 
 void gen_variable(Generator* gen, size_t size, uint32_t id) {
     
@@ -366,8 +467,9 @@ void gen_stmt(AST_Node* statement, Generator* gen) {
         }
         case STMT_CALL: {
             if (statement->data.stm.data.call.identifier == -1124075304) {
+                printf("hello");
                 char *string_value = statement->data.stm.data.call.params->parameter[0]->data.expr.data.literal.value.string;
-                unsigned long label_hash = gen_str_symb(&(gen->str_literals->head), string_value, &(gen->str_literals->counter));
+                unsigned long label_hash = gen_str_symb(&(gen->str_literals->head), string_value, &(gen->str_literals->counter), false, 0);
                 fprintf(gen->fp, "    mov rax, 1\n");
                 fprintf(gen->fp, "    mov rdi, 1\n");
                 fprintf(gen->fp, "    lea rsi, [str_%lu_%d]\n", label_hash, gen->str_literals->counter - 1);
@@ -389,7 +491,7 @@ void gen_stmt(AST_Node* statement, Generator* gen) {
                 // }
             } else {
                 var_name = statement->data.stm.data.variable_decl.iden.sg;
-                handle_literal_agn(gen, &statement->data.stm.data.variable_decl.expr->data.expr);
+                handle_literal_agn(gen, &statement->data.stm.data.variable_decl);
             }
             break;
         }
@@ -399,7 +501,7 @@ void gen_stmt(AST_Node* statement, Generator* gen) {
     }
 }
 
-void generate(AST_Node* node, Generator* gen) {
+void generate_program(AST_Node* node, Generator* gen) {
     if (node == NULL) {
         return;
     }
@@ -422,24 +524,23 @@ void generate(AST_Node* node, Generator* gen) {
             break;
     }
 
-    generate(node->left, gen);
-    generate(node->right, gen);
+    generate_program(node->left, gen);
+    generate_program(node->right, gen);
+}
+
+
+
+void generate_data(Generator* gen) {
+    fprintf(gen->fp, "\n.data\n");
+    gen_string_lits(gen->fp, gen->str_literals->head);
+    gen_char_lits(gen->fp, gen->char_literals->head);
 }
 
 void GEN(AST_Node *root) {
     Generator* gen = gen_init("prog.asm");
-    generate(root, gen);
-    
-    gen_string_lits(gen->fp, gen->str_literals->head);
 
-    fclose(gen->fp);
+    generate_program(root, gen);
+    generate_data(gen);
 
-    ASM_StringSymbol *current_string = gen->str_literals->head;
-    while (current_string != NULL) {
-        ASM_StringSymbol *next = current_string->next;
-        free(current_string->label);
-        free(current_string->value);
-        free(current_string);
-        current_string = next;
-    }
+    gen_free(gen);
 }

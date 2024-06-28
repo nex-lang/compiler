@@ -301,13 +301,14 @@ ASTN_DataTypeSpecifier parser_parse_dt_spec(Parser* parser, bool expect_further)
 
 ASTN_Call parser_parse_call(Parser* parser, uint8_t scopeOS) {
     ASTN_Call call;
-    
+
     Symbol* symb = symtbl_lookup(parser->tbl, parser->cur->value, 0, 0);
 
     if (symb == NULL || (symb->data.type != SYMBOL_FUNCTION && symb->data.type != SYMBOL_MODULE)) {
         call.identifier = 0;
         return call;
     }
+    
 
     parser_consume(parser);
 
