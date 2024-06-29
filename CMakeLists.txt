@@ -22,6 +22,7 @@ set(EXE_SOURCES
 
 set(HEADERS
     include/tmp/alphadev.h
+    include/utils/bit128.h
     include/p_info.h
     include/io.h
     include/token.h

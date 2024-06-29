@@ -2,6 +2,7 @@
 #define TOKEN_H
 
 #include "p_info.h"
+#include "utils/bit128.h"
 
 #define NO_OF_KEYWORDS 45
 #define KEYWORDS keywords

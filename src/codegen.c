@@ -119,144 +119,43 @@ void handle_literal_agn(Generator* gen, ASTN_VariableDecl* decl) {
 
     switch (variable_decl->data.literal.type) {
         case TOK_L_SSINT:
-            value_str_size = snprintf(NULL, 0, "%d", variable_decl->data.literal.value.int_.bit8) + 1;
-            value = malloc(value_str_size);
-            
-            if (value == NULL) {
-                perror("Memory allocation failed");
-                exit(EXIT_FAILURE);
-            }
-
-            snprintf(value, value_str_size, "%d", variable_decl->data.literal.value.int_.bit8);
-            fprintf(gen->fp, "    mov rax, %s\n",value);
-            fprintf(gen->fp, "    push rax\n");
-            
+            fprintf(gen->fp, "    mov byte ptr [rsp + %zu], %d\n", (gen->cur_variables.size -= 1), variable_decl->data.literal.value.int_.bit8);            
             break;
         case TOK_L_SINT:
-            value_str_size = snprintf(NULL, 0, "%d", variable_decl->data.literal.value.int_.bit16) + 1;
-            value = malloc(value_str_size);
-            
-            if (value == NULL) {
-                perror("Memory allocation failed");
-                exit(EXIT_FAILURE);
-            }
-            
-            snprintf(value, value_str_size, "%d", variable_decl->data.literal.value.int_.bit16);
-            fprintf(gen->fp, "    mov rax, %s\n",value);
-            fprintf(gen->fp, "    push rax\n");
-
+            fprintf(gen->fp, "    mov word ptr [rsp + %zu], %d\n", (gen->cur_variables.size -= 2), variable_decl->data.literal.value.int_.bit16);
             break;
         case TOK_L_INT:
-            value_str_size = snprintf(NULL, 0, "%d", variable_decl->data.literal.value.int_.bit32) + 1;
-            value = malloc(value_str_size);
-            
-            if (value == NULL) {
-                perror("Memory allocation failed");
-                exit(EXIT_FAILURE);
-            }
-            
-            snprintf(value, value_str_size, "%d", variable_decl->data.literal.value.int_.bit32);
-            fprintf(gen->fp, "    mov rax, %s\n",value);
-            fprintf(gen->fp, "    push rax\n");
-
+            fprintf(gen->fp, "    mov dword ptr [rsp + %zu], %d\n", (gen->cur_variables.size -= 4), variable_decl->data.literal.value.int_.bit32);
             break;
         case TOK_L_LINT:
-            value_str_size = snprintf(NULL, 0, "%ld", variable_decl->data.literal.value.int_.bit64) + 1;
-            value = malloc(value_str_size);
-            
-            if (value == NULL) {
-                perror("Memory allocation failed");
-                exit(EXIT_FAILURE);
-            }
-            
-            snprintf(value, value_str_size, "%ld", variable_decl->data.literal.value.int_.bit64);
-            fprintf(gen->fp, "    mov rax, %s\n",value);
-            fprintf(gen->fp, "    push rax\n");
-            
+            printf("hello\n");
+            fprintf(gen->fp, "    mov rax, %ld\n", variable_decl->data.literal.value.int_.bit64);
+            fprintf(gen->fp, "    mov qword [rsp + %zu], rax\n", (gen->cur_variables.size -= 8));
             break;
         case TOK_L_LLINT:
-            value_str_size = snprintf(NULL, 0, "%lld", variable_decl->data.literal.value.int_.bit128) + 1;
-            value = malloc(value_str_size);
-            
-            if (value == NULL) {
-                perror("Memory allocation failed");
-                exit(EXIT_FAILURE);
-            }
-            
-            snprintf(value, value_str_size, "%lld", variable_decl->data.literal.value.int_.bit128);
-            fprintf(gen->fp, "    mov rax, %s\n",value);
-            fprintf(gen->fp, "    push rax\n");
-            
+            fprintf(gen->fp, "    mov rax, %lu\n", variable_decl->data.literal.value.int_.bit128.low);
+            fprintf(gen->fp, "    mov rdx, %lu\n", variable_decl->data.literal.value.int_.bit128.high);
+            fprintf(gen->fp, "    mov qword [rsp + %zu], rax\n", (gen->cur_variables.size -= 8));
+            fprintf(gen->fp, "    mov qword [rsp + %zu], rdx\n", (gen->cur_variables.size -= 8));
             break;
         case TOK_L_SSUINT:
-            value_str_size = snprintf(NULL, 0, "%u", variable_decl->data.literal.value.uint.bit8) + 1;
-            value = malloc(value_str_size);
-            
-            if (value == NULL) {
-                perror("Memory allocation failed");
-                exit(EXIT_FAILURE);
-            }
-
-            snprintf(value, value_str_size, "%u", variable_decl->data.literal.value.uint.bit8);
-            fprintf(gen->fp, "    mov rax, %s\n",value);
-            fprintf(gen->fp, "    push rax\n");
-            
+            fprintf(gen->fp, "    mov byte ptr [rsp + %zu], %u\n", (gen->cur_variables.size -= 1), variable_decl->data.literal.value.uint.bit8);
             break;
         case TOK_L_SUINT:
-            value_str_size = snprintf(NULL, 0, "%u", variable_decl->data.literal.value.uint.bit16) + 1;
-            value = malloc(value_str_size);
-            
-            if (value == NULL) {
-                perror("Memory allocation failed");
-                exit(EXIT_FAILURE);
-            }
-            
-            snprintf(value, value_str_size, "%u", variable_decl->data.literal.value.uint.bit16);
-            fprintf(gen->fp, "    mov rax, %s\n",value);
-            fprintf(gen->fp, "    push rax\n");
-            
+            fprintf(gen->fp, "    mov word ptr [rsp + %zu], %u\n", (gen->cur_variables.size -= 2), variable_decl->data.literal.value.uint.bit16);
             break;
         case TOK_L_UINT:
-            value_str_size = snprintf(NULL, 0, "%u", variable_decl->data.literal.value.uint.bit32) + 1;
-            value = malloc(value_str_size);
-            
-            if (value == NULL) {
-                perror("Memory allocation failed");
-                exit(EXIT_FAILURE);
-            }
-            
-            snprintf(value, value_str_size, "%u", variable_decl->data.literal.value.uint.bit32);
-            fprintf(gen->fp, "    mov rax, %s\n",value);
-            fprintf(gen->fp, "    push rax\n");
-            
+            fprintf(gen->fp, "    mov dword ptr [rsp + %zu], %u\n", (gen->cur_variables.size -= 4),  variable_decl->data.literal.value.uint.bit32);
             break;
         case TOK_L_LUINT:
-            value_str_size = snprintf(NULL, 0, "%lu", variable_decl->data.literal.value.uint.bit64) + 1;
-            value = malloc(value_str_size);
-            
-            if (value == NULL) {
-                perror("Memory allocation failed");
-                exit(EXIT_FAILURE);
-            }
-            
-            snprintf(value, value_str_size, "%lu", variable_decl->data.literal.value.uint.bit64);
-            fprintf(gen->fp, "    mov rax, %s\n",value);
-            fprintf(gen->fp, "    push rax\n");
-            
+            fprintf(gen->fp, "    mov rax, %lu\n", variable_decl->data.literal.value.uint.bit64);
+            fprintf(gen->fp, "    mov qword [rsp + %zu], rax\n", (gen->cur_variables.size -= 8));
             break;
         case TOK_L_LLUINT:
-            value_str_size = snprintf(NULL, 0, "%llu", variable_decl->data.literal.value.uint.bit128) + 1;
-            value = malloc(value_str_size);
-            
-            if (value == NULL) {
-                perror("Memory allocation failed");
-                exit(EXIT_FAILURE);
-            }
-            
-            snprintf(value, value_str_size, "%llu", variable_decl->data.literal.value.uint.bit128);
-            fprintf(gen->fp, "    mov rax, %s\n",value);
-            fprintf(gen->fp, "    push rax\n");
-            
+            fprintf(gen->fp, "    mov rax, %lu\n", variable_decl->data.literal.value.uint.bit128.low);
+            fprintf(gen->fp, "    mov rdx, %lu\n", variable_decl->data.literal.value.uint.bit128.high);
+            fprintf(gen->fp, "    mov qword [rsp + %zu], rax\n", (gen->cur_variables.size -= 8));
+            fprintf(gen->fp, "    mov qword [rsp + %zu], rdx\n", (gen->cur_variables.size -= 8));
             break;
         case TOK_L_FLOAT:
             value = malloc(11);
@@ -267,13 +166,11 @@ void handle_literal_agn(Generator* gen, ASTN_VariableDecl* decl) {
 
             float_to_ieee_hex(variable_decl->data.literal.value.float_.bit32, value);
 
-            fprintf(gen->fp, "    mov rax, %s\n", value);
-            fprintf(gen->fp, "    movq xmm1, rax\n");
-            fprintf(gen->fp, "    cvtss2si rax, xmm1\n");
-            fprintf(gen->fp, "    push rax\n");
-
+            fprintf(gen->fp, "    mov eax, %s\n", value);
+            fprintf(gen->fp, "    movd xmm0, eax\n");
+            fprintf(gen->fp, "    cvttss2si rax, xmm0\n");
+            fprintf(gen->fp, "    mov qword [rsp + %zu], rax\n", (gen->cur_variables.size -= 4));
             break;
-
         case TOK_L_DOUBLE:
             value = malloc(18);
             if (value == NULL) {
@@ -283,67 +180,28 @@ void handle_literal_agn(Generator* gen, ASTN_VariableDecl* decl) {
             
             float_to_ieee_hex(variable_decl->data.literal.value.float_.bit32, value);
 
-            fprintf(gen->fp, "    mov rax, %s\n", value);
-            fprintf(gen->fp, "    movq xmm1, rax\n");
-            fprintf(gen->fp, "    cvtss2si rax, xmm1\n");
-            fprintf(gen->fp, "    push rax\n");
-            
+            fprintf(gen->fp, "    mov eax, %s\n", value);
+            fprintf(gen->fp, "    movd xmm0, eax\n");
+            fprintf(gen->fp, "    cvttss2si rax, xmm0\n");
+            fprintf(gen->fp, "    mov qword [rsp + %zu], rax\n", (gen->cur_variables.size -= 8));
             break;
         case TOK_L_CHAR:
             label_hash = gen_char_symb(&(gen->char_literals->head), variable_decl->data.literal.value.character, &(gen->char_literals->counter), true, decl->iden.sg);
-            
-            if (value == NULL) {
-                perror("Memory allocation failed");
-                exit(EXIT_FAILURE);
-            }
-            
-            snprintf(value, value_str_size, "char_%ld_%d", label_hash, gen->char_literals->counter - 1);
-            
-            fprintf(gen->fp, "    mov rax, [%s]\n",value);
-            fprintf(gen->fp, "    push rax\n");    
-            
+            // fprintf(gen->fp, "    mov rax, [char_%ld_%d]\n", label_hash, gen->char_literals->counter - 1);
+            // fprintf(gen->fp, "    push rax\n");    
             break;
         case TOK_L_STRING:
-            label_hash = gen_str_symb(&(gen->str_literals->head), variable_decl->data.literal.value.string, &(gen->str_literals->counter), true, decl->iden.sg);
-            
-            if (value == NULL) {
-                perror("Memory allocation failed");
-                exit(EXIT_FAILURE);
-            }
-
-            snprintf(value, value_str_size, "str_%ld_%d", label_hash, gen->str_literals->counter - 1);
-            
-            fprintf(gen->fp, "    mov rax, [%s]\n",value);
-            fprintf(gen->fp, "    push rax\n");    
+            label_hash = gen_str_symb(&(gen->str_literals->head), variable_decl->data.literal.value.string, &(gen->str_literals->counter), true, decl->iden.sg);            
+            // fprintf(gen->fp, "    mov rax, [str_%ld_%d]\n", label_hash, gen->str_literals->counter - 1);
+            // fprintf(gen->fp, "    push rax\n");    
             break;
         case TOK_TRUE:
         case TOK_FALSE:
-            value_str_size = snprintf(NULL, 0, "%d", variable_decl->data.literal.value.boolean) + 1;
-            value = malloc(value_str_size);
-            
-            if (value == NULL) {
-                perror("Memory allocation failed");
-                exit(EXIT_FAILURE);
-            }
-
-            snprintf(value, value_str_size, "%d", variable_decl->data.literal.value.boolean);
-            fprintf(gen->fp, "    mov rax, %s\n",value);
-            fprintf(gen->fp, "    push rax\n");
-
+            fprintf(gen->fp, "    mov byte ptr [rsp + %zu], %u\n", (gen->cur_variables.size -= 1), variable_decl->data.literal.value.boolean);
             break;
         case TOK_L_SIZE:
-            value_str_size = snprintf(NULL, 0, "%zu", variable_decl->data.literal.value.size) + 1;
-            value = malloc(value_str_size);
-            
-            if (value == NULL) {
-                perror("Memory allocation failed");
-                exit(EXIT_FAILURE);
-            }
-
-            snprintf(value, value_str_size, "%zu", variable_decl->data.literal.value.size);
-            fprintf(gen->fp, "    mov rax, %s\n",value);
-            fprintf(gen->fp, "    push rax\n");
-            
+                        fprintf(gen->fp, "    mov rax, %lu\n", variable_decl->data.literal.value.size);
+            fprintf(gen->fp, "    mov qword [rsp + %zu], rax\n", (gen->cur_variables.size -= 8));
             break;
         default:
             fprintf(stderr, "Unsupported literal type\n");
@@ -519,6 +377,19 @@ void generate_program(AST_Node* node, Generator* gen) {
     switch (node->type) {
         case MEP:
             fprintf(gen->fp, "_start:\n");
+
+            size_t total_mem = 0;
+            for (size_t i = 0; i < node->data.mep.statements->size; i++) {
+                if (node->data.mep.statements->statement[i]->data.stm.type == STMT_VARIABLE_DECL) {
+                    total_mem += node->data.mep.statements->statement[i]->data.stm.data.variable_decl.mem;
+                }
+            }
+
+            if (total_mem > 0) {
+                fprintf(gen->fp, "    sub rsp, %zu\n", total_mem);
+            }
+
+            gen->cur_variables.size = total_mem;
 
             for (size_t i = 0; i < node->data.mep.statements->size; i++) {
                 gen_stmt(node->data.mep.statements->statement[i], gen);

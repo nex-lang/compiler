@@ -35,7 +35,7 @@ typedef struct Generator {
     StringLiteralManager* str_literals;
     CharLiteralManager* char_literals;
 
-    struct {size_t size; struct { size_t size; size_t offset; uint32_t id; }* vars; } cur_variables;
+    struct {size_t size; struct { size_t size; size_t offset; uint32_t id; }** vars; } cur_variables;
     FILE* fp;
 } Generator;
 

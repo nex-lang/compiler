@@ -92,6 +92,8 @@ ASTN_Statements* parser_parse_statements(Parser* parser, uint8_t scopeOS);
 
 AST_Node* parser_parse_mep_decl(Parser* parser);
 
+size_t parser_mem_for(ASTN_DataTypeSpecifier* dts);
+
 void symtbl_insert(Parser* table, Symbol* symbol);
 
 #endif // PARSER_H

@@ -1,4 +1,6 @@
 #include "p_info.h"
+#include "utils/bit128.h"
+
 #include <stdlib.h>
 #include <inttypes.h>
 #include <stdbool.h>
@@ -48,14 +50,14 @@ typedef struct ASTN_Literal {
             int16_t bit16;
             int32_t bit32;
             int64_t bit64;
-            __int128_t bit128;
+            int128_t bit128;
         } int_;
         struct {
             uint8_t bit8;
             uint16_t bit16;
             uint32_t bit32;
             uint64_t bit64;
-            __uint128_t bit128;
+            uint128_t bit128;
         } uint;
         struct {
             float bit32;
@@ -320,6 +322,7 @@ typedef struct ASTN_VariableDecl {
             size_t size;
         } mult;
     } iden;
+    size_t mem;
 
     AST_Node* expr;
 } ASTN_VariableDecl;

@@ -185,7 +185,10 @@ ASTN_Literal parser_parse_literal(Parser* parser) {
             lit.value.int_.bit64 = (int64_t)strtol(parser->cur->value, &endptr, 10);
             break;
         case TOK_L_LLINT:
-            lit.value.int_.bit128 = (__int128_t)strtoll(parser->cur->value, &endptr, 10);
+            int128_t i128; strtoint128(parser->cur->value, i128);
+
+            lit.value.int_.bit128.low = i128.low;
+            lit.value.int_.bit128.high = i128.high;
             break;
         case TOK_L_SSUINT:
             lit.value.uint.bit8 = (uint8_t)strtoul(parser->cur->value, &endptr, 10);
@@ -200,7 +203,10 @@ ASTN_Literal parser_parse_literal(Parser* parser) {
             lit.value.uint.bit64 = (uint64_t)strtoull(parser->cur->value, &endptr, 10);
             break;
         case TOK_L_LLUINT:
-            lit.value.uint.bit128 = (__uint128_t)strtoull(parser->cur->value, &endptr, 10);
+            uint128_t u128; strtouint128(parser->cur->value, u128);
+
+            lit.value.uint.bit128.low = u128.low;
+            lit.value.uint.bit128.high = u128.high;
             break;
         case TOK_L_FLOAT:
             lit.value.float_.bit32 = strtof(parser->cur->value, &endptr);
@@ -1159,6 +1165,7 @@ ASTN_VariableDecl parser_parse_var_decl(Parser* parser, uint8_t scopeOS) {
             ASTN_DataTypeSpecifier dts = parser_parse_dt_spec(parser, false);
             if (dts.data.prim != 0) {
                 var.data_type_specifier = dts;
+                var.mem = parser_mem_for(&var.data_type_specifier);
                 has_dts = true;
                 continue;
             }
@@ -2400,6 +2407,45 @@ AST_Node* parser_parse_mep_decl(Parser* parser) {
     }
 
     return node;
+}
+
+size_t parser_mem_for(ASTN_DataTypeSpecifier* dts) {
+    switch (dts->data.prim) {
+        case TOK_L_SSINT:
+            return sizeof(int8_t);
+        case TOK_L_SINT:
+            return sizeof(int16_t);
+        case TOK_L_INT:
+            return sizeof(int32_t);
+        case TOK_L_LINT:
+            return sizeof(int64_t);
+        case TOK_L_LLINT:
+            return sizeof(int128_t);
+        case TOK_L_SSUINT:
+            return sizeof(uint8_t);
+        case TOK_L_SUINT:
+            return sizeof(uint16_t);
+        case TOK_L_UINT:
+            return sizeof(uint32_t);
+        case TOK_L_LUINT:
+            return sizeof(uint64_t);
+        case TOK_L_LLUINT:
+            return sizeof(uint128_t);
+        case TOK_L_FLOAT:
+            return sizeof(float);
+        case TOK_L_DOUBLE:
+            return sizeof(double);
+        case TOK_L_BOOL:
+            return sizeof(bool);
+        case TOK_L_CHAR:
+            return 0;
+        case TOK_L_STRING:
+            return 0;
+        case TOK_L_SIZE:
+            return sizeof(size_t);
+        default:
+            return 0;
+    }
 }
 
 void symtbl_insert(Parser* parser, Symbol* symbol) {

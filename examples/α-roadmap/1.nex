@@ -5,17 +5,15 @@ import fprint from std.io;
     var short int: short_I = -32768;
     var int: I = -2147483648;
     var long int: long_I = -9223372036854775808;
-    var l_long int: longest_I = -170141183460469231731687303715884105728;
 
     var s_short uint: shortest_UI = 255;
     var short uint: short_UI = 65535;
     var uint: UI = 4294967295;
-    var long uint: long_UI = 18446744073709551615;
-    var l_long uint: longest_UI = 340282366920938463463374607431768211455;
+    var long uint: long_UI = 1844674407370955161;
 
 
     var float: short_pi = 3.1415f;
-    var float: pi = 3.1415d;
+    var double: pi = 3.1415d;
 
     var str: y = "pi";
     var char: z = 'p';

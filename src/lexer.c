@@ -463,36 +463,99 @@ uint8_t lexer_process_decimal_type(char* buf, uint8_t diadc) {
 }
 
 
-uint8_t lexer_process_int_type(char* buf) {
-    /*
-    Processes provided buffer and resolves type; TOK_ERROR if invalid
-    return: TOK_ERROR, TOK_L_(S|SS|L|LL)INT or TOK_L_(S|SS|L|LL)UINT 
-    */
-
-    char *endptr;
-    int64_t signed_val = strtoll(buf, &endptr, 10);
-
-    if (endptr == buf || *endptr != '\0') {
-        return TOK_ERROR;
+int is_within_int_range(int128_t val, int128_t min, int128_t max) {
+    if (val.high > max.high || (val.high == max.high && val.low > max.low)) {
+        return 0;
     }
+    if (val.high < min.high || (val.high == min.high && val.low < min.low)) {
+        return 0;
+    }
+    return 1;
+}
 
-    if (signed_val >= INT8_MIN && signed_val <= INT8_MAX) {
-        return (signed_val >= 0) ? TOK_L_SSUINT : TOK_L_SSINT;
-    } else if (signed_val >= INT16_MIN && signed_val <= INT16_MAX) {
-        return (signed_val >= 0) ? TOK_L_SUINT : TOK_L_SINT;
-    } else if (signed_val >= INT32_MIN && signed_val <= INT32_MAX) {
-        return (signed_val >= 0) ? TOK_L_UINT : TOK_L_INT;
-    } else if (signed_val >= INT64_MIN && signed_val <= INT64_MAX) {
-        return (signed_val >= 0) ? TOK_L_LUINT : TOK_L_LINT;
+int is_within_uint_range(uint128_t val, uint128_t max) {
+    if (val.high > max.high || (val.high == max.high && val.low > max.low)) {
+        return 0;
+    }
+    return 1;
+}
+
+uint8_t lexer_process_int_type(char* buf) {
+    char *endptr;
+    int64_t signed_val;
+    uint64_t usigned_val;
+
+    buf[strlen(buf)] = '\0';
+
+    if (*buf == '-') {
+        int128_t lsigned_val;
+        strtoint128(buf, lsigned_val);
+
+        int128_t int128_max = { .high = 0x7FFFFFFFFFFFFFFF, .low = 0xFFFFFFFFFFFFFFFF };
+        int128_t int128_min = { .high = 0x8000000000000000, .low = 0 };
+
+        signed_val = strtoll(buf, &endptr, 10) - 1;
+
+        if (endptr == buf || *endptr != '\0') {
+            return TOK_ERROR;
+        }
+
+        if (is_within_int_range(lsigned_val, int128_min, int128_max)) {
+            if (lsigned_val.high <= 0) {
+                if (signed_val >= INT8_MIN && signed_val <= INT8_MAX) {
+                    return TOK_L_SSINT;
+                } else if (signed_val >= INT16_MIN && signed_val <= INT16_MAX) {
+                    return TOK_L_SINT;
+                } else if (signed_val >= INT32_MIN && signed_val <= INT32_MAX) {
+                    return TOK_L_INT;
+                } else if (signed_val >= INT64_MIN && signed_val <= INT64_MAX) {
+                    return TOK_L_LINT;
+                }
+            } else if (lsigned_val.high > 0) {
+                return TOK_L_LLINT;
+            }
+        }        
+        return TOK_ERROR;
     } else {
-        __int128_t signed_val_128 = (__int128_t)signed_val;
-        if (signed_val_128 >= INT128_MIN && signed_val_128 <= INT128_MAX) {
-            return (signed_val_128 >= 0) ? TOK_L_LLUINT : TOK_L_LLINT;
+        uint128_t unsigned_val;
+        strtouint128(buf, unsigned_val);
+
+        usigned_val = strtoull(buf, &endptr, 10);
+        signed_val = strtoll(buf, &endptr, 10);
+
+        if (endptr == buf || *endptr != '\0') {
+            return TOK_ERROR;
+        }
+
+        uint128_t uint128_max = { .high = 0xFFFFFFFFFFFFFFFF, .low = 0xFFFFFFFFFFFFFFFF };
+
+        if (is_within_uint_range(unsigned_val, uint128_max)) {
+            printf("%lu - %lu\n", unsigned_val.low, unsigned_val.high);
+            if (unsigned_val.low > 0) {
+                return TOK_L_LLUINT;
+            } else if (usigned_val >= 0 && usigned_val <= UINT8_MAX) {
+                return TOK_L_SSUINT;
+            } else if (usigned_val >= 0 && usigned_val <= UINT16_MAX) {
+                return TOK_L_SUINT;
+            } else if (usigned_val >= 0 && usigned_val <= UINT32_MAX) {
+                return TOK_L_UINT;
+            } else if (usigned_val >= 0 && usigned_val <= UINT64_MAX) {
+                return TOK_L_LUINT;
+            }
+        } else if (signed_val >= INT8_MIN && signed_val <= INT8_MAX) {
+            return TOK_L_SSINT;
+        } else if (signed_val >= INT16_MIN && signed_val <= INT16_MAX) {
+            return TOK_L_SINT;
+        } else if (signed_val >= INT32_MIN && signed_val <= INT32_MAX) {
+            return TOK_L_INT;
+        } else if (signed_val >= INT64_MIN && signed_val <= INT64_MAX) {
+            return TOK_L_LINT;
         }
     }
 
     return TOK_ERROR;
 }
+
 Token* lexer_process_pos_singlechar(Lexer* lexer, char next_char,
     char c_pos1, char c_pos2,
     uint8_t t_pos0, uint8_t t_pos1, uint8_t t_pos2) {
