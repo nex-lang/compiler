@@ -122,13 +122,13 @@ void float_to_ieee_hex(float value, char* hex_str) {
 
 void gen_print_prep(Generator* gen, size_t size, size_t offset) {
     if (size == 1) {
-        fprintf(gen->fp, "    movzx edi, byte ptr [rsp + %zu]\n", offset);         
+        fprintf(gen->fp, "    movzx rdi, byte ptr [rsp + %zu]\n", offset);         
     } else if (size == 2) {
-        fprintf(gen->fp, "    movzx edi, word ptr [rsp + %zu]\n", offset);         
+        fprintf(gen->fp, "    movzx rdi, word ptr [rsp + %zu]\n", offset);         
     } else if (size == 4) {
-        fprintf(gen->fp, "    mov edi, dword ptr [rsp + %zu]\n", offset);         
+        fprintf(gen->fp, "    mov rdi, dword ptr [rsp + %zu]\n", offset);         
     } else if (size == 8) {
-        fprintf(gen->fp, "    mov edi, qword ptr [rsp + %zu]\n", offset);         
+        fprintf(gen->fp, "    mov rdi, qword ptr [rsp + %zu]\n", offset);         
     }
 }
 
@@ -140,8 +140,7 @@ void stackvar_push(Generator* gen, size_t offset, uint32_t id, size_t size) {
     var->size = size;
 
     gen->cur_variables.ac_size += 1;
-    gen->cur_variables.vars = realloc(gen->cur_variables.vars, sizeof(StackVar) * (gen->cur_variables.size));
-    
+    gen->cur_variables.vars = realloc(gen->cur_variables.vars, sizeof(StackVar) * (gen->cur_variables.ac_size));
     gen->cur_variables.vars[gen->cur_variables.ac_size - 1] = var;
 }
 
@@ -399,8 +398,7 @@ void gen_stmt(AST_Node* statement, Generator* gen) {
                     for (size_t i = 0; i < gen->cur_variables.ac_size; i++) {
                         if (gen->cur_variables.vars[i]->id == expr.data.identifier) {
                             gen_print_prep(gen, gen->cur_variables.vars[i]->size, gen->cur_variables.vars[i]->offset);
-                            fprintf(gen->fp, "    mov rax, %zu\n",  gen->cur_variables.vars[i]->size); 
-                            fprintf(gen->fp, "    mov rdi, rdx\n");
+                            fprintf(gen->fp, "    mov rdx, %zu\n",  gen->cur_variables.vars[i]->size); 
                             fprintf(gen->fp, "    call print\n");
                             break;
                         }

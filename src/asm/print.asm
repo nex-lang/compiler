@@ -24,9 +24,9 @@ print:
     mov byte ptr [rsi], 0xA
     dec rsi
     xor rbx, rbx
-    xor rdx, rdx
+    mov bl, BYTE PTR [rdi]
 .byte_loop:
-    xor rax, rax
+    mov rax, rbx
     div rcx
     add dl, '0'
     mov [rsi], dl
@@ -42,10 +42,10 @@ print:
     add rsi, 32
     mov byte ptr [rsi], 0xA
     dec rsi
-    xor rbx, rbx
     xor rdx, rdx
+    mov dx, WORD PTR [rdi]
 .word_loop:
-    xor rax, rax
+    mov rax, rdx
     div rcx
     add dl, '0'
     mov [rsi], dl
@@ -61,10 +61,10 @@ print:
     add rsi, 32
     mov byte ptr [rsi], 0xA
     dec rsi
-    xor rbx, rbx
     xor rdx, rdx
+    mov edx, DWORD PTR [rdi]
 .dword_loop:
-    xor rax, rax
+    mov rax, rdx
     div rcx
     add dl, '0'
     mov [rsi], dl
@@ -80,10 +80,10 @@ print:
     add rsi, 32
     mov byte ptr [rsi], 0xA
     dec rsi
-    xor rbx, rbx
     xor rdx, rdx
+    mov rdx, QWORD PTR [rdi]
 .qword_loop:
-    xor rax, rax
+    mov rax, rdx
     div rcx
     add dl, '0'
     mov [rsi], dl
@@ -95,21 +95,18 @@ print:
 
 .print_string:
     mov rsi, rdi
-    mov rcx, 0
-.string_loop:
-    cmp byte ptr [rsi + rcx], 0
-    je .string_done
-    inc rcx
-    jmp .string_loop
-.string_done:
-    mov rdx, rcx
-    jmp .write_string
+    xor rax, rax
+.strlen_loop:
+    cmp byte ptr [rsi + rax], 0
+    je .write_string
+    inc rax
+    jmp .strlen_loop
 
 .print_char:
     mov rsi, rsp
     add rsi, 32
-    mov byte [rsi], al
-    mov byte ptr [rsi+1], 0xA
+    mov byte ptr [rsi], al
+    mov byte ptr [rsi + 1], 0xA
     mov rdx, 2
     jmp .write_string
 

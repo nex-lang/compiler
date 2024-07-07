@@ -6,7 +6,7 @@ import fprint from std.io;
     var int: I = -2147483648;
     var long int: long_I = -9223372036854775808;
 
-    var s_short uint: shortest_UI = 60;
+    var s_short uint: shortest_UI = 2;
     var short uint: short_UI = 65535;
     var uint: UI = 4294967295;
     var long uint: long_UI = 1844674407370955161;
@@ -21,6 +21,6 @@ import fprint from std.io;
     var size: height = 181;   
 
     fprint(shortest_UI);
-
+    
     return 0;
 }

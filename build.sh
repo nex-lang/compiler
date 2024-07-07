@@ -21,6 +21,13 @@ if [ "$1" == "-C" ] || [ "$1" == "--clean" ]; then
     exit 0
 fi
 
+if [ "$1" == "-A" ] || [ "$1" == "--asm" ]; then
+    printf "${MAGENTA}${BRIGHT}[BUILD.SH]${NORMAL} BUILDING ASM LIBRARIES\n"
+    cd src/asm && as print.asm -o print.o && ld -shared print.o -o libprint.so && rm print.o
+    exit 0
+fi
+
+
 if [ "$#" -lt 1 ]; then
     printf "${MAGENTA}${BRIGHT}[BUILD.SH]${NORMAL} INSUFFICIENT ARGUMENTS PASSED (build.sh)\n"
     printf "${MAGENTA}${BRIGHT}[BUILD.SH]${NORMAL} USE --help or -H flag to find a usage guide\n"
