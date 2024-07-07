@@ -2400,7 +2400,7 @@ AST_Node* parser_parse_mep_decl(Parser* parser) {
 
     parser_expect(parser, TOK_LBRACE);
 
-
+    PES(parser);
     node->data.mep.statements = parser_parse_statements(parser, 0);
     if (node->data.mep.statements == NULL) {
         return NULL;

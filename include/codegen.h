@@ -31,12 +31,25 @@ typedef struct CharLiteralManager {
     int counter;
 } CharLiteralManager;
 
+typedef struct StackVar {
+    size_t offset;
+    size_t size;
+    uint32_t id;
+} StackVar;
+
+typedef struct StackVars {
+    size_t size;
+    size_t ac_size;
+    StackVar** vars;
+} StackVars;
+
 typedef struct Generator {
+    FILE* fp;
+
     StringLiteralManager* str_literals;
     CharLiteralManager* char_literals;
 
-    struct {size_t size; struct { size_t size; size_t offset; uint32_t id; }** vars; } cur_variables;
-    FILE* fp;
+    StackVars cur_variables;
 } Generator;
 
 
@@ -48,6 +61,9 @@ unsigned long hash_string(const char *str);
 void double_to_ieee_hex(double value, char* hex_str);
 void float_to_ieee_hex(float value, char* hex_str);
 
+void gen_print_prep(Generator* gen, size_t size, size_t offset);
+
+void stackvar_push(Generator* gen, size_t offset, uint32_t id, size_t size);
 void handle_literal_agn(Generator* gen, ASTN_VariableDecl* decl);
 
 unsigned long gen_str_symb(ASM_StringSymbol** head, const char* str, int* counter, bool is_def, uint32_t dest_hash);

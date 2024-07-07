@@ -6,11 +6,10 @@ import fprint from std.io;
     var int: I = -2147483648;
     var long int: long_I = -9223372036854775808;
 
-    var s_short uint: shortest_UI = 255;
+    var s_short uint: shortest_UI = 60;
     var short uint: short_UI = 65535;
     var uint: UI = 4294967295;
     var long uint: long_UI = 1844674407370955161;
-
 
     var float: short_pi = 3.1415f;
     var double: pi = 3.1415d;
@@ -20,6 +19,8 @@ import fprint from std.io;
 
     var bool: sitanshu_is_cool = true;
     var size: height = 181;   
+
+    fprint(shortest_UI);
 
     return 0;
 }

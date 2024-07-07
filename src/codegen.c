@@ -39,6 +39,17 @@ Generator* gen_init(char* filename) {
     gen->char_literals->head = NULL;
     gen->char_literals->counter = 0;
 
+    gen->cur_variables.ac_size = 0;
+    gen->cur_variables.vars = malloc(sizeof(StackVar));
+
+    if (gen->char_literals == NULL) {
+        perror("Memory allocation failed");
+        fclose(gen->fp);
+        free(gen->str_literals);
+        free(gen);
+        exit(EXIT_FAILURE);
+    }
+
     fprintf(gen->fp, ".global _start\n");
     fprintf(gen->fp, ".intel_syntax noprefix\n\n");
 
@@ -109,6 +120,30 @@ void float_to_ieee_hex(float value, char* hex_str) {
     sprintf(hex_str, "%s%X%X", (sign_bit == 0) ? "0x" : "-0x", exponent, significand_bits);
 }
 
+void gen_print_prep(Generator* gen, size_t size, size_t offset) {
+    if (size == 1) {
+        fprintf(gen->fp, "    movzx edi, byte ptr [rsp + %zu]\n", offset);         
+    } else if (size == 2) {
+        fprintf(gen->fp, "    movzx edi, word ptr [rsp + %zu]\n", offset);         
+    } else if (size == 4) {
+        fprintf(gen->fp, "    mov edi, dword ptr [rsp + %zu]\n", offset);         
+    } else if (size == 8) {
+        fprintf(gen->fp, "    mov edi, qword ptr [rsp + %zu]\n", offset);         
+    }
+}
+
+void stackvar_push(Generator* gen, size_t offset, uint32_t id, size_t size) {
+    StackVar* var = malloc(sizeof(StackVar));
+
+    var->offset = offset;
+    var->id = id;
+    var->size = size;
+
+    gen->cur_variables.ac_size += 1;
+    gen->cur_variables.vars = realloc(gen->cur_variables.vars, sizeof(StackVar) * (gen->cur_variables.size));
+    
+    gen->cur_variables.vars[gen->cur_variables.ac_size - 1] = var;
+}
 
 void handle_literal_agn(Generator* gen, ASTN_VariableDecl* decl) {
     char* value;
@@ -120,42 +155,51 @@ void handle_literal_agn(Generator* gen, ASTN_VariableDecl* decl) {
     switch (variable_decl->data.literal.type) {
         case TOK_L_SSINT:
             fprintf(gen->fp, "    mov byte ptr [rsp + %zu], %d\n", (gen->cur_variables.size -= 1), variable_decl->data.literal.value.int_.bit8);            
+            stackvar_push(gen, gen->cur_variables.size, decl->iden.sg, 1);
             break;
         case TOK_L_SINT:
             fprintf(gen->fp, "    mov word ptr [rsp + %zu], %d\n", (gen->cur_variables.size -= 2), variable_decl->data.literal.value.int_.bit16);
+            stackvar_push(gen, gen->cur_variables.size, decl->iden.sg, 2);
             break;
         case TOK_L_INT:
             fprintf(gen->fp, "    mov dword ptr [rsp + %zu], %d\n", (gen->cur_variables.size -= 4), variable_decl->data.literal.value.int_.bit32);
+            stackvar_push(gen, gen->cur_variables.size, decl->iden.sg, 4);
             break;
         case TOK_L_LINT:
-            printf("hello\n");
             fprintf(gen->fp, "    mov rax, %ld\n", variable_decl->data.literal.value.int_.bit64);
-            fprintf(gen->fp, "    mov qword [rsp + %zu], rax\n", (gen->cur_variables.size -= 8));
+            fprintf(gen->fp, "    mov qword ptr [rsp + %zu], rax\n", (gen->cur_variables.size -= 8));
+            stackvar_push(gen, gen->cur_variables.size, decl->iden.sg, 8);
             break;
         case TOK_L_LLINT:
             fprintf(gen->fp, "    mov rax, %lu\n", variable_decl->data.literal.value.int_.bit128.low);
             fprintf(gen->fp, "    mov rdx, %lu\n", variable_decl->data.literal.value.int_.bit128.high);
-            fprintf(gen->fp, "    mov qword [rsp + %zu], rax\n", (gen->cur_variables.size -= 8));
-            fprintf(gen->fp, "    mov qword [rsp + %zu], rdx\n", (gen->cur_variables.size -= 8));
+            fprintf(gen->fp, "    mov qword ptr [rsp + %zu], rax\n", (gen->cur_variables.size -= 8));
+            fprintf(gen->fp, "    mov qword ptr [rsp + %zu], rdx\n", (gen->cur_variables.size -= 8));
+            stackvar_push(gen, gen->cur_variables.size, decl->iden.sg, 16);
             break;
         case TOK_L_SSUINT:
             fprintf(gen->fp, "    mov byte ptr [rsp + %zu], %u\n", (gen->cur_variables.size -= 1), variable_decl->data.literal.value.uint.bit8);
+            stackvar_push(gen, gen->cur_variables.size, decl->iden.sg, 1);
             break;
         case TOK_L_SUINT:
             fprintf(gen->fp, "    mov word ptr [rsp + %zu], %u\n", (gen->cur_variables.size -= 2), variable_decl->data.literal.value.uint.bit16);
+            stackvar_push(gen, gen->cur_variables.size, decl->iden.sg, 2);
             break;
         case TOK_L_UINT:
             fprintf(gen->fp, "    mov dword ptr [rsp + %zu], %u\n", (gen->cur_variables.size -= 4),  variable_decl->data.literal.value.uint.bit32);
+            stackvar_push(gen, gen->cur_variables.size, decl->iden.sg, 4);
             break;
         case TOK_L_LUINT:
             fprintf(gen->fp, "    mov rax, %lu\n", variable_decl->data.literal.value.uint.bit64);
-            fprintf(gen->fp, "    mov qword [rsp + %zu], rax\n", (gen->cur_variables.size -= 8));
+            fprintf(gen->fp, "    mov qword ptr [rsp + %zu], rax\n", (gen->cur_variables.size -= 8));
+            stackvar_push(gen, gen->cur_variables.size, decl->iden.sg, 8);
             break;
         case TOK_L_LLUINT:
             fprintf(gen->fp, "    mov rax, %lu\n", variable_decl->data.literal.value.uint.bit128.low);
             fprintf(gen->fp, "    mov rdx, %lu\n", variable_decl->data.literal.value.uint.bit128.high);
-            fprintf(gen->fp, "    mov qword [rsp + %zu], rax\n", (gen->cur_variables.size -= 8));
-            fprintf(gen->fp, "    mov qword [rsp + %zu], rdx\n", (gen->cur_variables.size -= 8));
+            fprintf(gen->fp, "    mov qword ptr [rsp + %zu], rax\n", (gen->cur_variables.size -= 8));
+            fprintf(gen->fp, "    mov qword ptr [rsp + %zu], rdx\n", (gen->cur_variables.size -= 8));
+            stackvar_push(gen, gen->cur_variables.size, decl->iden.sg, 16);
             break;
         case TOK_L_FLOAT:
             value = malloc(11);
@@ -170,6 +214,7 @@ void handle_literal_agn(Generator* gen, ASTN_VariableDecl* decl) {
             fprintf(gen->fp, "    movd xmm0, eax\n");
             fprintf(gen->fp, "    cvttss2si rax, xmm0\n");
             fprintf(gen->fp, "    mov qword [rsp + %zu], rax\n", (gen->cur_variables.size -= 4));
+            stackvar_push(gen, gen->cur_variables.size, decl->iden.sg, 8);
             break;
         case TOK_L_DOUBLE:
             value = malloc(18);
@@ -184,6 +229,7 @@ void handle_literal_agn(Generator* gen, ASTN_VariableDecl* decl) {
             fprintf(gen->fp, "    movd xmm0, eax\n");
             fprintf(gen->fp, "    cvttss2si rax, xmm0\n");
             fprintf(gen->fp, "    mov qword [rsp + %zu], rax\n", (gen->cur_variables.size -= 8));
+            stackvar_push(gen, gen->cur_variables.size, decl->iden.sg, 8);
             break;
         case TOK_L_CHAR:
             label_hash = gen_char_symb(&(gen->char_literals->head), variable_decl->data.literal.value.character, &(gen->char_literals->counter), true, decl->iden.sg);
@@ -198,10 +244,12 @@ void handle_literal_agn(Generator* gen, ASTN_VariableDecl* decl) {
         case TOK_TRUE:
         case TOK_FALSE:
             fprintf(gen->fp, "    mov byte ptr [rsp + %zu], %u\n", (gen->cur_variables.size -= 1), variable_decl->data.literal.value.boolean);
+            stackvar_push(gen, gen->cur_variables.size, decl->iden.sg, 1);
             break;
         case TOK_L_SIZE:
                         fprintf(gen->fp, "    mov rax, %lu\n", variable_decl->data.literal.value.size);
             fprintf(gen->fp, "    mov qword [rsp + %zu], rax\n", (gen->cur_variables.size -= 8));
+            stackvar_push(gen, gen->cur_variables.size, decl->iden.sg, 8);
             break;
         default:
             fprintf(stderr, "Unsupported literal type\n");
@@ -329,20 +377,44 @@ void gen_stmt(AST_Node* statement, Generator* gen) {
 
     switch (statement->data.stm.type) {
         case STMT_RETURN: {
-            int return_value = statement->data.stm.data.return_stm.expr->data.expr.data.literal.value.uint.bit64;
-            fprintf(gen->fp, "    mov edi, %d\n", return_value);
+            ASTN_Expression return_expr = statement->data.stm.data.return_stm.expr->data.expr;
+            if (return_expr.data.identifier) {
+                for (size_t i = 0; i < gen->cur_variables.ac_size; i++) {
+                    if (gen->cur_variables.vars[i]->id == return_expr.data.identifier) {
+                        fprintf(gen->fp, "    movzx edi, byte ptr [rsp + %zu]\n", gen->cur_variables.vars[i]->offset);
+                        fprintf(gen->fp, "    add rsp, 67\n");
+                        break;
+                    }
+                }
+                break;
+            }
+
+            fprintf(gen->fp, "    mov edi, %d\n", 0);
             break;
         }
         case STMT_CALL: {
             if (statement->data.stm.data.call.identifier == -1124075304) {
-                printf("hello");
-                char *string_value = statement->data.stm.data.call.params->parameter[0]->data.expr.data.literal.value.string;
-                unsigned long label_hash = gen_str_symb(&(gen->str_literals->head), string_value, &(gen->str_literals->counter), false, 0);
-                fprintf(gen->fp, "    mov rax, 1\n");
-                fprintf(gen->fp, "    mov rdi, 1\n");
-                fprintf(gen->fp, "    lea rsi, [str_%lu_%d]\n", label_hash, gen->str_literals->counter - 1);
-                fprintf(gen->fp, "    mov rdx, %zu\n", strlen(string_value) + 2);
-                fprintf(gen->fp, "    syscall\n");
+                ASTN_Expression expr = statement->data.stm.data.call.params->parameter[0]->data.expr; 
+                if (expr.data.identifier) {
+                    for (size_t i = 0; i < gen->cur_variables.ac_size; i++) {
+                        if (gen->cur_variables.vars[i]->id == expr.data.identifier) {
+                            gen_print_prep(gen, gen->cur_variables.vars[i]->size, gen->cur_variables.vars[i]->offset);
+                            fprintf(gen->fp, "    mov rax, %zu\n",  gen->cur_variables.vars[i]->size); 
+                            fprintf(gen->fp, "    mov rdi, rdx\n");
+                            fprintf(gen->fp, "    call print\n");
+                            break;
+                        }
+                    }
+                } else {
+                    char *string_value = statement->data.stm.data.call.params->parameter[0]->data.expr.data.literal.value.string;
+                    unsigned long label_hash = gen_str_symb(&(gen->str_literals->head), string_value, &(gen->str_literals->counter), false, 0);
+                    fprintf(gen->fp, "    mov rax, 1\n");
+                    fprintf(gen->fp, "    mov rdi, 1\n");
+                    fprintf(gen->fp, "    lea rsi, [str_%lu_%d]\n", label_hash, gen->str_literals->counter - 1);
+                    fprintf(gen->fp, "    mov rdx, %zu\n", strlen(string_value) + 2);
+                    fprintf(gen->fp, "    syscall\n");
+                }
+                break;
             }
             break;
         }
@@ -398,7 +470,6 @@ void generate_program(AST_Node* node, Generator* gen) {
             fprintf(gen->fp, "    mov eax, 60\n");
             fprintf(gen->fp, "    syscall\n\n");
 
-            fprintf(gen->fp, "    xor edi, edi\n");
 
             break;
         default:
