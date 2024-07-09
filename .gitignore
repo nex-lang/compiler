@@ -1,5 +1,6 @@
 build/
 deps/
+dev/
 .vscode/
 
 prog.asm

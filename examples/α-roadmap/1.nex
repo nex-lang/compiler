@@ -1,26 +1,11 @@
 import fprint from std.io;
 
 : fn main => () {
-    var s_short int: shortest_I = -128;
-    var short int: short_I = -32768;
-    var int: I = -2147483648;
-    var long int: long_I = -9223372036854775808;
+    var str: z = "pi";    
 
-    var s_short uint: shortest_UI = 2;
-    var short uint: short_UI = 65535;
-    var uint: UI = 4294967295;
-    var long uint: long_UI = 1844674407370955161;
 
-    var float: short_pi = 3.1415f;
-    var double: pi = 3.1415d;
+    fprint(z);
 
-    var str: y = "pi";
-    var char: z = 'p';
 
-    var bool: sitanshu_is_cool = true;
-    var size: height = 181;   
-
-    fprint(shortest_UI);
-    
     return 0;
 }

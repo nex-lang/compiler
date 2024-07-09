@@ -43,6 +43,19 @@ typedef struct StackVars {
     StackVar** vars;
 } StackVars;
 
+typedef struct CS_StackVars {
+    size_t size;
+    char** vars;
+    uint32_t* id;
+
+
+    size_t char_size;
+    char** char_vars;
+    uint32_t* char_id;
+
+
+} CS_StackVars;
+
 typedef struct Generator {
     FILE* fp;
 
@@ -50,6 +63,7 @@ typedef struct Generator {
     CharLiteralManager* char_literals;
 
     StackVars cur_variables;
+    CS_StackVars cur_csvariables;
 } Generator;
 
 
@@ -62,8 +76,10 @@ void double_to_ieee_hex(double value, char* hex_str);
 void float_to_ieee_hex(float value, char* hex_str);
 
 void gen_print_prep(Generator* gen, size_t size, size_t offset);
+bool gen_for_char_str(Generator* gen, uint32_t iden);
 
 void stackvar_push(Generator* gen, size_t offset, uint32_t id, size_t size);
+void csstackvar_push(Generator* gen, char* str, bool is_char, uint32_t iden);
 void handle_literal_agn(Generator* gen, ASTN_VariableDecl* decl);
 
 unsigned long gen_str_symb(ASM_StringSymbol** head, const char* str, int* counter, bool is_def, uint32_t dest_hash);

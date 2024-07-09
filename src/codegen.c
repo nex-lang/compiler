@@ -36,11 +36,21 @@ Generator* gen_init(char* filename) {
         exit(EXIT_FAILURE);
     }
     
+        
+    gen->cur_variables.ac_size = 0;
+    gen->cur_variables.vars = malloc(sizeof(StackVar));
+
     gen->char_literals->head = NULL;
     gen->char_literals->counter = 0;
 
-    gen->cur_variables.ac_size = 0;
-    gen->cur_variables.vars = malloc(sizeof(StackVar));
+    gen->cur_csvariables.size = 0;
+    gen->cur_csvariables.vars = malloc(sizeof(char*));
+    gen->cur_csvariables.id = malloc(sizeof(uint32_t));
+
+    gen->cur_csvariables.char_size = 0;
+    gen->cur_csvariables.char_vars = malloc(sizeof(char*));
+    gen->cur_csvariables.char_id = malloc(sizeof(uint32_t));
+
 
     if (gen->char_literals == NULL) {
         perror("Memory allocation failed");
@@ -121,15 +131,36 @@ void float_to_ieee_hex(float value, char* hex_str) {
 }
 
 void gen_print_prep(Generator* gen, size_t size, size_t offset) {
+    
     if (size == 1) {
-        fprintf(gen->fp, "    movzx rdi, byte ptr [rsp + %zu]\n", offset);         
+        fprintf(gen->fp, "    mov al, byte ptr [rsp + %zu]\n", offset);         
     } else if (size == 2) {
-        fprintf(gen->fp, "    movzx rdi, word ptr [rsp + %zu]\n", offset);         
+        fprintf(gen->fp, "    mov ax, word ptr [rsp + %zu]\n", offset);         
     } else if (size == 4) {
-        fprintf(gen->fp, "    mov rdi, dword ptr [rsp + %zu]\n", offset);         
+        fprintf(gen->fp, "    mov eax, dword ptr [rsp + %zu]\n", offset);         
     } else if (size == 8) {
-        fprintf(gen->fp, "    mov rdi, qword ptr [rsp + %zu]\n", offset);         
+        fprintf(gen->fp, "    mov rax, qword ptr [rsp + %zu]\n", offset);         
     }
+}
+
+bool gen_for_char_str(Generator* gen, uint32_t iden) {
+    for (size_t i = 0; i < gen->cur_csvariables.char_size; i++) {
+        if (gen->cur_csvariables.char_id[i] == iden) {
+            fprintf(gen->fp, "    lea rsi, [%s]\n", gen->cur_csvariables.char_vars[i]);         
+            fprintf(gen->fp, "    mov rcx, 9\n");
+            return true;
+        }
+    }
+
+    for (size_t i = 0; i < gen->cur_csvariables.size; i++) {
+        if (gen->cur_csvariables.id[i] == iden) {
+            fprintf(gen->fp, "    lea rsi, [%s]\n", gen->cur_csvariables.vars[i]); 
+            fprintf(gen->fp, "    mov rcx, 10\n");
+            return true;
+        }
+    }
+
+    return false;
 }
 
 void stackvar_push(Generator* gen, size_t offset, uint32_t id, size_t size) {
@@ -144,10 +175,33 @@ void stackvar_push(Generator* gen, size_t offset, uint32_t id, size_t size) {
     gen->cur_variables.vars[gen->cur_variables.ac_size - 1] = var;
 }
 
+void csstackvar_push(Generator* gen, char* str, bool is_char, uint32_t iden) {
+    if (is_char) {
+        gen->cur_csvariables.char_size += 1;
+        
+        gen->cur_csvariables.char_vars = realloc(gen->cur_csvariables.char_vars, sizeof(char*) * (gen->cur_csvariables.char_size));
+        gen->cur_csvariables.char_id = realloc(gen->cur_csvariables.char_id, sizeof(uint32_t) * (gen->cur_csvariables.char_size));
+        
+        gen->cur_csvariables.char_vars[gen->cur_csvariables.char_size - 1] = str;
+        gen->cur_csvariables.char_id[gen->cur_csvariables.char_size - 1] = iden;
+    } else {
+        gen->cur_csvariables.size += 1;
+
+        gen->cur_csvariables.vars = realloc(gen->cur_csvariables.vars, sizeof(char*) * (gen->cur_csvariables.size));
+        gen->cur_csvariables.id = realloc(gen->cur_csvariables.id, sizeof(uint32_t) * (gen->cur_csvariables.size));
+        
+        gen->cur_csvariables.vars[gen->cur_csvariables.size - 1] = str;
+        gen->cur_csvariables.id[gen->cur_csvariables.size - 1] = iden;
+    }
+}
+
+
 void handle_literal_agn(Generator* gen, ASTN_VariableDecl* decl) {
     char* value;
     size_t value_str_size;
-    unsigned long label_hash;  
+    unsigned long char_label_hash;  
+    unsigned long str_label_hash;  
+
 
     ASTN_Expression* variable_decl = &decl->expr->data.expr;
 
@@ -231,14 +285,16 @@ void handle_literal_agn(Generator* gen, ASTN_VariableDecl* decl) {
             stackvar_push(gen, gen->cur_variables.size, decl->iden.sg, 8);
             break;
         case TOK_L_CHAR:
-            label_hash = gen_char_symb(&(gen->char_literals->head), variable_decl->data.literal.value.character, &(gen->char_literals->counter), true, decl->iden.sg);
-            // fprintf(gen->fp, "    mov rax, [char_%ld_%d]\n", label_hash, gen->char_literals->counter - 1);
-            // fprintf(gen->fp, "    push rax\n");    
+            char_label_hash = gen_char_symb(&(gen->char_literals->head), variable_decl->data.literal.value.character, &(gen->char_literals->counter), true, decl->iden.sg);
+            char _label[50];
+            snprintf(_label, sizeof(_label), "char_%ld_%d", char_label_hash, gen->char_literals->counter - 1);
+            csstackvar_push(gen, _label, true, decl->iden.sg);
             break;
         case TOK_L_STRING:
-            label_hash = gen_str_symb(&(gen->str_literals->head), variable_decl->data.literal.value.string, &(gen->str_literals->counter), true, decl->iden.sg);            
-            // fprintf(gen->fp, "    mov rax, [str_%ld_%d]\n", label_hash, gen->str_literals->counter - 1);
-            // fprintf(gen->fp, "    push rax\n");    
+            str_label_hash = gen_str_symb(&(gen->str_literals->head), variable_decl->data.literal.value.string, &(gen->str_literals->counter), true, decl->iden.sg);
+            char label[50];
+            snprintf(label, sizeof(label), "str_%ld_%d", str_label_hash, gen->str_literals->counter - 1);
+            csstackvar_push(gen, label, false, decl->iden.sg);
             break;
         case TOK_TRUE:
         case TOK_FALSE:
@@ -246,7 +302,6 @@ void handle_literal_agn(Generator* gen, ASTN_VariableDecl* decl) {
             stackvar_push(gen, gen->cur_variables.size, decl->iden.sg, 1);
             break;
         case TOK_L_SIZE:
-                        fprintf(gen->fp, "    mov rax, %lu\n", variable_decl->data.literal.value.size);
             fprintf(gen->fp, "    mov qword [rsp + %zu], rax\n", (gen->cur_variables.size -= 8));
             stackvar_push(gen, gen->cur_variables.size, decl->iden.sg, 8);
             break;
@@ -395,10 +450,15 @@ void gen_stmt(AST_Node* statement, Generator* gen) {
             if (statement->data.stm.data.call.identifier == -1124075304) {
                 ASTN_Expression expr = statement->data.stm.data.call.params->parameter[0]->data.expr; 
                 if (expr.data.identifier) {
+                    if (gen_for_char_str(gen, expr.data.identifier)) {
+                        fprintf(gen->fp, "    call print\n");
+                        break;
+                    }
+
                     for (size_t i = 0; i < gen->cur_variables.ac_size; i++) {
                         if (gen->cur_variables.vars[i]->id == expr.data.identifier) {
                             gen_print_prep(gen, gen->cur_variables.vars[i]->size, gen->cur_variables.vars[i]->offset);
-                            fprintf(gen->fp, "    mov rdx, %zu\n",  gen->cur_variables.vars[i]->size); 
+                            fprintf(gen->fp, "    mov rcx, %zu\n",  gen->cur_variables.vars[i]->size); 
                             fprintf(gen->fp, "    call print\n");
                             break;
                         }
@@ -406,8 +466,6 @@ void gen_stmt(AST_Node* statement, Generator* gen) {
                 } else {
                     char *string_value = statement->data.stm.data.call.params->parameter[0]->data.expr.data.literal.value.string;
                     unsigned long label_hash = gen_str_symb(&(gen->str_literals->head), string_value, &(gen->str_literals->counter), false, 0);
-                    fprintf(gen->fp, "    mov rax, 1\n");
-                    fprintf(gen->fp, "    mov rdi, 1\n");
                     fprintf(gen->fp, "    lea rsi, [str_%lu_%d]\n", label_hash, gen->str_literals->counter - 1);
                     fprintf(gen->fp, "    mov rdx, %zu\n", strlen(string_value) + 2);
                     fprintf(gen->fp, "    syscall\n");
@@ -465,7 +523,12 @@ void generate_program(AST_Node* node, Generator* gen) {
                 gen_stmt(node->data.mep.statements->statement[i], gen);
             }
 
-            fprintf(gen->fp, "    mov eax, 60\n");
+            if (total_mem > 0) {
+                fprintf(gen->fp, "    add rsp, %zu\n", total_mem);
+            }
+
+
+            fprintf(gen->fp, "    mov rax, 60\n");
             fprintf(gen->fp, "    syscall\n\n");
 
 
