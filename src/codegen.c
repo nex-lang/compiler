@@ -63,11 +63,61 @@ Generator* gen_init(char* filename) {
     fprintf(gen->fp, ".global _start\n");
     fprintf(gen->fp, ".intel_syntax noprefix\n\n");
 
+    fprintf(gen->fp,
+        "print:\n"
+        "    cmp rcx, 10\n"
+        "    je .print_string\n"
+        "    cmp rcx, 9\n"
+        "    je .print_char\n"
+        "    ret\n"
+        "\n"
+        ".print_char:\n"
+        "    mov rdx, 1\n"
+        "    mov rax, 1\n"
+        "    mov rdi, 1\n"
+        "    syscall\n"
+        "    ret\n"
+        "\n"
+        ".print_string:\n"
+        "    call .strlen\n"
+        "    mov rax, 1\n"
+        "    mov rdi, 1\n"
+        "    syscall\n"
+        "    ret\n"
+        "\n"
+        ".strlen:\n"
+        "    push rbp\n"
+        "    mov rbp, rsp\n"
+        "\n"
+        "    xor rdx, rdx\n"
+        "\n"
+        ".strlen_loop:\n"
+        "    mov cl, [rsi+rdx]\n"
+        "    cmp cl, 0x0\n"
+        "    je .strlen_end\n"
+        "\n"
+        "    inc rdx\n"
+        "    jmp .strlen_loop\n"
+        "\n"
+        ".strlen_end:\n"
+        "    pop rbp\n"
+        "    ret\n"
+        "\n\n"
+    );
+
     return gen;
 }
 
 void gen_free(Generator* gen) {
     fclose(gen->fp);
+
+    for (size_t k = 0; k < gen->cur_csvariables.char_size; k++) {
+        printf("@ %zu\n", k);
+    }
+
+    for (size_t j = 0; j < gen->cur_variables.size; j++) {
+        printf("! %zu\n", j);
+    }
 
     ASM_StringSymbol *current_string = gen->str_literals->head;
     while (current_string != NULL) {
@@ -77,6 +127,9 @@ void gen_free(Generator* gen) {
         free(current_string);
         current_string = str_next;
     }
+
+    
+
 
     ASM_CharSymbol *current_char = gen->char_literals->head;
     while (current_char != NULL) {
@@ -144,8 +197,11 @@ void gen_print_prep(Generator* gen, size_t size, size_t offset) {
 }
 
 bool gen_for_char_str(Generator* gen, uint32_t iden) {
+    // # TODO GET MULTIPLE STRS TO WROK
+
     for (size_t i = 0; i < gen->cur_csvariables.char_size; i++) {
         if (gen->cur_csvariables.char_id[i] == iden) {
+            printf("char -> %d\n", iden);
             fprintf(gen->fp, "    lea rsi, [%s]\n", gen->cur_csvariables.char_vars[i]);         
             fprintf(gen->fp, "    mov rcx, 9\n");
             return true;
@@ -154,6 +210,9 @@ bool gen_for_char_str(Generator* gen, uint32_t iden) {
 
     for (size_t i = 0; i < gen->cur_csvariables.size; i++) {
         if (gen->cur_csvariables.id[i] == iden) {
+            printf("str -> %d @ %d\n", iden, i);
+            printf("%s\n", gen->cur_csvariables.vars[i]);
+
             fprintf(gen->fp, "    lea rsi, [%s]\n", gen->cur_csvariables.vars[i]); 
             fprintf(gen->fp, "    mov rcx, 10\n");
             return true;
@@ -176,13 +235,13 @@ void stackvar_push(Generator* gen, size_t offset, uint32_t id, size_t size) {
 }
 
 void csstackvar_push(Generator* gen, char* str, bool is_char, uint32_t iden) {
-    if (is_char) {
+    if (is_char == true) {
         gen->cur_csvariables.char_size += 1;
         
         gen->cur_csvariables.char_vars = realloc(gen->cur_csvariables.char_vars, sizeof(char*) * (gen->cur_csvariables.char_size));
         gen->cur_csvariables.char_id = realloc(gen->cur_csvariables.char_id, sizeof(uint32_t) * (gen->cur_csvariables.char_size));
         
-        gen->cur_csvariables.char_vars[gen->cur_csvariables.char_size - 1] = str;
+        gen->cur_csvariables.char_vars[gen->cur_csvariables.char_size - 1] = strdup(str);
         gen->cur_csvariables.char_id[gen->cur_csvariables.char_size - 1] = iden;
     } else {
         gen->cur_csvariables.size += 1;
@@ -190,7 +249,8 @@ void csstackvar_push(Generator* gen, char* str, bool is_char, uint32_t iden) {
         gen->cur_csvariables.vars = realloc(gen->cur_csvariables.vars, sizeof(char*) * (gen->cur_csvariables.size));
         gen->cur_csvariables.id = realloc(gen->cur_csvariables.id, sizeof(uint32_t) * (gen->cur_csvariables.size));
         
-        gen->cur_csvariables.vars[gen->cur_csvariables.size - 1] = str;
+
+        gen->cur_csvariables.vars[gen->cur_csvariables.size - 1] = strdup(str);
         gen->cur_csvariables.id[gen->cur_csvariables.size - 1] = iden;
     }
 }

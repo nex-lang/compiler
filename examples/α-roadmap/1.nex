@@ -1,11 +1,13 @@
 import fprint from std.io;
 
 : fn main => () {
-    var str: z = "pi";    
+    var str: opener = "i";    
+    var str: body = "love";    
+    var str: ender = "aashna";    
 
-
-    fprint(z);
-
+    fprint(opener);
+    fprint(body);
+    fprint(ender);
 
     return 0;
 }
