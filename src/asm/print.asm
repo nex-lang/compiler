@@ -1,6 +1,5 @@
-.section text
-.global print
-.intel_syntax noprefix
+section .text
+global print
 
 print:
     cmp rcx, 10
@@ -17,7 +16,7 @@ print:
     ret
 
 .print_string:
-    mov rdx, 20
+    call .strlen
     mov rax, 1
     mov rdi, 1
     syscall
@@ -30,13 +29,10 @@ print:
     xor rdx, rdx
 
 .strlen_loop:
-    mov cl, [rsi+rdx]
-    cmp cl, 0x0
+    cmp byte [rsi+rdx], 0x0
     je .strlen_end
-    
     inc rdx
     jmp .strlen_loop
-
 .strlen_end:
     pop rbp
     ret

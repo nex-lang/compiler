@@ -60,50 +60,52 @@ Generator* gen_init(char* filename) {
         exit(EXIT_FAILURE);
     }
 
-    fprintf(gen->fp, ".global _start\n");
-    fprintf(gen->fp, ".intel_syntax noprefix\n\n");
+    fprintf(gen->fp, "section .text\n");
+    fprintf(gen->fp, "global _start\n\n");
 
-    fprintf(gen->fp,
-        "print:\n"
-        "    cmp rcx, 10\n"
-        "    je .print_string\n"
-        "    cmp rcx, 9\n"
-        "    je .print_char\n"
-        "    ret\n"
-        "\n"
-        ".print_char:\n"
-        "    mov rdx, 1\n"
-        "    mov rax, 1\n"
-        "    mov rdi, 1\n"
-        "    syscall\n"
-        "    ret\n"
-        "\n"
-        ".print_string:\n"
-        "    call .strlen\n"
-        "    mov rax, 1\n"
-        "    mov rdi, 1\n"
-        "    syscall\n"
-        "    ret\n"
-        "\n"
-        ".strlen:\n"
-        "    push rbp\n"
-        "    mov rbp, rsp\n"
-        "\n"
-        "    xor rdx, rdx\n"
-        "\n"
-        ".strlen_loop:\n"
-        "    mov cl, [rsi+rdx]\n"
-        "    cmp cl, 0x0\n"
-        "    je .strlen_end\n"
-        "\n"
-        "    inc rdx\n"
-        "    jmp .strlen_loop\n"
-        "\n"
-        ".strlen_end:\n"
-        "    pop rbp\n"
-        "    ret\n"
-        "\n\n"
-    );
+    fprintf(gen->fp, "%%include \"src/asm/print.asm\"\n\n");
+
+    // fprintf(gen->fp,
+    //     "print:\n"
+    //     "    cmp rcx, 10\n"
+    //     "    je .print_string\n"
+    //     "    cmp rcx, 9\n"
+    //     "    je .print_char\n"
+    //     "    ret\n"
+    //     "\n"
+    //     ".print_char:\n"
+    //     "    mov rdx, 1\n"
+    //     "    mov rax, 1\n"
+    //     "    mov rdi, 1\n"
+    //     "    syscall\n"
+    //     "    ret\n"
+    //     "\n"
+    //     ".print_string:\n"
+    //     "    call .strlen\n"
+    //     "    mov rax, 1\n"
+    //     "    mov rdi, 1\n"
+    //     "    syscall\n"
+    //     "    ret\n"
+    //     "\n"
+    //     ".strlen:\n"
+    //     "    push rbp\n"
+    //     "    mov rbp, rsp\n"
+    //     "\n"
+    //     "    xor rdx, rdx\n"
+    //     "\n"
+    //     ".strlen_loop:\n"
+    //     "    mov cl, [rsi+rdx]\n"
+    //     "    cmp cl, 0x0\n"
+    //     "    je .strlen_end\n"
+    //     "\n"
+    //     "    inc rdx\n"
+    //     "    jmp .strlen_loop\n"
+    //     "\n"
+    //     ".strlen_end:\n"
+    //     "    pop rbp\n"
+    //     "    ret\n"
+    //     "\n\n"
+    // );
 
     return gen;
 }
@@ -385,14 +387,13 @@ unsigned long gen_str_symb(ASM_StringSymbol** head, const char* str, int* counte
     snprintf(label, sizeof(label), "str_%lu_%d", hash, (*counter)++);
 
     size_t str_len = strlen(str);
-    char *new_value = malloc(str_len + 2);
+    char *new_value = malloc(str_len + 1);
     if (new_value == NULL) {
         perror("Memory allocation failed");
         exit(EXIT_FAILURE);
     }
     strcpy(new_value, str);
-    new_value[str_len] = '\n';
-    new_value[str_len + 1] = '\0';
+    new_value[str_len] = '\0';
 
     ASM_StringSymbol *new_node = malloc(sizeof(ASM_StringSymbol));
     if (new_node == NULL) {
@@ -464,7 +465,7 @@ void gen_string_lits(FILE* fp, ASM_StringSymbol* head) {
     ASM_StringSymbol* current = head;
     while (current != NULL) {
         fprintf(fp, "%s:\n", current->label);
-        fprintf(fp, "    .asciz \"%s\"\n", current->value);
+        fprintf(fp, "    db \"%s\", 10, 0\n", current->value);
         current = current->next;
     }
 }
@@ -604,7 +605,7 @@ void generate_program(AST_Node* node, Generator* gen) {
 
 
 void generate_data(Generator* gen) {
-    fprintf(gen->fp, "\n.data\n");
+    fprintf(gen->fp, "\nsection .data\n");
     gen_string_lits(gen->fp, gen->str_literals->head);
     gen_char_lits(gen->fp, gen->char_literals->head);
 }
