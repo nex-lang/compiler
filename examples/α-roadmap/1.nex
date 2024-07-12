@@ -1,13 +1,14 @@
 import fprint from std.io;
 
 : fn main => () {
-    var str: opener = "om";
-    var str: body = "mane";
-    var str: ender = "hum";
+    var s_short int: radius = 120;
 
-    fprint(opener);
-    fprint(body);
-    fprint(ender);
+    
+    var str: y = "Pi is an abbreviation of the Greek periphereia (meaning: 'peripheral') ";
+
+    var float: pi = 3.1415926;
+
+    fprint(radius);
 
     return 0;
 }

@@ -21,15 +21,9 @@ if [ "$1" == "-C" ] || [ "$1" == "--clean" ]; then
     exit 0
 fi
 
-if [ "$1" == "-A" ] || [ "$1" == "--asm" ]; then
-    printf "${MAGENTA}${BRIGHT}[BUILD.SH]${NORMAL} BUILDING ASM LIBRARIES\n"
-    cd src/asm && as -o print.o print.asm && ar rcs libprint.a print.o && rm print.o && chmod +x libprint.a
-    exit 0
-fi
-
 if [ "$1" == "-dev" ] || [ "$1" == "--dev" ]; then
     printf "${MAGENTA}${BRIGHT}[BUILD.SH]${NORMAL} BUILDING ASM LIBRARIES\n"
-    cd dev/ && as $2.asm -o $2.o && ld $2.o -o $2 && rm $2.o
+    cd dev/ && nasm -f elf64 $2.asm -o $2.o && ld $2.o -o $2 && rm $2.o
     exit 0
 fi
 

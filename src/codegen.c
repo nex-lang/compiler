@@ -113,14 +113,6 @@ Generator* gen_init(char* filename) {
 void gen_free(Generator* gen) {
     fclose(gen->fp);
 
-    for (size_t k = 0; k < gen->cur_csvariables.char_size; k++) {
-        printf("@ %zu\n", k);
-    }
-
-    for (size_t j = 0; j < gen->cur_variables.size; j++) {
-        printf("! %zu\n", j);
-    }
-
     ASM_StringSymbol *current_string = gen->str_literals->head;
     while (current_string != NULL) {
         ASM_StringSymbol *str_next = current_string->next;
@@ -129,8 +121,6 @@ void gen_free(Generator* gen) {
         free(current_string);
         current_string = str_next;
     }
-
-    
 
 
     ASM_CharSymbol *current_char = gen->char_literals->head;
@@ -186,21 +176,18 @@ void float_to_ieee_hex(float value, char* hex_str) {
 }
 
 void gen_print_prep(Generator* gen, size_t size, size_t offset) {
-    
     if (size == 1) {
-        fprintf(gen->fp, "    mov al, byte ptr [rsp + %zu]\n", offset);         
+        fprintf(gen->fp, "    movsx rax, byte [rsp + %zu]\n", offset);         
     } else if (size == 2) {
-        fprintf(gen->fp, "    mov ax, word ptr [rsp + %zu]\n", offset);         
+        fprintf(gen->fp, "    movsx rax, word [rsp + %zu]\n", offset);         
     } else if (size == 4) {
-        fprintf(gen->fp, "    mov eax, dword ptr [rsp + %zu]\n", offset);         
+        fprintf(gen->fp, "    movsx rax, dword [rsp + %zu]\n", offset);         
     } else if (size == 8) {
-        fprintf(gen->fp, "    mov rax, qword ptr [rsp + %zu]\n", offset);         
+        fprintf(gen->fp, "    movsx rax, qword [rsp + %zu]\n", offset);         
     }
 }
 
 bool gen_for_char_str(Generator* gen, uint32_t iden) {
-    // # TODO GET MULTIPLE STRS TO WROK
-
     for (size_t i = 0; i < gen->cur_csvariables.char_size; i++) {
         if (gen->cur_csvariables.char_id[i] == iden) {
             printf("char -> %d\n", iden);
@@ -269,51 +256,51 @@ void handle_literal_agn(Generator* gen, ASTN_VariableDecl* decl) {
 
     switch (variable_decl->data.literal.type) {
         case TOK_L_SSINT:
-            fprintf(gen->fp, "    mov byte ptr [rsp + %zu], %d\n", (gen->cur_variables.size -= 1), variable_decl->data.literal.value.int_.bit8);            
+            fprintf(gen->fp, "    mov byte [rsp + %zu], %d\n", (gen->cur_variables.size -= 1), variable_decl->data.literal.value.int_.bit8);            
             stackvar_push(gen, gen->cur_variables.size, decl->iden.sg, 1);
             break;
         case TOK_L_SINT:
-            fprintf(gen->fp, "    mov word ptr [rsp + %zu], %d\n", (gen->cur_variables.size -= 2), variable_decl->data.literal.value.int_.bit16);
+            fprintf(gen->fp, "    mov word [rsp + %zu], %d\n", (gen->cur_variables.size -= 2), variable_decl->data.literal.value.int_.bit16);
             stackvar_push(gen, gen->cur_variables.size, decl->iden.sg, 2);
             break;
         case TOK_L_INT:
-            fprintf(gen->fp, "    mov dword ptr [rsp + %zu], %d\n", (gen->cur_variables.size -= 4), variable_decl->data.literal.value.int_.bit32);
+            fprintf(gen->fp, "    mov dword [rsp + %zu], %d\n", (gen->cur_variables.size -= 4), variable_decl->data.literal.value.int_.bit32);
             stackvar_push(gen, gen->cur_variables.size, decl->iden.sg, 4);
             break;
         case TOK_L_LINT:
             fprintf(gen->fp, "    mov rax, %ld\n", variable_decl->data.literal.value.int_.bit64);
-            fprintf(gen->fp, "    mov qword ptr [rsp + %zu], rax\n", (gen->cur_variables.size -= 8));
+            fprintf(gen->fp, "    mov qword [rsp + %zu], rax\n", (gen->cur_variables.size -= 8));
             stackvar_push(gen, gen->cur_variables.size, decl->iden.sg, 8);
             break;
         case TOK_L_LLINT:
             fprintf(gen->fp, "    mov rax, %lu\n", variable_decl->data.literal.value.int_.bit128.low);
             fprintf(gen->fp, "    mov rdx, %lu\n", variable_decl->data.literal.value.int_.bit128.high);
-            fprintf(gen->fp, "    mov qword ptr [rsp + %zu], rax\n", (gen->cur_variables.size -= 8));
-            fprintf(gen->fp, "    mov qword ptr [rsp + %zu], rdx\n", (gen->cur_variables.size -= 8));
+            fprintf(gen->fp, "    mov qword [rsp + %zu], rax\n", (gen->cur_variables.size -= 8));
+            fprintf(gen->fp, "    mov qword [rsp + %zu], rdx\n", (gen->cur_variables.size -= 8));
             stackvar_push(gen, gen->cur_variables.size, decl->iden.sg, 16);
             break;
         case TOK_L_SSUINT:
-            fprintf(gen->fp, "    mov byte ptr [rsp + %zu], %u\n", (gen->cur_variables.size -= 1), variable_decl->data.literal.value.uint.bit8);
+            fprintf(gen->fp, "    mov byte [rsp + %zu], %u\n", (gen->cur_variables.size -= 1), variable_decl->data.literal.value.uint.bit8);
             stackvar_push(gen, gen->cur_variables.size, decl->iden.sg, 1);
             break;
         case TOK_L_SUINT:
-            fprintf(gen->fp, "    mov word ptr [rsp + %zu], %u\n", (gen->cur_variables.size -= 2), variable_decl->data.literal.value.uint.bit16);
+            fprintf(gen->fp, "    mov word [rsp + %zu], %u\n", (gen->cur_variables.size -= 2), variable_decl->data.literal.value.uint.bit16);
             stackvar_push(gen, gen->cur_variables.size, decl->iden.sg, 2);
             break;
         case TOK_L_UINT:
-            fprintf(gen->fp, "    mov dword ptr [rsp + %zu], %u\n", (gen->cur_variables.size -= 4),  variable_decl->data.literal.value.uint.bit32);
+            fprintf(gen->fp, "    mov dword [rsp + %zu], %u\n", (gen->cur_variables.size -= 4),  variable_decl->data.literal.value.uint.bit32);
             stackvar_push(gen, gen->cur_variables.size, decl->iden.sg, 4);
             break;
         case TOK_L_LUINT:
             fprintf(gen->fp, "    mov rax, %lu\n", variable_decl->data.literal.value.uint.bit64);
-            fprintf(gen->fp, "    mov qword ptr [rsp + %zu], rax\n", (gen->cur_variables.size -= 8));
+            fprintf(gen->fp, "    mov qword [rsp + %zu], rax\n", (gen->cur_variables.size -= 8));
             stackvar_push(gen, gen->cur_variables.size, decl->iden.sg, 8);
             break;
         case TOK_L_LLUINT:
             fprintf(gen->fp, "    mov rax, %lu\n", variable_decl->data.literal.value.uint.bit128.low);
             fprintf(gen->fp, "    mov rdx, %lu\n", variable_decl->data.literal.value.uint.bit128.high);
-            fprintf(gen->fp, "    mov qword ptr [rsp + %zu], rax\n", (gen->cur_variables.size -= 8));
-            fprintf(gen->fp, "    mov qword ptr [rsp + %zu], rdx\n", (gen->cur_variables.size -= 8));
+            fprintf(gen->fp, "    mov qword [rsp + %zu], rax\n", (gen->cur_variables.size -= 8));
+            fprintf(gen->fp, "    mov qword [rsp + %zu], rdx\n", (gen->cur_variables.size -= 8));
             stackvar_push(gen, gen->cur_variables.size, decl->iden.sg, 16);
             break;
         case TOK_L_FLOAT:
@@ -325,11 +312,8 @@ void handle_literal_agn(Generator* gen, ASTN_VariableDecl* decl) {
 
             float_to_ieee_hex(variable_decl->data.literal.value.float_.bit32, value);
 
-            fprintf(gen->fp, "    mov eax, %s\n", value);
-            fprintf(gen->fp, "    movd xmm0, eax\n");
-            fprintf(gen->fp, "    cvttss2si rax, xmm0\n");
-            fprintf(gen->fp, "    mov qword [rsp + %zu], rax\n", (gen->cur_variables.size -= 4));
-            stackvar_push(gen, gen->cur_variables.size, decl->iden.sg, 8);
+            fprintf(gen->fp, "    mov dword [rsp + %zu], %s\n", (gen->cur_variables.size -= 4), value);
+            stackvar_push(gen, gen->cur_variables.size, decl->iden.sg, 4);
             break;
         case TOK_L_DOUBLE:
             value = malloc(18);
@@ -360,7 +344,7 @@ void handle_literal_agn(Generator* gen, ASTN_VariableDecl* decl) {
             break;
         case TOK_TRUE:
         case TOK_FALSE:
-            fprintf(gen->fp, "    mov byte ptr [rsp + %zu], %u\n", (gen->cur_variables.size -= 1), variable_decl->data.literal.value.boolean);
+            fprintf(gen->fp, "    mov byte [rsp + %zu], %u\n", (gen->cur_variables.size -= 1), variable_decl->data.literal.value.boolean);
             stackvar_push(gen, gen->cur_variables.size, decl->iden.sg, 1);
             break;
         case TOK_L_SIZE:
@@ -474,7 +458,7 @@ void gen_char_lits(FILE* fp, ASM_CharSymbol* head) {
     ASM_CharSymbol* current = head;
     while (current != NULL) {
         fprintf(fp, "%s:\n", current->label);
-        fprintf(fp, "    .byte '%c'\n", current->value);
+        fprintf(fp, "    db '%c'\n", current->value);
         current = current->next;
     }
 }
@@ -496,7 +480,7 @@ void gen_stmt(AST_Node* statement, Generator* gen) {
             if (return_expr.data.identifier) {
                 for (size_t i = 0; i < gen->cur_variables.ac_size; i++) {
                     if (gen->cur_variables.vars[i]->id == return_expr.data.identifier) {
-                        fprintf(gen->fp, "    movzx edi, byte ptr [rsp + %zu]\n", gen->cur_variables.vars[i]->offset);
+                        fprintf(gen->fp, "    movzx edi, byte [rsp + %zu]\n", gen->cur_variables.vars[i]->offset);
                         fprintf(gen->fp, "    add rsp, 67\n");
                         break;
                     }
@@ -519,7 +503,7 @@ void gen_stmt(AST_Node* statement, Generator* gen) {
                     for (size_t i = 0; i < gen->cur_variables.ac_size; i++) {
                         if (gen->cur_variables.vars[i]->id == expr.data.identifier) {
                             gen_print_prep(gen, gen->cur_variables.vars[i]->size, gen->cur_variables.vars[i]->offset);
-                            fprintf(gen->fp, "    mov rcx, %zu\n",  gen->cur_variables.vars[i]->size); 
+                            fprintf(gen->fp, "    mov rcx, 8\n"); 
                             fprintf(gen->fp, "    call print\n");
                             break;
                         }
