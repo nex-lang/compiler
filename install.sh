@@ -8,9 +8,18 @@ NORMAL=$(tput sgr0)
 INSTALL_DIR="/usr/local/bin"
 
 usage() {
-    printf "${MAGENTA}${BRIGHT}[INSTALL.SH]${NORMAL} Usage: ./install.sh\n"
+    printf "${MAGENTA}${BRIGHT}[INSTALL.SH]${NORMAL} Usage: ./install.sh [ --vsce ]\n"
     exit 1
 }
+
+if [ "$1" == "--vsce" ]; then
+    printf "${MAGENTA}${BRIGHT}[INSTALL.SH]${NORMAL} Installing VS Code extension"
+    
+    curl -L -o /tmp/nex-0.0.1.vsix "https://github.com/nex-lang/vsc-extension/releases/download/v.1.0.0/nex-1.0.0.vsix"
+    code --install-extension /tmp/nex-1.0.0.vsix
+
+    printf "${MAGENTA}${BRIGHT}[INSTALL.SH]${NORMAL} VS Code extension installation successful!"
+fi
 
 if [ ! -d "build" ]; then
     printf "${MAGENTA}${BRIGHT}[INSTALL.SH]${NORMAL} Executable 'nex' not found in build directory. Running build.sh --release\n"

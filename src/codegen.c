@@ -144,36 +144,21 @@ unsigned long hash_string(const char *str) {
     return hash;
 }
 
+
 void double_to_ieee_hex(double value, char* hex_str) {
-    union {
-        double dval;
-        uint64_t uval;
-    } u = { .dval = value };
-
-    uint64_t sign_bit = u.uval & 0x8000000000000000ULL;
-    uint64_t exponent_bits = u.uval & 0x7FF0000000000000ULL;
-    uint64_t significand_bits = u.uval & 0x000FFFFFFFFFFFFFULL;
-
-    uint16_t exponent = (exponent_bits >> 52) - 1023; // Adjusted exponent bias
-
-    sprintf(hex_str, "%s%llX%llX", (sign_bit == 0) ? "0x" : "-0x", (unsigned long long)exponent, (unsigned long long)significand_bits);
+    sprintf(hex_str, "0x%016lX", value);
 }
-
 
 void float_to_ieee_hex(float value, char* hex_str) {
     union {
-        float fval;
-        uint32_t uval;
-    } u = {.fval = value };
+        float f;
+        uint32_t u;
+    } float_union;
 
-    uint32_t sign_bit = u.uval & 0x80000000U;
-    uint32_t exponent_bits = u.uval & 0x7F800000U;
-    uint32_t significand_bits = u.uval & 0x007FFFFFU;
-
-    int8_t exponent = (exponent_bits >> 23) - 127;
-
-    sprintf(hex_str, "%s%X%X", (sign_bit == 0) ? "0x" : "-0x", exponent, significand_bits);
+    float_union.f = value;
+    sprintf(hex_str, "0x%08X", float_union.u);
 }
+
 
 void gen_print_prep(Generator* gen, size_t size, size_t offset) {
     if (size == 1) {
@@ -322,12 +307,9 @@ void handle_literal_agn(Generator* gen, ASTN_VariableDecl* decl) {
                 exit(EXIT_FAILURE);
             }
             
-            float_to_ieee_hex(variable_decl->data.literal.value.float_.bit32, value);
+            double_to_ieee_hex(variable_decl->data.literal.value.float_.bit64, value);
 
-            fprintf(gen->fp, "    mov eax, %s\n", value);
-            fprintf(gen->fp, "    movd xmm0, eax\n");
-            fprintf(gen->fp, "    cvttss2si rax, xmm0\n");
-            fprintf(gen->fp, "    mov qword [rsp + %zu], rax\n", (gen->cur_variables.size -= 8));
+            fprintf(gen->fp, "    mov qword [rsp + %zu], %s\n", (gen->cur_variables.size -= 8), value);
             stackvar_push(gen, gen->cur_variables.size, decl->iden.sg, 8);
             break;
         case TOK_L_CHAR:
