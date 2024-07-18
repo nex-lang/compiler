@@ -1,0 +1,10 @@
+: fn main () => {
+}
+
+
+(double, float): fn function_phi => (short uint: x, bool: p) {
+    if (p) {
+        return (2 * x.pow(2) + 3 * x + 1) * pi_d.sin() + (x.pow(4) / (7 % x)) - e_d.pow((x + 2));
+    }
+    return (2 * x.pow(2) + 3 * x + 1) * pi_f.sin() + (x.pow(4) / (7 % x)) - e_f.pow((x + 2));
+}

@@ -12,14 +12,7 @@ usage() {
     exit 1
 }
 
-if [ "$1" == "--vsce" ]; then
-    printf "${MAGENTA}${BRIGHT}[INSTALL.SH]${NORMAL} Installing VS Code extension"
-    
-    curl -L -o /tmp/nex-0.0.1.vsix "https://github.com/nex-lang/vsc-extension/releases/download/v.1.0.0/nex-1.0.0.vsix"
-    code --install-extension /tmp/nex-1.0.0.vsix
 
-    printf "${MAGENTA}${BRIGHT}[INSTALL.SH]${NORMAL} VS Code extension installation successful!"
-fi
 
 if [ ! -d "build" ]; then
     printf "${MAGENTA}${BRIGHT}[INSTALL.SH]${NORMAL} Executable 'nex' not found in build directory. Running build.sh --release\n"
@@ -39,6 +32,16 @@ if [ ! -f "build/nex" ]; then
         printf "${MAGENTA}${BRIGHT}[INSTALL.SH]${NORMAL} Build failed. Executable 'nex' not found.\n"
         exit 1
     fi
+fi
+
+if [ "$1" == "--vsce" ]; then
+    printf "${MAGENTA}${BRIGHT}[INSTALL.SH]${NORMAL} Installing VS Code extension"
+    
+
+    curl -L -o build/nex-0.0.1.vsix "https://github.com/nex-lang/vsc-extension/releases/download/v.1.0.0/nex-1.0.0.vsix"
+    code --install-extension build/nex-1.0.0.vsix
+
+    printf "${MAGENTA}${BRIGHT}[INSTALL.SH]${NORMAL} VS Code extension installation successful!"
 fi
 
 printf "${MAGENTA}${BRIGHT}[INSTALL.SH]${NORMAL} Installing 'nex' to ${INSTALL_DIR}\n"
