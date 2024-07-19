@@ -10,5 +10,5 @@ import fprint from std.io;
 
     fprint(radius);
 
-    return 0;
+    return 0, 1, 9, 8;
 }

@@ -91,11 +91,14 @@ void parser_consume(Parser* parser) {
 }
 
 void parser_parse(Parser* parser) {
+    ASTN_DataTypeSpecifier dts =  parser_parse_dt_spec(parser);
+
+
     while (parser->cur->type != TOK_EOF) {
+
         switch (parser->cur->type) {
             case TOK_IMPORT:
                 parser->tree->right = parser_parse_import(parser);
-                printf(". %s\n", parser->cur->value);
                 break;
             case TOK_COLON:
                 parser->tree->right = parser_parse_mep_decl(parser);
@@ -237,7 +240,7 @@ ASTN_Literal parser_parse_literal(Parser* parser) {
     return lit;
 }
 
-ASTN_DataTypeSpecifier parser_parse_dt_spec(Parser* parser, bool expect_further) {
+ASTN_DataTypeSpecifier parser_parse_dt_spec(Parser* parser) {
     ASTN_DataTypeSpecifier dts;
     dts.data.prim = 0;
     int int_dts = 0;
@@ -252,6 +255,8 @@ ASTN_DataTypeSpecifier parser_parse_dt_spec(Parser* parser, bool expect_further)
     } else if (parser_expect(parser, TOK_L_LONG)) {
         int_dts += 128;
     }
+
+
 
     if (parser_expect(parser, TOK_INT)) {
         int_dts = (int_dts == 0) ? 32 : int_dts;
@@ -298,10 +303,6 @@ ASTN_DataTypeSpecifier parser_parse_dt_spec(Parser* parser, bool expect_further)
         }
         REPORT_ERROR(parser->lexer, "E_CLOSE_BRACK", parser->cur->value);
         dts.data.prim = 0;
-        return dts;
-    }
-
-    if (!(expect_further)) {
         return dts;
     }
 
@@ -827,7 +828,7 @@ AST_Node* parser_parse_expr(Parser* parser, uint8_t scopeOS) {
 
 ASTN_Parameter* parser_parse_parameter(Parser* parser) {
     ASTN_Parameter* param = calloc(1, sizeof(ASTN_Parameter));
-    param->data_type_specifier = parser_parse_dt_spec(parser, false);
+    param->data_type_specifier = parser_parse_dt_spec(parser);
 
     if (param->data_type_specifier.data.prim == 0) {
         REPORT_ERROR(parser->lexer, "E_DTS_FN_PARAM", parser->cur->value);
@@ -1162,7 +1163,7 @@ ASTN_VariableDecl parser_parse_var_decl(Parser* parser, uint8_t scopeOS) {
 
     while (parser->cur->type != TOK_COLON && (!(has_dts && has_acc))) {
         if (!has_dts) {
-            ASTN_DataTypeSpecifier dts = parser_parse_dt_spec(parser, false);
+            ASTN_DataTypeSpecifier dts = parser_parse_dt_spec(parser);
             if (dts.data.prim != 0) {
                 var.data_type_specifier = dts;
                 var.mem = parser_mem_for(&var.data_type_specifier);
@@ -1333,7 +1334,7 @@ ASTN_StructMemberDecl parser_parse_struct_mem(Parser* parser) {
     stm.storage = parser->cur->type;
     parser_consume(parser);
 
-    ASTN_DataTypeSpecifier dts = parser_parse_dt_spec(parser, false);
+    ASTN_DataTypeSpecifier dts = parser_parse_dt_spec(parser);
     if (dts.data.prim != 0) {
         stm.data_type_specifier = dts;
     }
@@ -1717,7 +1718,7 @@ AST_Node* parser_parse_err_decl(Parser* parser) {
     stm.members.identifiers = calloc(1, sizeof(uint32_t));
 
     while (parser->cur->type != TOK_RBRACE) {
-        ASTN_DataTypeSpecifier dts = parser_parse_dt_spec(parser, false);
+        ASTN_DataTypeSpecifier dts = parser_parse_dt_spec(parser);
         
         if (!parser_expect(parser, TOK_COLON)) {
             REPORT_ERROR(parser->lexer, "E_COLON_VAR_DECL");
@@ -2220,9 +2221,27 @@ ASTN_ReturnStm parser_parse_return_stm(Parser* parser, uint8_t scopeOS) {
     parser_consume(parser);
     ASTN_ReturnStm statement;
 
-    statement.expr = parser_parse_expr(parser, scopeOS);
+    statement.value.expr = parser_parse_expr(parser, scopeOS);
 
-    return statement;    
+    if (parser->cur->type != TOK_COMMA) {
+        return statement;    
+    }
+
+    statement.value.exprs->expr = calloc(2, sizeof(AST_Node*));
+    statement.value.exprs->item_size = sizeof(AST_Node*);
+    statement.value.exprs->size = 2;
+
+    statement.value.exprs->expr[0] = statement.value.expr;
+
+    while (parser->cur->type == TOK_COMMA) {
+        parser_consume(parser);
+
+        statement.value.exprs->expr[statement.value.exprs->size - 1] = parser_parse_expr(parser, scopeOS);
+        statement.value.exprs->size += 1;
+        statement.value.exprs->expr = realloc(statement.value.exprs->expr, statement.value.exprs->size  * statement.value.exprs->item_size);
+    }
+
+    return statement;
 }
 
 ASTN_ThrowStm parser_parse_throw_stm(Parser* parser, uint8_t scopeOS) {

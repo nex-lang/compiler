@@ -70,7 +70,7 @@ void print_ast_node(AST_Node* node, int indent_level) {
                 case STMT_RETURN:
                     print_indent(indent_level + 2);
                     printf("Return Statement\n");
-                    print_ast_node(node->data.stm.data.return_stm.expr, indent_level + 2);
+                    print_ast_node(node->data.stm.data.return_stm.value.expr, indent_level + 2);
                     break;
                 case STMT_ATTR_DECL:
                     print_indent(indent_level + 2);

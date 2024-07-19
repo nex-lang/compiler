@@ -37,7 +37,7 @@ array_literal ::= '{' [expression (',' expression)*] '}'
 storage_specifier ::= 'var' | 'const' | 'mut'
 access_specifier ::= 'pub' | 'priv' | 'glob'
 data_type_specifier ::= prim_data_type_specifier | comp_data_type_specifier
-multi_type_specifier ::= '(' (',' [storage_specifier] data_type_specifier)* ')'
+multi_type_specifier ::= '(' (',' data_type_specifier)* ')'
 
 prim_data_type_specifier ::= (
     ['s_short' | 'short' | 'long' | 'l_long'] 'int'

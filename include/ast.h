@@ -310,11 +310,18 @@ typedef struct ASTN_AttributeDecl {
     int32_t identifier;
 } ASTN_AttributeDecl;
 
+typedef struct ASTN_MutableTypes {
+    ASTN_DataTypeSpecifier* data_type_specifier;
+    size_t size;
+    size_t item_size;
+} ASTN_MutableTypes;
 
 typedef struct ASTN_VariableDecl {
-    int access,
-    storage;
+    int access, storage;
+    
+    ASTN_MutableTypes returns;
     ASTN_DataTypeSpecifier data_type_specifier;
+    
     union {
         int sg;
         struct {
@@ -327,8 +334,17 @@ typedef struct ASTN_VariableDecl {
     AST_Node* expr;
 } ASTN_VariableDecl;
 
+
+typedef struct ASTN_ReturnTypes {
+    ASTN_DataTypeSpecifier* data_type_specifier;
+    size_t size;
+    size_t item_size;
+} ASTN_ReturnTypes;
+
 typedef struct ASTN_FunctionDecl {
     int access, storage, identifier;
+
+    ASTN_ReturnTypes returns;
     ASTN_DataTypeSpecifier data_type_specifier;
     ASTN_Parameters* parameters;
     ASTN_Statements* statements;
@@ -426,8 +442,18 @@ typedef struct ASTN_WhileStm {
     ASTN_Statements* statements;
 } ASTN_WhileStm;
 
+
+typedef struct ASTN_MultiReturn {
+    AST_Node** expr;
+    size_t size;
+    size_t item_size;
+} ASTN_MultiReturn;
+
 typedef struct ASTN_ReturnStm {
-    AST_Node* expr;
+    union {
+        AST_Node* expr;
+        ASTN_MultiReturn* exprs;
+    } value;
 } ASTN_ReturnStm;
 
 typedef struct ASTN_ThrowStm {

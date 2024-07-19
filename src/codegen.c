@@ -458,7 +458,7 @@ void gen_stmt(AST_Node* statement, Generator* gen) {
 
     switch (statement->data.stm.type) {
         case STMT_RETURN: {
-            ASTN_Expression return_expr = statement->data.stm.data.return_stm.expr->data.expr;
+            ASTN_Expression return_expr = statement->data.stm.data.return_stm.value.expr->data.expr;
             if (return_expr.data.identifier) {
                 for (size_t i = 0; i < gen->cur_variables.ac_size; i++) {
                     if (gen->cur_variables.vars[i]->id == return_expr.data.identifier) {

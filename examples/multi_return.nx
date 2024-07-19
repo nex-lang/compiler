@@ -4,6 +4,8 @@
     returns_floatordouble();
     returns_double();
     returns_anything();
+
+    return 0;
 }
 
 

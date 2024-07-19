@@ -45,7 +45,7 @@ int parse_stospec(Parser* parser, bool expect_further);
 int parse_accspec(Parser* parser, bool expect_further);
 
 ASTN_Literal parser_parse_literal(Parser* parser);
-ASTN_DataTypeSpecifier parser_parse_dt_spec(Parser* parser, bool expect_further);
+ASTN_DataTypeSpecifier parser_parse_dt_spec(Parser* parser);
 
 ASTN_Call parser_parse_call(Parser* parser, uint8_t scopeOS);
 ASTN_PrimaryExpr parser_parse_prim_expr(Parser* parser, uint8_t scopeOS);
