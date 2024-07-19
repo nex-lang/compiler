@@ -91,10 +91,12 @@ void parser_consume(Parser* parser) {
 }
 
 void parser_parse(Parser* parser) {
-    ASTN_DataTypeSpecifier dts =  parser_parse_dt_spec(parser);
-
 
     while (parser->cur->type != TOK_EOF) {
+        AST_Node* n = parser_parse_typestart(parser);
+        if (n != NULL) {
+            parser->tree->right = n;
+        }
 
         switch (parser->cur->type) {
             case TOK_IMPORT:
@@ -240,6 +242,7 @@ ASTN_Literal parser_parse_literal(Parser* parser) {
     return lit;
 }
 
+
 ASTN_DataTypeSpecifier parser_parse_dt_spec(Parser* parser) {
     ASTN_DataTypeSpecifier dts;
     dts.data.prim = 0;
@@ -308,6 +311,194 @@ ASTN_DataTypeSpecifier parser_parse_dt_spec(Parser* parser) {
 
     return dts;
 }
+
+AST_Node* parser_parse_typestart(Parser* parser) {
+    ASTN_DataTypeSpecifier dts = parser_parse_dt_spec(parser);
+    if (dts.data.prim != 0 && parser_expect(parser, TOK_COLON)) {
+        REPORT_ERROR(parser->lexer, "E_FN_AF_DTSSPEC");
+    }
+
+
+    if (parser_expect(parser, TOK_LBRACK)) {
+        ASTN_MutableTypes comps;
+        ASTN_ReturnTypes rt;
+
+        rt.data_type_specifier = calloc(1, sizeof(ASTN_MutableTypes));
+        rt.item_size = sizeof(ASTN_MutableTypes);
+        rt.size = 1;
+
+        if (!parser_expect(parser, TOK_LPAREN)) {
+            REPORT_ERROR(parser->lexer, "E_PAREN_FOR_MULTI_VARIABLE_RETS");
+        }
+
+        comps = parser_parse_compatibilities(parser);
+
+        if (parser_expect(parser, TOK_RBRACK)) {
+            if (!(parser_expect(parser, TOK_PUB)  || parser_expect(parser, TOK_PRIV)
+            || parser_expect(parser, TOK_GLOB) || parser_expect(parser, TOK_COLON))) {
+                REPORT_ERROR(parser->lexer, "E_FN_AF_RESPEC");    
+            }
+
+            if (parser->cur->type != TOK_FN) {
+                REPORT_ERROR(parser->lexer, "E_FN_AF_RESPEC");
+            }
+
+            AST_Node* n = parser_parse_function_decl(parser);
+
+            rt.data_type_specifier[0] = comps;
+            n->data.stm.data.function_decl.returns = rt;
+            
+            return n;
+        }
+
+        if (parser->cur->type != TOK_COMMA) {
+            REPORT_ERROR(parser->lexer, "E_VAL_DTS_SQ");
+            return NULL;
+        }
+
+        rt.size += 1;
+        rt.data_type_specifier = realloc(rt.data_type_specifier, rt.size  * rt.item_size);
+
+        while (parser->cur->type == TOK_COMMA) {
+            parser_consume(parser);
+
+            if (!parser_expect(parser, TOK_LPAREN)) {
+                REPORT_ERROR(parser->lexer, "E_PAREN_FOR_MULTI_VARIABLE_RETS");
+            }
+
+            rt.data_type_specifier[rt.size - 1] = parser_parse_compatibilities(parser);
+            rt.size += 1;
+            rt.data_type_specifier = realloc(rt.data_type_specifier, rt.size  * rt.item_size);
+        }
+
+        if (!parser_expect(parser, TOK_RBRACK)) {
+            REPORT_ERROR(parser->lexer, "E_BRACK_MULTI_RET");
+        }
+
+        if (!parser_expect(parser, TOK_COLON)) {
+            REPORT_ERROR(parser->lexer, "E_COLON_AF_MULTI_RET_DECL");
+        }
+
+        AST_Node* n2 = parser_parse_function_decl(parser);
+        n2->data.stm.data.function_decl.returns = rt;
+        
+        return n2;
+    }
+
+    if (parser_expect(parser, TOK_LPAREN)) {
+        ASTN_MutableTypes mut =  parser_parse_compatibilities(parser);
+
+        if (!(parser_expect(parser, TOK_PUB)  || parser_expect(parser, TOK_PRIV)
+        || parser_expect(parser, TOK_GLOB) || parser_expect(parser, TOK_COLON))) {
+            REPORT_ERROR(parser->lexer, "E_FN_AF_MUTSPEC");    
+        }
+
+        if (parser->cur->type != TOK_FN) {
+            REPORT_ERROR(parser->lexer, "E_FN_AF_MUTSPEC");
+        }
+
+        AST_Node* n = parser_parse_function_decl(parser);
+        n->data.stm.data.function_decl.compatibles = mut;
+        return n;
+    }
+
+
+
+
+        // if (parser_expect(parser, TOK_LBRACK)) {
+    //     ASTN_DataTypeSpecifier dts = parser_parse_dt_spec(parser);
+    //     if (dts.data.prim == 0) {
+    //         REPORT_ERROR(parser->lexer, "E_VAL_MULTI_RET");
+    //         return NULL;
+    //     }
+
+    //     if (parser_expect(parser, TOK_RBRACK)) {
+    //         if (!parser_expect(parser, TOK_PUB) || !parser_expect(parser, TOK_PRIV)
+    //         || !parser_expect(parser, TOK_GLOB) || !parser_expect(parser, TOK_COLON)) {
+    //             REPORT_ERROR(parser->lexer, "E_FN_AF_RESPEC");    
+    //         }
+
+    //         if (parser->cur->type != TOK_FN) {
+    //             REPORT_ERROR(parser->lexer, "E_FN_AF_RESPEC");
+    //         }
+
+    //         AST_Node* n = parser_parse_function_decl(parser);
+    //         n->data.stm.data.function_decl.data_type_specifier = dts;
+    //         return n;
+    //     }
+
+    //     if (parser->cur->type != TOK_COMMA) {
+    //         REPORT_ERROR(parser->lexer, "E_VAL_DTS_SQ");
+    //         return NULL;
+    //     }
+
+    //     ASTN_ReturnTypes rt;
+    //     rt.data_type_specifier = calloc(2, sizeof(ASTN_DataTypeSpecifier));
+    //     rt.item_size = sizeof(ASTN_DataTypeSpecifier);
+    //     rt.size = 2;
+
+    //     rt.data_type_specifier[0] = dts;
+
+    //     while (parser->cur->type == TOK_COMMA) {
+    //         parser_consume(parser);
+
+    //         rt.data_type_specifier[rt.size - 1] = parser_parse_dt_spec(parser);
+    //         rt.size += 1;
+    //         rt.data_type_specifier = realloc(rt.data_type_specifier, rt.size  * rt.item_size);
+    //     }
+
+    //     if (!parser_expect(parser, TOK_RBRACK)) {
+    //         REPORT_ERROR(parser->lexer, "E_BRACK_MULTI_RET");
+    //     }
+
+    //     AST_Node* n2 = parser_parse_function_decl(parser);
+    //     n2->data.stm.data.function_decl.returns = rt;
+        
+    //     return n2;
+    // }
+
+}
+
+ASTN_MutableTypes parser_parse_compatibilities(Parser* parser) {
+    ASTN_MutableTypes mt;
+
+    mt.data_type_specifier = calloc(1, sizeof(ASTN_DataTypeSpecifier));
+    mt.item_size = sizeof(ASTN_DataTypeSpecifier);
+    mt.size = 1;
+
+    ASTN_DataTypeSpecifier dts = parser_parse_dt_spec(parser);
+    if (dts.data.prim == 0) {
+        REPORT_ERROR(parser->lexer, "E_VAL_DTS_MULTI");
+    }
+
+    if (parser_expect(parser, TOK_RPAREN)) {
+        mt.data_type_specifier[mt.size - 1] = dts;
+        return mt; 
+    }
+
+    if (parser->cur->type != TOK_COMMA) {
+        REPORT_ERROR(parser->lexer, "E_VAL_DTS_SQ");
+    }
+
+    mt.data_type_specifier[0] = dts;
+    mt.size += 1;
+
+    while (parser->cur->type == TOK_COMMA) {
+        parser_consume(parser);
+
+        mt.data_type_specifier[mt.size - 1] = parser_parse_dt_spec(parser);
+        mt.size += 1;
+        mt.data_type_specifier = realloc(mt.data_type_specifier, mt.size  * mt.item_size);
+    }
+
+    if (!parser_expect(parser, TOK_RPAREN)) {
+        REPORT_ERROR(parser->lexer, "E_PAREN_DTS_MULTI");
+    }
+
+    return mt;        
+
+}
+
 
 ASTN_Call parser_parse_call(Parser* parser, uint8_t scopeOS) {
     ASTN_Call call;

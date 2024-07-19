@@ -319,7 +319,7 @@ typedef struct ASTN_MutableTypes {
 typedef struct ASTN_VariableDecl {
     int access, storage;
     
-    ASTN_MutableTypes returns;
+    ASTN_MutableTypes compatibles;
     ASTN_DataTypeSpecifier data_type_specifier;
     
     union {
@@ -336,7 +336,7 @@ typedef struct ASTN_VariableDecl {
 
 
 typedef struct ASTN_ReturnTypes {
-    ASTN_DataTypeSpecifier* data_type_specifier;
+    ASTN_MutableTypes* data_type_specifier;
     size_t size;
     size_t item_size;
 } ASTN_ReturnTypes;
@@ -344,7 +344,9 @@ typedef struct ASTN_ReturnTypes {
 typedef struct ASTN_FunctionDecl {
     int access, storage, identifier;
 
+    ASTN_MutableTypes compatibles;
     ASTN_ReturnTypes returns;
+
     ASTN_DataTypeSpecifier data_type_specifier;
     ASTN_Parameters* parameters;
     ASTN_Statements* statements;

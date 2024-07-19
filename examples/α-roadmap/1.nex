@@ -1,14 +1,9 @@
-import fprint from std.io;
+str : fn returns_double_and_float => () {
+    return "WHAT";
+}
 
 : fn main => () {
-    var s_short int: radius = 120;
+    returns_double_and_float();
 
-    
-    var str: y = "Pi is an abbreviation of the Greek periphereia (meaning: 'peripheral') ";
-
-    var float: pi = 3.1415f;
-
-    fprint(radius);
-
-    return 0, 1, 9, 8;
+    return 0;
 }
