@@ -686,8 +686,9 @@ ASTN_TermExpr parser_parse_term_expr(Parser* parser, uint8_t scopeOS) {
             return expr;
         }
 
-        new_expr.data.binary_op.op = TOK_ASTK_ASTK;
+        new_expr.data.binary_op.left = left;
 
+        new_expr.data.binary_op.op = TOK_ASTK_ASTK;
         parser_consume(parser);
 
         new_expr.data.binary_op.right = malloc(sizeof(ASTN_Expression));

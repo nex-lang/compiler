@@ -563,7 +563,7 @@ void gen_assgn(AST_Node* stm, Generator* gen) {
             if (ex.data.term.data.binary_op.left) {
                 for (size_t i = 0; i < gen->cur_variables.ac_size; i++) {
                     if (gen->cur_variables.vars[i]->id == ex.data.term.data.binary_op.left->data.identifier) {
-                        fprintf(gen->fp, "    mov rax, byte [rsp + %zu]\n", gen->cur_variables.vars[i]->offset);
+                        fprintf(gen->fp, "    movsx rax, byte [rsp + %zu]\n", gen->cur_variables.vars[i]->offset);
                         break;
                     }
                 }
@@ -572,14 +572,14 @@ void gen_assgn(AST_Node* stm, Generator* gen) {
             if (ex.data.term.data.binary_op.right) {
                 for (size_t i = 0; i < gen->cur_variables.ac_size; i++) {
                     if (gen->cur_variables.vars[i]->id == ex.data.term.data.binary_op.right->data.identifier) {
-                        fprintf(gen->fp, "    mov rcx, byte [rsp + %zu]\n", gen->cur_variables.vars[i]->offset);
+                        fprintf(gen->fp, "    movsx rcx, byte [rsp + %zu]\n", gen->cur_variables.vars[i]->offset);
                         break;
                     }
                 }
             } 
             
             fprintf(gen->fp, "    call term\n", offset);
-            fprintf(gen->fp, "    mov word [rsp + %zu], rax\n", offset);
+            fprintf(gen->fp, "    mov [rsp + %zu], rax\n", offset);
             break;
         case EXPR_MULTIPLICATION:
             if (ex.data.multiplication.data.binary_op.op == TOK_ASTK) {

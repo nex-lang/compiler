@@ -12,11 +12,17 @@ term:
 
     mov rax, 1
 
-.exp_loop:
-    imul rax, rbx 
-    loop .exp_loop 
+    test rcx, rcx
+    jz .done
 
+.exp_loop:
+    imul rax, rbx  
+    dec rcx       
+    jnz .exp_loop
+
+.done:
     pop rbx
+    ret
 
 print:
     cmp rcx, 10
