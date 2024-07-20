@@ -209,6 +209,8 @@ bool lexer_handle_comments(Lexer* lexer) {
     /*
     Skips / * ..  until it finds  * /
     Skips // .. until new line
+
+    return: true if it was a comment else, false 
     */
 
     if (strcmp(lexer_peek(lexer, 2), "//") == 0) {
