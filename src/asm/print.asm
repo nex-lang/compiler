@@ -3,7 +3,20 @@ section .bss
 
 section .text
 global print
+global term
 global number
+
+term:
+    push rbx
+    mov rbx, rax
+
+    mov rax, 1
+
+.exp_loop:
+    imul rax, rbx 
+    loop .exp_loop 
+
+    pop rbx
 
 print:
     cmp rcx, 10
@@ -32,6 +45,7 @@ print:
         push rax
     .get_devisor:
         xor rdx, rdx
+        inc rdi ; strlen
         div rbx
         
         cmp rax, 0
@@ -69,8 +83,10 @@ print:
     pop rdx
 
     mov byte [rsi + 1], 10
+    inc rsi
     inc rdx
 
+    
     mov rax, 1
     mov rdi, 1
     mov rsi, number

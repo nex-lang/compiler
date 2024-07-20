@@ -1,16 +1,13 @@
-(char[], str)  : fn returns_double_and_float => (s_short int: proc, s_short uint: proc2) {
-    var (char[], str): ret = "S";
-
-    return ret;
-}
+import fprint from std.io;
 
 : fn main => () {
-    var: a, b, c, d = 1, 2, 3, 4;
+    var short int: a = 300;
+    var s_short int: b = 96;
+    var s_short int: c = 2;
 
-    /* a = 1, b = 2, c = 3, d = 4 */
+    a = c ** b;
 
-
-    returns_double_and_float(-10, 10); // calls returns_double_and_float
-
+    fprint(a);
+    
     return 0;
 }

@@ -80,7 +80,7 @@ bool gen_for_char_str(Generator* gen, uint32_t iden);
 
 void stackvar_push(Generator* gen, size_t offset, uint32_t id, size_t size);
 void csstackvar_push(Generator* gen, char* str, bool is_char, uint32_t iden);
-void handle_literal_agn(Generator* gen, ASTN_VariableDecl* decl);
+void handle_literal_agn(Generator* gen, ASTN_VariableDecl decl);
 
 unsigned long gen_str_symb(ASM_StringSymbol** head, const char* str, int* counter, bool is_def, uint32_t dest_hash);
 unsigned long gen_char_symb(ASM_CharSymbol** head, char ch, int* counter, bool is_def, uint32_t dest_hash);
@@ -91,6 +91,7 @@ void gen_char_lits(FILE* fp, ASM_CharSymbol* head);
 void gen_variable(Generator* gen, size_t size, uint32_t id);
 
 void gen_stmt(AST_Node* statement, Generator* gen);
+void gen_assgn(AST_Node* stm, Generator* gen);
 void generate_program(AST_Node* node, Generator* gen);
 void generate_data(Generator* gen);
 

@@ -14,6 +14,7 @@
 
 
 void print_ast_node(AST_Node* node, int indent_level);
+void print_expr(ASTN_Expression* expr, int indent_level, int dir);
 void print_symb_tbl(Symbol* cur);
 
 #endif // ALPHADEV_H

@@ -32,13 +32,13 @@ void parser_free(Parser* parser) {
     lexer_free(parser->lexer);
     token_free(parser->cur);
 
-    // PRINT_AST_NODE(parser->root, 0);
+    PRINT_AST_NODE(parser->root, 0);
 
     ast_free(parser->tree);
     ast_free(parser->root);
 
-    // Symbol* cur = parser->tbl->symbol;
-    // PRINT_SYMB_TBL(cur);
+    Symbol* cur = parser->tbl->symbol;
+    PRINT_SYMB_TBL(cur);
 
     symtbl_free(parser->tbl);
     parser = NULL;
@@ -549,11 +549,11 @@ ASTN_Call parser_parse_call(Parser* parser, uint8_t scopeOS) {
 
     printf("[STACK CALL]: %i\n", call.identifier);
 
-    if (call.params && call.params->parameter) {
-        for (size_t i = 0; i < call.params->size; i++) {
-            printf("\t arg [%zu]: %i\n", i, call.params->parameter[i]->data.expr.data.primary.data.literal.type);
-        }
-    }
+    // if (call.params && call.params->parameter) {
+    //     for (size_t i = 0; i < call.params->size; i++) {
+    //         printf("\t arg [%zu]: %i\n", i, call.params->parameter[i]->data.expr.data.primary.data.literal.type);
+    //     }
+    // }
 
     return call;
 }
@@ -605,7 +605,6 @@ ASTN_FactorExpr parser_parse_factor_expr(Parser* parser, uint8_t scopeOS) {
     ASTN_FactorExpr expr;
     expr.type = -1;
 
-
     if (parser->cur->type == TOK_MINUS_MINUS || parser->cur->type == TOK_ADD_ADD ||
         parser->cur->type == TOK_MINUS || parser->cur->type == TOK_BANG) {
         expr.type = FACTOR_UNARY_OP;
@@ -646,7 +645,6 @@ ASTN_TermExpr parser_parse_term_expr(Parser* parser, uint8_t scopeOS) {
 
     expr.data.factor = parser_parse_factor_expr(parser, scopeOS);
 
-
     if (expr.data.factor.type == -1) {
         return expr;
     }
@@ -656,18 +654,36 @@ ASTN_TermExpr parser_parse_term_expr(Parser* parser, uint8_t scopeOS) {
         ASTN_TermExpr new_expr;
         new_expr.type = TERM_BINARY_OP;
 
-        parser_consume(parser);
-
-        new_expr.data.binary_op.left = malloc(sizeof(ASTN_Expression));
-        if (!new_expr.data.binary_op.left) {
+        ASTN_Expression* left = malloc(sizeof(ASTN_Expression));
+        if (!left) {
             return expr;
         }
-        
-        if (expr.type != -1) {
-            new_expr.data.binary_op.left->type = EXPR_ADDITION;
-            new_expr.data.binary_op.left->data.factor = expr.data.factor;
+
+        if (expr.data.factor.type == FACTOR_UNARY_OP) {
+            left->type = EXPR_FACTOR;
+            left->data.factor = expr.data.factor;
+        } else if (expr.data.factor.type == FACTOR_PRIMARY) {
+            switch (expr.data.factor.data.primary.type) {
+                case PRIMARY_IDENTIFIER:
+                    left->type = EXPR_IDENTIFIER;
+                    left->data.identifier = expr.data.factor.data.primary.data.identifier;
+                    break;
+                case PRIMARY_LITERAL:
+                    left->type = EXPR_LITERAL;
+                    left->data.literal = expr.data.factor.data.primary.data.literal;
+                    break;
+                case PRIMARY_CALL:
+                    left->type = EXPR_FUNCTION_CALL;
+                    left->data.function_call = expr.data.factor.data.primary.data.call;
+                    break;
+            }
         } else {
-            new_expr.data.binary_op.left = parser_parse_expression(parser, scopeOS);
+            REPORT_ERROR(parser->lexer, "UNA_PARSE_EXPR");
+            while (!(parser_expect(parser, TOK_SC))) {
+                parser_consume(parser);
+            }
+            parser_consume(parser);
+            return expr;
         }
 
         new_expr.data.binary_op.op = TOK_ASTK_ASTK;
@@ -675,6 +691,7 @@ ASTN_TermExpr parser_parse_term_expr(Parser* parser, uint8_t scopeOS) {
         parser_consume(parser);
 
         new_expr.data.binary_op.right = malloc(sizeof(ASTN_Expression));
+
         if (!new_expr.data.binary_op.right) {
             free(new_expr.data.binary_op.left);
             return expr;
@@ -688,8 +705,7 @@ ASTN_TermExpr parser_parse_term_expr(Parser* parser, uint8_t scopeOS) {
             return expr;
         }
 
-        expr.type = TERM_BINARY_OP;
-        expr.data = new_expr.data;
+        expr = new_expr;
     }
 
     return expr;
@@ -711,26 +727,53 @@ ASTN_MultiplicationExpr parser_parse_mult_expr(Parser* parser, uint8_t scopeOS) 
         ASTN_MultiplicationExpr new_expr;
         new_expr.type = MULTIPLICATION_BINARY_OP;
 
-        new_expr.data.binary_op.left = malloc(sizeof(ASTN_Expression));
-        if (!new_expr.data.binary_op.left) {
+        ASTN_Expression* left = malloc(sizeof(ASTN_Expression));
+        if (!left) {
             return expr;
         }
         
-        if (expr.type != -1) {
-            new_expr.data.binary_op.left->type = EXPR_ADDITION;
-            new_expr.data.binary_op.left->data.term = expr.data.term;
+        if (expr.data.term.type == TERM_BINARY_OP) {
+            left->type = EXPR_TERM;
+            left->data.term = new_expr.data.term;
+        } else if (expr.data.term.data.factor.type == FACTOR_UNARY_OP) {
+            left->type = EXPR_FACTOR;
+            left->data.factor = expr.data.term.data.factor;
+        } else if (expr.data.term.data.factor.type == FACTOR_PRIMARY) {
+            switch (expr.data.term.data.factor.data.primary.type) {
+                case PRIMARY_IDENTIFIER:
+                    left->type = EXPR_IDENTIFIER;
+                    left->data.identifier = expr.data.term.data.factor.data.primary.data.identifier;
+                    break;
+                case PRIMARY_LITERAL:
+                    left->type = EXPR_LITERAL;
+                    left->data.literal = expr.data.term.data.factor.data.primary.data.literal;
+                    break;
+                case PRIMARY_CALL:
+                    left->type = EXPR_FUNCTION_CALL;
+                    left->data.function_call = expr.data.term.data.factor.data.primary.data.call;
+                    break;
+            }
         } else {
-            new_expr.data.binary_op.left = parser_parse_expression(parser, scopeOS);
+            REPORT_ERROR(parser->lexer, "UNA_PARSE_EXPR");
+            while (!(parser_expect(parser, TOK_SC))) {
+                parser_consume(parser);
+            }
+            parser_consume(parser);
+            return expr;
         }
 
+        new_expr.data.binary_op.left = left;
+
+        new_expr.data.binary_op.op = parser->cur->type;
         parser_consume(parser);
 
         new_expr.data.binary_op.right = malloc(sizeof(ASTN_Expression));
+
         if (!new_expr.data.binary_op.right) {
             free(new_expr.data.binary_op.left);
             return expr;
         }
-        
+
         new_expr.data.binary_op.right = parser_parse_expression(parser, scopeOS);
         
         if (!new_expr.data.binary_op.right) {
@@ -762,30 +805,58 @@ ASTN_AdditionExpr parser_parse_add_expr(Parser* parser, uint8_t scopeOS) {
         ASTN_AdditionExpr new_expr;
         new_expr.type = ADDITION_BINARY_OP;
 
-        new_expr.data.binary_op.left = malloc(sizeof(ASTN_Expression));
-        if (!new_expr.data.binary_op.left) {
+        ASTN_Expression* left = malloc(sizeof(ASTN_Expression));
+        if (!left) {
             return expr;
         }
         
-        if (expr.type != -1) {
-            new_expr.data.binary_op.left->type = EXPR_ADDITION;
-            new_expr.data.binary_op.left->data.multiplication = expr.data.multiplication;
+        if (expr.data.multiplication.type == MULTIPLICATION_BINARY_OP) {
+            left->type = EXPR_MULTIPLICATION;
+            left->data.multiplication = new_expr.data.multiplication;
+        } else if (expr.data.multiplication.data.term.type == TERM_BINARY_OP) {
+            left->type = EXPR_TERM;
+            left->data.term = new_expr.data.multiplication.data.term;
+        } else if (expr.data.multiplication.data.term.data.factor.type == FACTOR_UNARY_OP) {
+            left->type = EXPR_FACTOR;
+            left->data.factor = expr.data.multiplication.data.term.data.factor;
+        } else if (expr.data.multiplication.data.term.data.factor.type == FACTOR_PRIMARY) {
+            switch (expr.data.multiplication.data.term.data.factor.data.primary.type) {
+                case PRIMARY_IDENTIFIER:
+                    left->type = EXPR_IDENTIFIER;
+                    left->data.identifier = expr.data.multiplication.data.term.data.factor.data.primary.data.identifier;
+                    break;
+                case PRIMARY_LITERAL:
+                    left->type = EXPR_LITERAL;
+                    left->data.literal = expr.data.multiplication.data.term.data.factor.data.primary.data.literal;
+                    break;
+                case PRIMARY_CALL:
+                    left->type = EXPR_FUNCTION_CALL;
+                    left->data.function_call = expr.data.multiplication.data.term.data.factor.data.primary.data.call;
+                    break;
+            }
         } else {
-            new_expr.data.binary_op.left = parser_parse_expression(parser, scopeOS);
+            REPORT_ERROR(parser->lexer, "UNA_PARSE_EXPR");
+            while (!(parser_expect(parser, TOK_SC))) {
+                parser_consume(parser);
+            }
+            parser_consume(parser);
+            return expr;
         }
 
-        new_expr.data.binary_op.op = parser->cur->type;
+        new_expr.data.binary_op.left = left;
 
+        new_expr.data.binary_op.op = parser->cur->type;
         parser_consume(parser);
 
         new_expr.data.binary_op.right = malloc(sizeof(ASTN_Expression));
+
         if (!new_expr.data.binary_op.right) {
-            free(new_expr.data.binary_op.left);
+            free(new_expr.data.binary_op.right);
             return expr;
         }
         
         new_expr.data.binary_op.right = parser_parse_expression(parser, scopeOS);
-        
+
         if (!new_expr.data.binary_op.right) {
             free(new_expr.data.binary_op.left);
             free(new_expr.data.binary_op.right);
@@ -814,23 +885,55 @@ ASTN_BitwiseExpr parser_parse_bitw_expr(Parser* parser, uint8_t scopeOS) {
         ASTN_BitwiseExpr new_expr;
         new_expr.type = BITWISE_BINARY_OP;
 
-        new_expr.data.binary_op.left = malloc(sizeof(ASTN_Expression));
-        if (!new_expr.data.binary_op.left) {
+        ASTN_Expression* left = malloc(sizeof(ASTN_Expression));
+        
+        if (!left) {
             return expr;
         }
 
-        if (expr.type != -1) {
-            new_expr.data.binary_op.left->type = EXPR_ADDITION;
-            new_expr.data.binary_op.left->data.addition = expr.data.addition;
+        if (expr.data.addition.type == ADDITION_BINARY_OP) {
+            left->type = EXPR_ADDITION;
+            left->data.addition = expr.data.addition;
+        } else if (expr.data.addition.data.multiplication.type == MULTIPLICATION_BINARY_OP) {
+            left->type = EXPR_MULTIPLICATION;
+            left->data.multiplication = expr.data.addition.data.multiplication;
+        } else if (expr.data.addition.data.multiplication.data.term.type == TERM_BINARY_OP) {
+            left->type = EXPR_TERM;
+            left->data.term = expr.data.addition.data.multiplication.data.term;
+        } else if (expr.data.addition.data.multiplication.data.term.data.factor.type == FACTOR_UNARY_OP) {
+            left->type = EXPR_FACTOR;
+            left->data.factor = expr.data.addition.data.multiplication.data.term.data.factor;
+        } else if (expr.data.addition.data.multiplication.data.term.data.factor.type == FACTOR_PRIMARY) {
+            switch (expr.data.addition.data.multiplication.data.term.data.factor.data.primary.type) {
+                case PRIMARY_IDENTIFIER:
+                    left->type = EXPR_IDENTIFIER;
+                    left->data.identifier = expr.data.addition.data.multiplication.data.term.data.factor.data.primary.data.identifier;
+                    break;
+                case PRIMARY_LITERAL:
+                    left->type = EXPR_LITERAL;
+                    left->data.literal = expr.data.addition.data.multiplication.data.term.data.factor.data.primary.data.literal;
+                    break;
+                case PRIMARY_CALL:
+                    left->type = EXPR_FUNCTION_CALL;
+                    left->data.function_call = expr.data.addition.data.multiplication.data.term.data.factor.data.primary.data.call;
+                    break;
+            }
         } else {
-            new_expr.data.binary_op.left = parser_parse_expression(parser, scopeOS);
+            REPORT_ERROR(parser->lexer, "UNA_PARSE_EXPR");
+            while (!(parser_expect(parser, TOK_SC))) {
+                parser_consume(parser);
+            }
+            parser_consume(parser);
+            return expr;
         }
 
-        new_expr.data.binary_op.op = parser->cur->type;
+        new_expr.data.binary_op.left = left;
 
+        new_expr.data.binary_op.op = parser->cur->type;
         parser_consume(parser);
 
         new_expr.data.binary_op.right = malloc(sizeof(ASTN_Expression));
+
         if (!new_expr.data.binary_op.right) {
             free(new_expr.data.binary_op.left);
             return expr;
@@ -866,20 +969,53 @@ ASTN_ComparisonExpr parser_parse_comp_expr(Parser* parser, uint8_t scopeOS) {
         ASTN_ComparisonExpr new_expr;
         new_expr.type = COMPARISON_BINARY_OP;
 
-        new_expr.data.binary_op.left = malloc(sizeof(ASTN_Expression));
-        if (!new_expr.data.binary_op.left)  {
+        ASTN_Expression* left = malloc(sizeof(ASTN_Expression));
+        if (!left) {
             return expr;
         }
 
-        if (expr.type != -1) {
-            new_expr.data.binary_op.left->type = EXPR_BITWISE;
-            new_expr.data.binary_op.left->data.bitwise = expr.data.bitwise;
+        if (expr.data.bitwise.type == BITWISE_BINARY_OP) {
+            left->type = EXPR_BITWISE;
+            left->data.bitwise = expr.data.bitwise;
+        } else if (expr.data.bitwise.data.addition.type == ADDITION_BINARY_OP) {
+            left->type = EXPR_ADDITION;
+            left->data.addition = expr.data.bitwise.data.addition;
+        } else if (expr.data.bitwise.data.addition.data.multiplication.type == MULTIPLICATION_BINARY_OP) {
+            left->type = EXPR_MULTIPLICATION;
+            left->data.multiplication = expr.data.bitwise.data.addition.data.multiplication;
+        } else if (expr.data.bitwise.data.addition.data.multiplication.data.term.type == TERM_BINARY_OP) {
+            left->type = EXPR_TERM;
+            left->data.term = expr.data.bitwise.data.addition.data.multiplication.data.term;
+        } else if (expr.data.bitwise.data.addition.data.multiplication.data.term.data.factor.type == FACTOR_UNARY_OP) {
+            left->type = EXPR_FACTOR;
+            left->data.factor = expr.data.bitwise.data.addition.data.multiplication.data.term.data.factor;
+        } else if (expr.data.bitwise.data.addition.data.multiplication.data.term.data.factor.type == FACTOR_PRIMARY) {
+            switch (expr.data.bitwise.data.addition.data.multiplication.data.term.data.factor.data.primary.type) {
+                case PRIMARY_IDENTIFIER:
+                    left->type = EXPR_IDENTIFIER;
+                    left->data.identifier = expr.data.bitwise.data.addition.data.multiplication.data.term.data.factor.data.primary.data.identifier;
+                    break;
+                case PRIMARY_LITERAL:
+                    left->type = EXPR_LITERAL;
+                    left->data.literal = expr.data.bitwise.data.addition.data.multiplication.data.term.data.factor.data.primary.data.literal;
+                    break;
+                case PRIMARY_CALL:
+                    left->type = EXPR_FUNCTION_CALL;
+                    left->data.function_call = expr.data.bitwise.data.addition.data.multiplication.data.term.data.factor.data.primary.data.call;
+                    break;
+            }
         } else {
-            new_expr.data.binary_op.left = parser_parse_expression(parser, scopeOS);
+            REPORT_ERROR(parser->lexer, "UNA_PARSE_EXPR");
+            while (!(parser_expect(parser, TOK_SC))) {
+                parser_consume(parser);
+            }
+            parser_consume(parser);
+            return expr;
         }
 
-        new_expr.data.binary_op.op = parser->cur->type;
+        new_expr.data.binary_op.left = left;
 
+        new_expr.data.binary_op.op = parser->cur->type;
         parser_consume(parser);
 
         new_expr.data.binary_op.right = malloc(sizeof(ASTN_Expression));
@@ -1352,6 +1488,7 @@ ASTN_VariableDecl parser_parse_var_decl(Parser* parser, uint8_t scopeOS) {
     parser_consume(parser);
 
     bool has_dts = false, has_acc = false;
+    var.mem = 8;
 
     while (parser->cur->type != TOK_COLON && (!(has_dts && has_acc))) {
         if (!has_dts) {
@@ -1427,6 +1564,7 @@ ASTN_VariableDecl parser_parse_var_decl(Parser* parser, uint8_t scopeOS) {
 
 
     if (parser->cur->value == TOK_SC) {
+        var.expr = NULL;
         return var;
     } 
 
@@ -1445,6 +1583,7 @@ ASTN_VariableDecl parser_parse_var_decl(Parser* parser, uint8_t scopeOS) {
                 return var;
             }
 
+    
             var.iden.mult.expr[0] = pn;
 
             size_t i = 1;
@@ -1528,11 +1667,12 @@ ASTN_AssignmentStm parser_parse_assgn(Parser* parser, uint8_t scopeOS) {
         assgn.mult.ids[assgn.mult.size - 1] =  symb2;   
     }
 
-    if (!(parser_expect(parser, TOK_EQ))) {
+    if (parser->cur->type != TOK_EQ) {
         assgn.sg.id = 0;
-        REPORT_ERROR(parser->lexer, "E_EQ_AF_UNEUOFVAR");
         return assgn;
     } 
+
+    parser_consume(parser);
 
     if (assgn.mult.size == 1) {
         assgn.sg.id = symb->data.id;
@@ -1595,6 +1735,7 @@ ASTN_AssignmentStm parser_parse_assgn(Parser* parser, uint8_t scopeOS) {
         REPORT_ERROR(parser->lexer, "E_EQ_VAR_EXPR", assgn.mult.size, i, assgn.mult.size);
     }    
 
+    return assgn;
 }
 
 
@@ -2670,6 +2811,7 @@ ASTN_Statement parser_parse_statement(Parser* parser, uint8_t scopeOS) {
             
             stm.type = STMT_ASSGN;
             stm.data.assgn = parser_parse_assgn(parser, scopeOS);
+            if (stm.data.assgn.sg.id != 0) { break; }
 
             stm.type = STMT_EXPRESSION;
             stm.data.expression = *parser_parse_expression(parser, scopeOS);
@@ -2810,7 +2952,7 @@ size_t parser_mem_for(ASTN_DataTypeSpecifier* dts) {
         case TOK_L_SIZE:
             return sizeof(size_t);
         default:
-            return 0;
+            return 8;
     }
 }
 

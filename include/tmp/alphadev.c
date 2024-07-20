@@ -1,5 +1,7 @@
 #include "alphadev.h"
 
+#include "token.h"
+
 void print_indent(int indent_level) {
     for (int i = 0; i < indent_level; ++i) {
         printf("    "); // 4 spaces per indent level
@@ -62,6 +64,13 @@ void print_ast_node(AST_Node* node, int indent_level) {
                         printf("%i: %s ", (i+1), node->data.stm.data.import_decl.modules.items[i]->module);
                     }
                     printf("\n");
+                    break;
+                case STMT_ASSGN:
+                    print_indent(indent_level + 2);
+                    printf("Assignment Statement\n");
+                    if (node->data.stm.data.assgn.sg.id) {
+                        print_ast_node(node->data.stm.data.assgn.sg.expr, indent_level + 2);   
+                    }
                     break;
                 case STMT_EXPRESSION:
                     print_indent(indent_level + 2);
@@ -129,26 +138,37 @@ void print_ast_node(AST_Node* node, int indent_level) {
                 case EXPR_FACTOR:
                     print_indent(indent_level + 2);
                     printf("Factor\n");
+                    print_expr(node->data.expr.data.factor.data.unary_op.expr, indent_level, -1);
                     break;
                 case EXPR_TERM:
                     print_indent(indent_level + 2);
                     printf("Term\n");
+                    print_expr(node->data.expr.data.term.data.binary_op.left, indent_level, 1);
+                    print_expr(node->data.expr.data.term.data.binary_op.right, indent_level, 0);
                     break;
                 case EXPR_MULTIPLICATION:
                     print_indent(indent_level + 2);
                     printf("Multiplication\n");
+                    print_expr(node->data.expr.data.multiplication.data.binary_op.left, indent_level, 1);
+                    print_expr(node->data.expr.data.multiplication.data.binary_op.right, indent_level, 0);
                     break;
                 case EXPR_ADDITION:
                     print_indent(indent_level + 2);
                     printf("Addition\n");
+                    print_expr(node->data.expr.data.addition.data.binary_op.left, indent_level, 1);
+                    print_expr(node->data.expr.data.addition.data.binary_op.right, indent_level, 0);
                     break;
                 case EXPR_BITWISE:
                     print_indent(indent_level + 2);
                     printf("Bitwise Operation\n");
+                    print_expr(node->data.expr.data.bitwise.data.binary_op.left, indent_level, 1);
+                    print_expr(node->data.expr.data.bitwise.data.binary_op.right, indent_level, 0);
                     break;
                 case EXPR_COMPARISON:
                     print_indent(indent_level + 2);
                     printf("Comparison\n");
+                    print_expr(node->data.expr.data.comparison.data.binary_op.left, indent_level, 1);
+                    print_expr(node->data.expr.data.comparison.data.binary_op.right, indent_level, 0);
                     break;
                 default:
                     print_indent(indent_level + 2);
@@ -206,6 +226,129 @@ void print_ast_node(AST_Node* node, int indent_level) {
 }
 
 
+void print_expr(ASTN_Expression* expr, int indent_level, int dir) {
+    print_indent(indent_level + 1);
+    if (dir == 1) {
+        printf("Binary left:\n");        
+    } else if (dir == 0) {
+        printf("Binary right:\n");        
+    } else if (dir == -1) {
+        printf("Unary:\n");        
+    }
+
+    if (expr == NULL) {
+        return;      
+    }
+
+
+    switch (expr->type) {
+        case EXPR_LITERAL:
+            print_indent(indent_level + 2);
+            printf("Literal: ");
+            switch (expr->data.literal.type) {
+                case TOK_L_SSINT:
+                    printf("int8: %d\n", expr->data.literal.value.int_.bit8);
+                    break;
+                case TOK_L_SINT:
+                    printf("int16: %d\n", expr->data.literal.value.int_.bit16);
+                    break;
+                case TOK_L_INT:
+                    printf("int32: %d\n", expr->data.literal.value.int_.bit32);
+                    break;
+                case TOK_L_LINT:
+                    printf("int64: %ld\n", expr->data.literal.value.int_.bit64);
+                    break;
+                case TOK_L_LLINT:
+                    printf("int128: low = %ld, high = %ld\n", expr->data.literal.value.int_.bit128.low, expr->data.literal.value.int_.bit128.high);
+                    break;
+                case TOK_L_SSUINT:
+                    printf("uint8: %u\n", expr->data.literal.value.uint.bit8);
+                    break;
+                case TOK_L_SUINT:
+                    printf("uint16: %u\n", expr->data.literal.value.uint.bit16);
+                    break;
+                case TOK_L_UINT:
+                    printf("uint32: %u\n", expr->data.literal.value.uint.bit32);
+                    break;
+                case TOK_L_LUINT:
+                    printf("uint64: %lu\n", expr->data.literal.value.uint.bit64);
+                    break;
+                case TOK_L_LLUINT:
+                    printf("uint128: low = %lu, high = %lu\n", expr->data.literal.value.uint.bit128.low, expr->data.literal.value.uint.bit128.high);
+                    break;
+                case TOK_L_FLOAT:
+                    printf("float32: %f\n", expr->data.literal.value.float_.bit32);
+                    break;
+                case TOK_L_DOUBLE:
+                    printf("float64: %f\n", expr->data.literal.value.float_.bit64);
+                    break;
+                case TOK_L_CHAR:
+                    printf("char: %c\n", expr->data.literal.value.character);
+                    break;
+                case TOK_L_STRING:
+                    printf("string: %s\n", expr->data.literal.value.string);
+                    break;
+                case TOK_TRUE:
+                    printf("boolean: true\n");
+                    break;
+                case TOK_FALSE:
+                    printf("boolean: false\n");
+                    break;
+                case TOK_L_SIZE:
+                    printf("size: %zu\n", expr->data.literal.value.size);
+                    break;
+            }
+            break;
+        case EXPR_IDENTIFIER:
+            print_indent(indent_level + 2);
+            printf("Identifier: %i\n", expr->data.literal.type);
+            break;
+        case EXPR_FUNCTION_CALL:
+            print_indent(indent_level + 2);
+            printf("Function Call\n");
+            break;
+        case EXPR_NEST:
+            print_indent(indent_level + 2);
+            printf("Nested Expression\n");
+            break;
+        case EXPR_FACTOR:
+            print_indent(indent_level + 2);
+            printf("Factor\n");
+            print_expr(expr->data.factor.data.unary_op.expr, indent_level + 1, -1);
+            break;
+        case EXPR_TERM:
+            print_indent(indent_level + 2);
+            printf("Term\n");
+            print_expr(expr->data.term.data.binary_op.left, indent_level + 1, 1);
+            print_expr(expr->data.term.data.binary_op.right, indent_level + 1, 0);
+            break;
+        case EXPR_MULTIPLICATION:
+            print_indent(indent_level + 2);
+            printf("Multiplication\n");
+            print_expr(expr->data.multiplication.data.binary_op.left, indent_level + 1, 1);
+            print_expr(expr->data.multiplication.data.binary_op.right, indent_level + 1, 0);
+            break;
+        case EXPR_ADDITION:
+            print_indent(indent_level + 2);
+            printf("Addition\n");
+            print_expr(expr->data.addition.data.binary_op.left, indent_level + 1, 1);
+            print_expr(expr->data.addition.data.binary_op.right, indent_level + 1, 0);
+            break;
+        case EXPR_BITWISE:
+            print_indent(indent_level + 2);
+            printf("Bitwise Operation\n");
+            print_expr(expr->data.bitwise.data.binary_op.left, indent_level + 1, 1);
+            print_expr(expr->data.bitwise.data.binary_op.right, indent_level + 1, 0);
+            break;
+        case EXPR_COMPARISON:
+            print_indent(indent_level + 2);
+            printf("Comparison\n");
+            print_expr(expr->data.comparison.data.binary_op.left, indent_level + 1, 1);
+            print_expr(expr->data.comparison.data.binary_op.right, indent_level + 1, 0);
+            break;
+
+    }
+}
 
 void print_symb_tbl(Symbol* cur) {
     printf("---------------------------------------------------------------------------------------------------------------------\n");
