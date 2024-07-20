@@ -530,7 +530,6 @@ uint8_t lexer_process_int_type(char* buf) {
         uint128_t uint128_max = { .high = 0xFFFFFFFFFFFFFFFF, .low = 0xFFFFFFFFFFFFFFFF };
 
         if (is_within_uint_range(unsigned_val, uint128_max)) {
-            printf("%lu - %lu\n", unsigned_val.low, unsigned_val.high);
             if (unsigned_val.low > 0) {
                 return TOK_L_LLUINT;
             } else if (usigned_val >= 0 && usigned_val <= UINT8_MAX) {
@@ -695,7 +694,8 @@ struct ErrorTemplate templates[] = {
     {"E_STRING_TERMINATOR", "Expected a (\") string literal terminator after starting of string literal"},
     {"E_DTS_FN_PARAM", "Expected a valid data type specifier while specifying parameters for a function, '%s' needs a type"},
     {"E_MEP_MATCH_LBRACK", "Expected a '}' to match brackets for MEP, found '%s'"},
-    {"E_PROP_EXP", "Expected a propper expression, got '%s'"}
+    {"E_PROP_EXP", "Expected a propper expression, got '%s'"},
+    {"E_EQ_VAR_EXPR", "%zu variables cant be assigned with %zu expressions - to set all %zu variables to a singular value, use one expression (e.g. a, b = 1)"}
 };
 
 char* lexer_get_reference(Lexer* lexer) {

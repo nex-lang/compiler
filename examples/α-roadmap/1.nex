@@ -1,9 +1,14 @@
-str : fn returns_double_and_float => () {
-    return "WHAT";
+(char[], str)  : fn returns_double_and_float => (s_short int: proc, s_short uint: proc2) {
+    var (char[], str): ret = "S";
+
+    return ret;
 }
 
 : fn main => () {
-    returns_double_and_float();
+    var: a, b, c, d = 1, 2, 3, 4;
+
+
+    returns_double_and_float(-10, 10);
 
     return 0;
 }

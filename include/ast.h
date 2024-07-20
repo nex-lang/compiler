@@ -26,6 +26,7 @@ typedef struct ASTN_AttributeUnit ASTN_AttributeUnit;
 typedef struct ASTN_AttributeList ASTN_AttributeList;
 typedef struct ASTN_AttributeDecl ASTN_AttributeDecl;
 typedef struct ASTN_VariableDecl ASTN_VariableDecl;
+typedef union ASTN_AssignmentStm ASTN_AssignmentStm;
 typedef struct ASTN_FunctionDecl ASTN_FunctionDecl;
 typedef struct ASTN_StructDecl ASTN_StructDecl;
 typedef struct ASTN_ClassDecl ASTN_ClassDecl;
@@ -325,6 +326,7 @@ typedef struct ASTN_VariableDecl {
     union {
         int sg;
         struct {
+            AST_Node** expr;
             int* items;
             size_t size;
         } mult;
@@ -333,6 +335,20 @@ typedef struct ASTN_VariableDecl {
 
     AST_Node* expr;
 } ASTN_VariableDecl;
+
+
+typedef union ASTN_AssignmentStm {
+    struct {
+        int id;
+        AST_Node* expr;
+    } sg;
+
+    struct {
+        AST_Node** exprs;
+        int* ids;
+        size_t size;
+    } mult;
+} ASTN_AssignmentStm;
 
 
 typedef struct ASTN_ReturnTypes {
@@ -469,6 +485,7 @@ typedef struct ASTN_Statement {
         STMT_ATTR_UNIT,
         STMT_ATTR_DECL,
         STMT_VARIABLE_DECL,
+        STMT_ASSGN,
         STMT_FUNCTION_DECL,
         STMT_CALL,
         STMT_STRUCT_DECL,
@@ -491,6 +508,7 @@ typedef struct ASTN_Statement {
     union {
         ASTN_AttributeUnit attribute_unit;
         ASTN_AttributeDecl attribute_decl;
+        ASTN_AssignmentStm assgn;
         ASTN_VariableDecl variable_decl;
         ASTN_FunctionDecl function_decl;
         ASTN_Call call;

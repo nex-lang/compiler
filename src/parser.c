@@ -302,7 +302,8 @@ ASTN_DataTypeSpecifier parser_parse_dt_spec(Parser* parser) {
 
     if (parser_expect(parser, TOK_LBRACK)) {
         if (parser_expect(parser, TOK_RBRACK)) {
-            dts.is_arr = true; return dts;
+            dts.is_arr = true;
+            return dts;
         }
         REPORT_ERROR(parser->lexer, "E_CLOSE_BRACK", parser->cur->value);
         dts.data.prim = 0;
@@ -314,7 +315,7 @@ ASTN_DataTypeSpecifier parser_parse_dt_spec(Parser* parser) {
 
 AST_Node* parser_parse_typestart(Parser* parser) {
     ASTN_DataTypeSpecifier dts = parser_parse_dt_spec(parser);
-    if (dts.data.prim != 0 && parser_expect(parser, TOK_COLON)) {
+    if (dts.data.prim != 0 && !parser_expect(parser, TOK_COLON)) {
         REPORT_ERROR(parser->lexer, "E_FN_AF_DTSSPEC");
     }
 
@@ -546,13 +547,13 @@ ASTN_Call parser_parse_call(Parser* parser, uint8_t scopeOS) {
 
     parser_expect(parser, TOK_RPAREN);
 
-    // printf("[STACK CALL]: %i\n", call.identifier);
+    printf("[STACK CALL]: %i\n", call.identifier);
 
-    // if (call.params && call.params->parameter) {
-    //     for (size_t i = 0; i < call.params->size; i++) {
-    //         printf("arg [%zu]: %i\n", i, call.params->parameter[i]->data.expr.data.primary.data.literal.type);
-    //     }
-    // }
+    if (call.params && call.params->parameter) {
+        for (size_t i = 0; i < call.params->size; i++) {
+            printf("\t arg [%zu]: %i\n", i, call.params->parameter[i]->data.expr.data.primary.data.literal.type);
+        }
+    }
 
     return call;
 }
@@ -1354,6 +1355,13 @@ ASTN_VariableDecl parser_parse_var_decl(Parser* parser, uint8_t scopeOS) {
 
     while (parser->cur->type != TOK_COLON && (!(has_dts && has_acc))) {
         if (!has_dts) {
+            if (parser_expect(parser, TOK_LPAREN)) {
+                parser_parse_compatibilities(parser);
+                // memory
+                has_dts = true;
+                continue;
+            }
+
             ASTN_DataTypeSpecifier dts = parser_parse_dt_spec(parser);
             if (dts.data.prim != 0) {
                 var.data_type_specifier = dts;
@@ -1428,8 +1436,52 @@ ASTN_VariableDecl parser_parse_var_decl(Parser* parser, uint8_t scopeOS) {
 
 
         if (size > 1) {
-            REPORT_ERROR(parser->lexer, "U_MULT_VAL_ASSGN");
-            var.storage = -1;
+            var.iden.mult.expr = malloc(size * sizeof(AST_Node));
+            
+            AST_Node* pn = parser_parse_expr(parser, scopeOS);
+
+            if (pn->data.expr.type == -1) {
+                var.storage = -1;
+                return var;
+            }
+
+            var.iden.mult.expr[0] = pn;
+
+            size_t i = 1;
+            
+            while (parser->cur->type == TOK_COMMA) {
+                parser_consume(parser);
+
+
+
+                AST_Node* n = parser_parse_expr(parser, scopeOS);
+    
+                if (n->data.expr.type == -1) {
+                    var.storage = -1;
+                    return var;
+                }
+
+                if (i > size - 1) {
+                    REPORT_ERROR(parser->lexer, "U_EXTRA_VAL_ASGN");
+                    var.storage = -1;
+                    return var;
+                } 
+
+                var.iden.mult.expr[i] = n;
+                i++;
+            }
+
+            if (i == 1) {
+                for (size_t di = i; di < size; di++) {
+                    var.iden.mult.expr[di] = var.iden.mult.expr[0]; 
+                }
+            }
+
+
+            if (i < size) {
+                REPORT_ERROR(parser->lexer, "E_EQ_VAR_EXPR", size, i, size);
+            } 
+
             return var;
         }
         
@@ -1442,6 +1494,107 @@ ASTN_VariableDecl parser_parse_var_decl(Parser* parser, uint8_t scopeOS) {
     }
 
     return var;
+}
+
+ASTN_AssignmentStm parser_parse_assgn(Parser* parser, uint8_t scopeOS) {
+    ASTN_AssignmentStm assgn;
+    
+    Symbol* symb = symtbl_lookup(parser->tbl, parser->cur->value, parser->scope, scopeOS);
+
+    if (symb == NULL || symb->data.type != SYMBOL_VARIABLE) {
+        assgn.sg.id = 0;
+        return assgn;
+    }
+
+    parser_consume(parser);
+
+    assgn.mult.ids = calloc(1, sizeof(int));
+    assgn.mult.size = 1;
+
+
+    while (parser->cur->type == TOK_COMMA) {
+        parser_consume(parser);
+
+        Symbol* symb2 = symtbl_lookup(parser->tbl, parser->cur->value, parser->scope, scopeOS);
+
+        if (symb2 == NULL || symb2->data.type != SYMBOL_VARIABLE) {
+            assgn.sg.id = 0;
+            REPORT_ERROR(parser->lexer, "E_VAR_IN_ASSGN");
+            return assgn;
+        }
+
+        assgn.mult.size += 1;
+        assgn.mult.ids = realloc(assgn.mult.ids, assgn.mult.size * sizeof(int));
+        assgn.mult.ids[assgn.mult.size - 1] =  symb2;   
+    }
+
+    if (!(parser_expect(parser, TOK_EQ))) {
+        assgn.sg.id = 0;
+        REPORT_ERROR(parser->lexer, "E_EQ_AF_UNEUOFVAR");
+        return assgn;
+    } 
+
+    if (assgn.mult.size == 1) {
+        assgn.sg.id = symb->data.id;
+
+        AST_Node* n2 =  parser_parse_expr(parser, scopeOS);
+        if (n2->data.expr.type == -1) {
+            assgn.sg.id = 0;
+            REPORT_ERROR(parser->lexer, "E_PROP_EQ");
+            return assgn;
+        }
+
+        assgn.sg.expr = n2;
+
+        return assgn;
+    }
+
+    assgn.mult.exprs = malloc(assgn.mult.size * sizeof(AST_Node));
+    
+    AST_Node* pn = parser_parse_expr(parser, scopeOS);
+
+    if (pn->data.expr.type == -1) {
+        assgn.sg.id = 0;
+        REPORT_ERROR(parser->lexer, "E_PROP_EQ");
+        return assgn;
+    }
+
+    assgn.mult.exprs[0] = pn;
+
+    size_t i = 1;
+
+    while (parser->cur->type == TOK_COMMA) {
+        parser_consume(parser);
+
+        AST_Node* n = parser_parse_expr(parser, scopeOS);
+
+        if (n->data.expr.type == -1) {
+            assgn.sg.id = 0;
+            REPORT_ERROR(parser->lexer, "E_PROP_EQ");
+            return assgn;
+        }
+
+        if (i > assgn.mult.exprs - 1) {
+            REPORT_ERROR(parser->lexer, "U_EXTRA_VAL_ASGN");
+            assgn.sg.id = 0;
+            return assgn;
+        } 
+
+        assgn.mult.exprs[i] = n;
+        i++;
+    }
+
+    if (i == 1) {
+        for (size_t di = i; di < assgn.mult.size; di++) {
+            assgn.mult.exprs[di] = assgn.mult.exprs[0]; 
+        }
+    }
+
+
+    if (i < assgn.mult.size) {
+        REPORT_ERROR(parser->lexer, "E_EQ_VAR_EXPR", assgn.mult.size, i, assgn.mult.size);
+    }    
+
 }
 
 
@@ -2515,6 +2668,9 @@ ASTN_Statement parser_parse_statement(Parser* parser, uint8_t scopeOS) {
             stm.data.call = parser_parse_call(parser, scopeOS);
             if (stm.data.call.identifier != 0) { break; }
             
+            stm.type = STMT_ASSGN;
+            stm.data.assgn = parser_parse_assgn(parser, scopeOS);
+
             stm.type = STMT_EXPRESSION;
             stm.data.expression = *parser_parse_expression(parser, scopeOS);
             break;
