@@ -42,6 +42,7 @@ void lexer_advance(Lexer* lexer, uint8_t offset);
 // helper functions
 
 void lexer_handle_fillers(Lexer* lexer);
+bool lexer_handle_comments(Lexer* lexer);
 void lexer_handle_error(Lexer* lexer);
 
 Token* lexer_handle_alpha(Lexer* lexer);
@@ -80,4 +81,4 @@ char* lexer_get_reference(Lexer* lexer);
 void lexer_report_error(Lexer* lexer, char* error_code, ...);
 
 
-#endif // LEXER_H
+#endif /* LEXER_H */

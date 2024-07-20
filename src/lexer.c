@@ -204,6 +204,35 @@ void lexer_handle_fillers(Lexer* lexer) {
     }
 }
 
+
+bool lexer_handle_comments(Lexer* lexer) {
+    /*
+    Skips / * ..  until it finds  * /
+    Skips // .. until new line
+    */
+
+    if (strcmp(lexer_peek(lexer, 2), "//") == 0) {
+        while (lexer->c != '\n') {
+            lexer_advance(lexer, 1);
+        }
+        lexer_advance(lexer, 1);
+
+        return true;
+    }
+
+
+    if (strcmp(lexer_peek(lexer, 2), "/*") == 0) {
+        while (strcmp(lexer_peek(lexer, 2), "*/") != 0) {
+            lexer_advance(lexer, 1);
+        }
+        lexer_advance(lexer, 2);
+
+        return true;
+    }
+
+    return false;
+}
+
 Token* lexer_handle_alpha(Lexer* lexer) {
     /* 
     Identifies and creates TOK_IDEN or keyword tokens [TOK_IMPORT -> TOK_AS]
@@ -326,6 +355,8 @@ Token* lexer_handle_1char(Lexer* lexer) {
                 '=', '+', TOK_ADD, TOK_ADD_EQ, TOK_ADD_ADD);
             break;
         case '/':
+            if (lexer_handle_comments(lexer)) { break; }
+            
             return lexer_process_pos_singlechar(lexer, next_char,
                 '=', '/', TOK_SLASH, TOK_SLASH_EQ, TOK_ERROR);
             break;

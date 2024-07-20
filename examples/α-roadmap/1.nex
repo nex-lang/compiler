@@ -7,8 +7,10 @@
 : fn main => () {
     var: a, b, c, d = 1, 2, 3, 4;
 
+    /* a = 1, b = 2, c = 3, d = 4 */
 
-    returns_double_and_float(-10, 10);
+
+    returns_double_and_float(-10, 10); // calls returns_double_and_float
 
     return 0;
 }
