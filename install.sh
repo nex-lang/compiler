@@ -14,25 +14,14 @@ usage() {
 
 
 
-if [ ! -d "build" ]; then
-    printf "${MAGENTA}${BRIGHT}[INSTALL.SH]${NORMAL} Executable 'nex' not found in build directory. Running build.sh --release\n"
-    ./build.sh --release
-
-    if [ ! -f "build/nex" ]; then
-        printf "${MAGENTA}${BRIGHT}[INSTALL.SH]${NORMAL} Build failed. Executable 'nex' not found.\n"
-        exit 1
-    fi
-fi
+printf "${MAGENTA}${BRIGHT}[INSTALL.SH]${NORMAL} Executable 'nex' not found in build directory. Running build.sh --release\n"
+./build.sh --release
 
 if [ ! -f "build/nex" ]; then
-    printf "${MAGENTA}${BRIGHT}[INSTALL.SH]${NORMAL} Executable 'nex' not found in build directory. Running build.sh --release\n"
-    ./build.sh --release
-
-    if [ ! -f "build/nex" ]; then
-        printf "${MAGENTA}${BRIGHT}[INSTALL.SH]${NORMAL} Build failed. Executable 'nex' not found.\n"
-        exit 1
-    fi
+    printf "${MAGENTA}${BRIGHT}[INSTALL.SH]${NORMAL} Build failed. Executable 'nex' not found.\n"
+    exit 1
 fi
+
 
 if [ "$1" == "--vsce" ]; then
     printf "${MAGENTA}${BRIGHT}[INSTALL.SH]${NORMAL} Installing VS Code extension"

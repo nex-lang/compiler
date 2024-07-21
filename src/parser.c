@@ -403,61 +403,7 @@ AST_Node* parser_parse_typestart(Parser* parser) {
         return n;
     }
 
-
-
-
-        // if (parser_expect(parser, TOK_LBRACK)) {
-    //     ASTN_DataTypeSpecifier dts = parser_parse_dt_spec(parser);
-    //     if (dts.data.prim == 0) {
-    //         REPORT_ERROR(parser->lexer, "E_VAL_MULTI_RET");
-    //         return NULL;
-    //     }
-
-    //     if (parser_expect(parser, TOK_RBRACK)) {
-    //         if (!parser_expect(parser, TOK_PUB) || !parser_expect(parser, TOK_PRIV)
-    //         || !parser_expect(parser, TOK_GLOB) || !parser_expect(parser, TOK_COLON)) {
-    //             REPORT_ERROR(parser->lexer, "E_FN_AF_RESPEC");    
-    //         }
-
-    //         if (parser->cur->type != TOK_FN) {
-    //             REPORT_ERROR(parser->lexer, "E_FN_AF_RESPEC");
-    //         }
-
-    //         AST_Node* n = parser_parse_function_decl(parser);
-    //         n->data.stm.data.function_decl.data_type_specifier = dts;
-    //         return n;
-    //     }
-
-    //     if (parser->cur->type != TOK_COMMA) {
-    //         REPORT_ERROR(parser->lexer, "E_VAL_DTS_SQ");
-    //         return NULL;
-    //     }
-
-    //     ASTN_ReturnTypes rt;
-    //     rt.data_type_specifier = calloc(2, sizeof(ASTN_DataTypeSpecifier));
-    //     rt.item_size = sizeof(ASTN_DataTypeSpecifier);
-    //     rt.size = 2;
-
-    //     rt.data_type_specifier[0] = dts;
-
-    //     while (parser->cur->type == TOK_COMMA) {
-    //         parser_consume(parser);
-
-    //         rt.data_type_specifier[rt.size - 1] = parser_parse_dt_spec(parser);
-    //         rt.size += 1;
-    //         rt.data_type_specifier = realloc(rt.data_type_specifier, rt.size  * rt.item_size);
-    //     }
-
-    //     if (!parser_expect(parser, TOK_RBRACK)) {
-    //         REPORT_ERROR(parser->lexer, "E_BRACK_MULTI_RET");
-    //     }
-
-    //     AST_Node* n2 = parser_parse_function_decl(parser);
-    //     n2->data.stm.data.function_decl.returns = rt;
-        
-    //     return n2;
-    // }
-
+    return NULL;
 }
 
 ASTN_MutableTypes parser_parse_compatibilities(Parser* parser) {
@@ -1564,7 +1510,7 @@ ASTN_VariableDecl parser_parse_var_decl(Parser* parser, uint8_t scopeOS) {
     }
 
 
-    if (parser->cur->value == TOK_SC) {
+    if (parser->cur->type == TOK_SC) {
         var.expr = NULL;
         return var;
     } 
@@ -1665,7 +1611,7 @@ ASTN_AssignmentStm parser_parse_assgn(Parser* parser, uint8_t scopeOS) {
 
         assgn.mult.size += 1;
         assgn.mult.ids = realloc(assgn.mult.ids, assgn.mult.size * sizeof(int));
-        assgn.mult.ids[assgn.mult.size - 1] =  symb2;   
+        assgn.mult.ids[assgn.mult.size - 1] = symb2->data.id;   
     }
 
     if (parser->cur->type != TOK_EQ) {
@@ -1715,7 +1661,7 @@ ASTN_AssignmentStm parser_parse_assgn(Parser* parser, uint8_t scopeOS) {
             return assgn;
         }
 
-        if (i > assgn.mult.exprs - 1) {
+        if (i > assgn.mult.size - 1) {
             REPORT_ERROR(parser->lexer, "U_EXTRA_VAL_ASGN");
             assgn.sg.id = 0;
             return assgn;
@@ -1912,9 +1858,7 @@ AST_Node* parser_parse_struct_decl(Parser* parser) {
 
 bool parser_parse_extend_attr(Parser* parser, ASTN_AttributeList* list) {
     while (parser->cur->type != TOK_FN_ARROW && parser->cur->type != TOK_SC) {
-        char* iden = "\0";
         bool is_class = false;
-        __uint128_t scope;
         Symbol* symb;
 
         if (parser->cur->type != TOK_ATTR && parser->cur->type != TOK_IDEN) {
@@ -1931,7 +1875,6 @@ bool parser_parse_extend_attr(Parser* parser, ASTN_AttributeList* list) {
             }
 
             if (symb->data.type == SYMBOL_CLASS) {
-                scope = symb->data.scope + 1;
                 is_class = true;
             } else if (symb->data.type != SYMBOL_ATTR) {
                 REPORT_ERROR(parser->lexer, "E_VALID_ATTR", parser->cur->value);
@@ -1956,9 +1899,6 @@ bool parser_parse_extend_attr(Parser* parser, ASTN_AttributeList* list) {
             }
         }
 
-
-
-        iden = parser->cur->value;
 
         symb = symtbl_lookup(parser->tbl, parser->cur->value, 0, 0);
 

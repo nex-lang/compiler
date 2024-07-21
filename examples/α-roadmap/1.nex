@@ -1,13 +1,11 @@
 import fprint from std.io;
 
 : fn main => () {
-    var short int: a = 300;
-    var s_short int: b = 5;
-    var s_short int: c = 3;
+    var: a = 0;
+    var s_short int: b = 99;
+    var s_short int: c = 9;
 
-    a = c ** b;
-
-    fprint(a);
+    a = b - c;
     
-    return 0;
+    fprint(a);
 }

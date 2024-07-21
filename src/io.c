@@ -30,10 +30,10 @@ char* io_load_file(char* filename) {
         return NULL;
     }
     
-    fread(buffer, 1, length, f);
+    size_t len =  fread(buffer, 1, length, f);
     fclose(f);
 
-    buffer[length + 1] = '\0';
+    buffer[len + 1] = '\0';
 
     return buffer;
 }

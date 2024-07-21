@@ -66,6 +66,12 @@ typedef struct Generator {
     CS_StackVars cur_csvariables;
 } Generator;
 
+typedef struct arthdata {
+    char* reg;
+    char* sireg;
+    char* size; 
+} arthdata;
+
 
 Generator* gen_init(char* filename);
 void gen_free(Generator* gen);
@@ -74,6 +80,8 @@ unsigned long hash_string(const char *str);
 
 void double_to_ieee_hex(double value, char* hex_str);
 void float_to_ieee_hex(float value, char* hex_str);
+arthdata get_arth_regsize(size_t sz);
+
 
 void gen_print_prep(Generator* gen, size_t size, size_t offset);
 bool gen_for_char_str(Generator* gen, uint32_t iden);

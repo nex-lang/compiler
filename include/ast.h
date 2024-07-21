@@ -221,7 +221,6 @@ typedef struct ASTN_Expression {
         EXPR_FUNCTION_CALL,
         EXPR_IDENTIFIER,
         EXPR_LITERAL,
-        EXPR_PRIMARY,
         EXPR_FACTOR,
         EXPR_TERM,
         EXPR_MULTIPLICATION,
@@ -420,7 +419,7 @@ typedef struct ASTN_ConditionalStm {
         size_t size;
         size_t item_size_a, item_size_b;
     } elif_branches;
-    AST_Node* else_statements;
+    ASTN_Statements* else_statements;
 } ASTN_ConditionalStm;
 
 typedef struct ASTN_ForStm {
@@ -435,7 +434,7 @@ typedef struct ASTN_ForStm {
 
 typedef struct ASTN_SwitchStm {
     AST_Node* condition_expr;
-    ASTN_Statement* default_stms;
+    ASTN_Statements* default_stms;
     struct {
         AST_Node** value;
         ASTN_Statements** statements;
