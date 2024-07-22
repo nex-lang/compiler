@@ -178,16 +178,10 @@ ASTN_Literal parser_parse_literal(Parser* parser) {
 
     switch (lit.type) {
         case TOK_L_SSINT:
-            lit.value.int_.bit8 = (int8_t)strtol(parser->cur->value, &endptr, 10);
-            break;
         case TOK_L_SINT:
-            lit.value.int_.bit16 = (int16_t)strtol(parser->cur->value, &endptr, 10);
-            break;
         case TOK_L_INT:
-            lit.value.int_.bit32 = (int32_t)strtol(parser->cur->value, &endptr, 10);
-            break;
         case TOK_L_LINT:
-            lit.value.int_.bit64 = (int64_t)strtol(parser->cur->value, &endptr, 10);
+            lit.value.int_.norm = (int64_t)strtol(parser->cur->value, &endptr, 10);
             break;
         case TOK_L_LLINT:
             int128_t i128; strtoint128(parser->cur->value, i128);
@@ -196,16 +190,10 @@ ASTN_Literal parser_parse_literal(Parser* parser) {
             lit.value.int_.bit128.high = i128.high;
             break;
         case TOK_L_SSUINT:
-            lit.value.uint.bit8 = (uint8_t)strtoul(parser->cur->value, &endptr, 10);
-            break;
         case TOK_L_SUINT:
-            lit.value.uint.bit16 = (uint16_t)strtoul(parser->cur->value, &endptr, 10);
-            break;
         case TOK_L_UINT:
-            lit.value.uint.bit32 = (uint32_t)strtoul(parser->cur->value, &endptr, 10);
-            break;
         case TOK_L_LUINT:
-            lit.value.uint.bit64 = (uint64_t)strtoull(parser->cur->value, &endptr, 10);
+            lit.value.uint.norm = (uint64_t)strtoul(parser->cur->value, &endptr, 10);
             break;
         case TOK_L_LLUINT:
             uint128_t u128; strtouint128(parser->cur->value, u128);

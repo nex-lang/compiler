@@ -1,0 +1,62 @@
+void print_expr(ASTN_Expression expr, int indent_level, int dir) {
+    switch (expr.type) {
+        case EXPR_LITERAL:
+            print_indent(indent_level + 2);
+            printf("Literal\n");
+            printf("");
+            break;
+        case EXPR_IDENTIFIER:
+            print_indent(indent_level + 2);
+            printf("Identifier: %i\n", expr.data.identifier);
+            break;
+        case EXPR_FUNCTION_CALL:
+            print_indent(indent_level + 2);
+            printf("Function Call\n");
+            break;
+        case EXPR_NEST:
+            print_indent(indent_level + 2);
+            printf("Nested Expression\n");
+            break;
+        case EXPR_FACTOR:
+            print_indent(indent_level + 2);
+            printf("Factor\n");
+            print_expr(expr.data.factor.data.unary_op.expr, indent_level, -1);
+            break;
+        case EXPR_TERM:
+            print_indent(indent_level + 2);
+            printf("Term\n");
+            print_expr(expr.data.term.data.binary_op.left, indent_level, 1);
+            print_expr(expr.data.term.data.binary_op.right, indent_level, 0);
+            break;
+        case EXPR_MULTIPLICATION:
+            print_indent(indent_level + 2);
+            printf("Multiplication\n");
+            print_expr(expr.data.multiplication.data.binary_op.left, indent_level, 1);
+            print_expr(expr.data.multiplication.data.binary_op.right, indent_level, 0);
+            break;
+        case EXPR_ADDITION:
+            print_indent(indent_level + 2);
+            printf("Addition\n");
+            print_expr(expr.data.addition.data.binary_op.left, indent_level, 1);
+            print_expr(expr.data.addition.data.binary_op.right, indent_level, 0);
+            break;
+        case EXPR_BITWISE:
+            print_indent(indent_level + 2);
+            printf("Bitwise Operation\n");
+            print_expr(expr.data.bitwise.data.binary_op.left, indent_level, 1);
+            print_expr(expr.data.bitwise.data.binary_op.right, indent_level, 0);
+            break;
+        case EXPR_COMPARISON:
+            print_indent(indent_level + 2);
+            printf("Comparison\n");
+            print_expr(expr.data.comparison.data.binary_op.left, indent_level, 1);
+            print_expr(expr.data.comparison.data.binary_op.right, indent_level, 0);
+            break;
+        default:
+            print_indent(indent_level + 2);
+            printf("Unknown Expression Type\n");
+            break;
+    }
+    break;
+
+}

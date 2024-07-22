@@ -247,31 +247,19 @@ void print_expr(ASTN_Expression* expr, int indent_level, int dir) {
             printf("Literal: ");
             switch (expr->data.literal.type) {
                 case TOK_L_SSINT:
-                    printf("int8: %d\n", expr->data.literal.value.int_.bit8);
-                    break;
                 case TOK_L_SINT:
-                    printf("int16: %d\n", expr->data.literal.value.int_.bit16);
-                    break;
                 case TOK_L_INT:
-                    printf("int32: %d\n", expr->data.literal.value.int_.bit32);
-                    break;
                 case TOK_L_LINT:
-                    printf("int64: %ld\n", expr->data.literal.value.int_.bit64);
+                    printf("int64: %ld\n", expr->data.literal.value.int_.norm);
                     break;
                 case TOK_L_LLINT:
                     printf("int128: low = %ld, high = %ld\n", expr->data.literal.value.int_.bit128.low, expr->data.literal.value.int_.bit128.high);
                     break;
                 case TOK_L_SSUINT:
-                    printf("uint8: %u\n", expr->data.literal.value.uint.bit8);
-                    break;
                 case TOK_L_SUINT:
-                    printf("uint16: %u\n", expr->data.literal.value.uint.bit16);
-                    break;
                 case TOK_L_UINT:
-                    printf("uint32: %u\n", expr->data.literal.value.uint.bit32);
-                    break;
                 case TOK_L_LUINT:
-                    printf("uint64: %lu\n", expr->data.literal.value.uint.bit64);
+                    printf("uint64: %lu\n", expr->data.literal.value.uint.norm);
                     break;
                 case TOK_L_LLUINT:
                     printf("uint128: low = %lu, high = %lu\n", expr->data.literal.value.uint.bit128.low, expr->data.literal.value.uint.bit128.high);

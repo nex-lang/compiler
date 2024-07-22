@@ -47,17 +47,11 @@ typedef struct ASTN_Literal {
     int type;
     union {
         struct {
-            int8_t bit8;
-            int16_t bit16;
-            int32_t bit32;
-            int64_t bit64;
+            int64_t norm;
             int128_t bit128;
         } int_;
         struct {
-            uint8_t bit8;
-            uint16_t bit16;
-            uint32_t bit32;
-            uint64_t bit64;
+            uint64_t norm;
             uint128_t bit128;
         } uint;
         struct {
