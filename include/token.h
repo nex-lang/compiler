@@ -45,6 +45,7 @@ typedef struct Token {
         TOK_COLON,              // :
         TOK_SC,                 // ;
         TOK_PIPE,               // |
+        TOK_PIPE_PIPE,          // || 
         TOK_FN_ARROW,           // =>
         TOK_LT_EQ,              // <=
         TOK_GT_EQ,              // >=

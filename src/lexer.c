@@ -348,6 +348,10 @@ Token* lexer_handle_1char(Lexer* lexer) {
             return lexer_process_pos_singlechar(lexer, next_char,
                 '=', '>', TOK_GT, TOK_GT_EQ, TOK_GT_GT);
             break;
+        case '|':
+            return lexer_process_pos_singlechar(lexer, next_char,
+                '|', '\0', TOK_PIPE, TOK_PIPE_PIPE, TOK_ERROR);
+            break;
         case '*':
             return lexer_process_pos_singlechar(lexer, next_char,
                 '=', '*', TOK_ASTK, TOK_ASTK_EQ, TOK_ASTK_ASTK);
