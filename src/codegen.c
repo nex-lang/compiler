@@ -717,7 +717,10 @@ void gen_assgn(AST_Node* stm, Generator* gen) {
                         
                         if (szl == szr) {
                             fprintf(gen->fp, "    mov %s, %s [rsp + %zu]\n", dtal.reg, dtal.size, ofl);
-                            fprintf(gen->fp, "    sub %s, %s [rsp + %zu]\n", dtal.reg, dtal.size, ofr);
+                            fprintf(gen->fp, "    sub %s, %s [rsp + %zu]\n", dtal.reg, dtar.size, ofr);
+                            
+                            fprintf(gen->fp, "    movsx %s, %s\n", set_dta.reg, dtal.reg);
+                            fprintf(gen->fp, "    mov %s [rsp + %zu], %s\n", set_dta.size, offset, set_dta.reg);
                             break;
                         }
 
@@ -740,6 +743,81 @@ void gen_assgn(AST_Node* stm, Generator* gen) {
                         }
                     }
                 } }                
+            }
+            break;
+        case EXPR_BITWISE:
+            if (ex.data.bitwise.data.binary_op.op == TOK_LT_LT) {
+                if (ex.data.bitwise.data.binary_op.left) {
+                for (size_t i = 0; i < gen->cur_variables.ac_size; i++) {
+                    if (gen->cur_variables.vars[i]->id == ex.data.bitwise.data.binary_op.left->data.identifier) {
+                        dtal = get_arth_regsize(gen->cur_variables.vars[i]->size);
+                        szl = gen->cur_variables.vars[i]->size;
+                        ofl = gen->cur_variables.vars[i]->offset;
+                        break;
+                    }
+                } }
+
+                if (ex.data.bitwise.data.binary_op.right) {
+                for (size_t i = 0; i < gen->cur_variables.ac_size; i++) {
+                    if (gen->cur_variables.vars[i]->id == ex.data.bitwise.data.binary_op.right->data.identifier) {
+                        dtar = get_arth_regsize(gen->cur_variables.vars[i]->size);
+                        szr = gen->cur_variables.vars[i]->size;
+                        ofr = gen->cur_variables.vars[i]->offset;
+
+                        fprintf(gen->fp, "    mov %s, %s [rsp + %zu]\n", dtal.reg, dtal.size, ofl);
+
+                        if (strcmp(dtar.reg, "rax") == 0) {
+                            fprintf(gen->fp, "    mov rcx, %s [rsp + %zu]\n", dtar.size, ofr);
+                            fprintf(gen->fp, "    shl %s, rcx\n", dtal.reg); 
+
+                            fprintf(gen->fp, "    movsx %s, %s\n", set_dta.reg, dtal.reg);
+                            fprintf(gen->fp, "    mov %s [rsp + %zu], %s\n", set_dta.size, offset, set_dta.reg);
+                            break;
+                        }
+
+                        fprintf(gen->fp, "    movsx rcx, %s [rsp + %zu]\n", dtar.size, ofr);
+                        fprintf(gen->fp, "    shl %s, cl\n", dtal.reg); 
+
+                        fprintf(gen->fp, "    movsx %s, %s\n", set_dta.reg, dtal.reg);
+                        fprintf(gen->fp, "    mov %s [rsp + %zu], %s\n", set_dta.size, offset, set_dta.reg);
+                    }
+                } }                
+            } else if (ex.data.bitwise.data.binary_op.op == TOK_GT_GT) {
+               if (ex.data.bitwise.data.binary_op.left) {
+                for (size_t i = 0; i < gen->cur_variables.ac_size; i++) {
+                    if (gen->cur_variables.vars[i]->id == ex.data.bitwise.data.binary_op.left->data.identifier) {
+                        dtal = get_arth_regsize(gen->cur_variables.vars[i]->size);
+                        szl = gen->cur_variables.vars[i]->size;
+                        ofl = gen->cur_variables.vars[i]->offset;
+                        break;
+                    }
+                } }
+
+                if (ex.data.bitwise.data.binary_op.right) {
+                for (size_t i = 0; i < gen->cur_variables.ac_size; i++) {
+                    if (gen->cur_variables.vars[i]->id == ex.data.bitwise.data.binary_op.right->data.identifier) {
+                        dtar = get_arth_regsize(gen->cur_variables.vars[i]->size);
+                        szr = gen->cur_variables.vars[i]->size;
+                        ofr = gen->cur_variables.vars[i]->offset;
+
+                        fprintf(gen->fp, "    mov %s, %s [rsp + %zu]\n", dtal.reg, dtal.size, ofl);
+
+                        if (strcmp(dtar.reg, "rax") == 0) {
+                            fprintf(gen->fp, "    mov rcx, %s [rsp + %zu]\n", dtar.size, ofr);
+                            fprintf(gen->fp, "    shr %s, cl\n", dtal.reg); 
+
+                            fprintf(gen->fp, "    movsx %s, %s\n", set_dta.reg, dtal.reg);
+                            fprintf(gen->fp, "    mov %s [rsp + %zu], %s\n", set_dta.size, offset, set_dta.reg);
+                            break;
+                        }
+
+                        fprintf(gen->fp, "    movsx rcx, %s [rsp + %zu]\n", dtar.size, ofr);
+                        fprintf(gen->fp, "    shr %s, cl\n", dtal.reg); 
+
+                        fprintf(gen->fp, "    movsx %s, %s\n", set_dta.reg, dtal.reg);
+                        fprintf(gen->fp, "    mov %s [rsp + %zu], %s\n", set_dta.size, offset, set_dta.reg);
+                    }
+                } }            
             }
             break;
         default:

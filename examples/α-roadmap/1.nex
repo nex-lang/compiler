@@ -2,10 +2,10 @@ import fprint from std.io;
 
 : fn main => () {
     var: a;
-    var uint: b = 2;
-    var s_short int: c = 9;
+    var uint: b = 19;
+    var s_short int: c = 2;
 
-    a = b + c;
+    a = b << c;
     
     fprint(a);
 }
