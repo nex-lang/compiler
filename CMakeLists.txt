@@ -11,9 +11,18 @@ set(LIB_SOURCES
     src/lexer.c
     src/ast.c
     src/parser.c
-    src/stack.c
     src/sao.c
-    src/codegen.c
+    src/gen.c
+    src/gen/arth.c
+    src/gen/class.c
+    src/gen/control.c
+    src/gen/enum.c
+    src/gen/err.c
+    src/gen/func.c
+    src/gen/imports.c
+    src/gen/mem.c
+    src/gen/stack.c
+    src/gen/struct.c
 )
 
 set(EXE_SOURCES
@@ -30,9 +39,18 @@ set(HEADERS
     include/lexer.h
     include/ast.h
     include/parser.h
-    include/stack.h
     include/sao.h
-    include/codegen.h
+    include/gen.h
+    include/gen/arth.h
+    include/gen/class.h
+    include/gen/control.h
+    include/gen/enum.h
+    include/gen/err.h
+    include/gen/func.h
+    include/gen/import.h
+    include/gen/mem.h
+    include/gen/stack.h
+    include/gen/struct.h
 )
 
 include_directories(include)

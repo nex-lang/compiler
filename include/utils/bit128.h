@@ -81,4 +81,4 @@ typedef struct {
     } while (0)
 
 
-#endif /* BIT128_H */
+#endif // BIT128_H

@@ -81,4 +81,4 @@ char* lexer_get_reference(Lexer* lexer);
 void lexer_report_error(Lexer* lexer, char* error_code, ...);
 
 
-#endif /* LEXER_H */
+#endif // LEXER_H

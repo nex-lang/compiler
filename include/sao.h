@@ -6,4 +6,4 @@
 void SAO(AST_Node *root);
 void trav(AST_Node *node);
 
-#endif /* SAO_H */
+#endif // SAO_H 

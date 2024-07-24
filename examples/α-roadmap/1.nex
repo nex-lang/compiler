@@ -5,11 +5,9 @@ import fprint from std.io;
     var int: g = 9;
     var int: re = 6;
 
+    re = f - g;
 
-    g = g - re;
-
-    re = f == g;
-
+    
     fprint(re); 
 
 

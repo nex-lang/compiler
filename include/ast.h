@@ -1,3 +1,6 @@
+#ifndef AST_H
+#define AST_H
+
 #include "p_info.h"
 #include "utils/bit128.h"
 
@@ -550,3 +553,5 @@ struct AST_Node {
 
 AST_Node* ast_init(int type);
 void ast_free(AST_Node* node);
+
+#endif // AST_H
