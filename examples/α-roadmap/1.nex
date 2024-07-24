@@ -1,11 +1,18 @@
 import fprint from std.io;
 
 : fn main => () {
-    var: a;
-    var uint: b = 188;
-    var uint: c = 1269;
+    var int: f = 3;
+    var int: g = 9;
+    var int: re = 6;
 
-    a = b & c;
-    
-    fprint(a);
+
+    g = g - re;
+
+    re = f == g;
+
+    fprint(re); 
+
+
+
+    return 0;
 }

@@ -159,7 +159,7 @@ void gen_print_prep(Generator* gen, size_t size, size_t offset) {
     } else if (size == 2) {
         fprintf(gen->fp, "    movsx rax, word [rsp + %zu]\n", offset);         
     } else if (size == 4) {
-        fprintf(gen->fp, "    mov rax, dword [rsp + %zu]\n", offset);         
+        fprintf(gen->fp, "    movsx rax, dword [rsp + %zu]\n", offset);         
     } else if (size == 8) {
         fprintf(gen->fp, "    mov rax, qword [rsp + %zu]\n", offset);         
     }
@@ -657,6 +657,8 @@ void gen_assgn(AST_Node* stm, Generator* gen) {
                 if (szl == szr) {
                     fprintf(gen->fp, "    mov %s, %s [rsp + %zu]\n", dtal.reg, dtal.size, ofl);
                     fprintf(gen->fp, "    add %s, %s [rsp + %zu]\n", dtal.reg, dtal.size, ofr);
+
+                    fprintf(gen->fp, "    mov %s [rsp + %zu], %s\n", set_dta.size, offset, set_dta.reg);
                     break;
                 }
 
@@ -687,7 +689,6 @@ void gen_assgn(AST_Node* stm, Generator* gen) {
                     fprintf(gen->fp, "    mov %s, %s [rsp + %zu]\n", dtal.reg, dtal.size, ofl);
                     fprintf(gen->fp, "    sub %s, %s [rsp + %zu]\n", dtal.reg, dtar.size, ofr);
                     
-                    fprintf(gen->fp, "    movsx %s, %s\n", set_dta.reg, dtal.reg);
                     fprintf(gen->fp, "    mov %s [rsp + %zu], %s\n", set_dta.size, offset, set_dta.reg);
                     break;
                 }
@@ -831,6 +832,54 @@ void gen_assgn(AST_Node* stm, Generator* gen) {
                 fprintf(gen->fp, "    mov %s [rsp + %zu], %s\n", set_dta.size, offset, set_dta.reg);
             }
             break;
+        case EXPR_COMPARISON:
+            if (ex.data.comparison.data.binary_op.left) {
+                for (size_t i = 0; i < gen->cur_variables.ac_size; i++) {
+                    if (gen->cur_variables.vars[i]->id == ex.data.comparison.data.binary_op.left->data.identifier) {
+                        dtal = get_arth_regsize(gen->cur_variables.vars[i]->size);
+                        szl = gen->cur_variables.vars[i]->size;
+                        ofl = gen->cur_variables.vars[i]->offset;
+                        break;
+                    }
+                } 
+            }
+
+            if (ex.data.comparison.data.binary_op.right) {
+                for (size_t i = 0; i < gen->cur_variables.ac_size; i++) {
+                    if (gen->cur_variables.vars[i]->id == ex.data.comparison.data.binary_op.right->data.identifier) {
+                        dtar = get_arth_regsize(gen->cur_variables.vars[i]->size);
+                        szr = gen->cur_variables.vars[i]->size;
+                        ofr = gen->cur_variables.vars[i]->offset;
+                    }
+                }
+            }
+
+            const char* set_instr = NULL;
+            switch (ex.data.bitwise.data.binary_op.op) {
+                case TOK_LT: set_instr = "setl"; break;
+                case TOK_GT: set_instr = "setg"; break;
+                case TOK_LT_EQ: set_instr = "setle"; break;
+                case TOK_GT_EQ: set_instr = "setge"; break;
+                case TOK_EQ_EQ: set_instr = "sete"; break;
+            }
+
+            if (szl == szr) {
+                fprintf(gen->fp, "    mov %s, %s [rsp + %zu]\n", dtal.reg, dtal.size, ofl);
+                fprintf(gen->fp, "    cmp %s, %s [rsp + %zu]\n", dtal.reg, dtar.size, ofr);
+            } else if (szr > szl) {
+                fprintf(gen->fp, "    movsx %s, %s [rsp + %zu]\n", dtar.reg, dtal.size, ofl);                
+                fprintf(gen->fp, "    cmp %s, %s [rsp + %zu]\n", dtar.reg, dtar.size, ofr);
+            } else {
+                fprintf(gen->fp, "    mov %s, %s [rsp + %zu]\n", dtal.reg, dtal.size, ofl);
+                fprintf(gen->fp, "    movsx %s, %s [rsp + %zu]\n", dtal.sireg, dtar.size, ofr);
+                fprintf(gen->fp, "    cmp %s, %s\n", dtal.reg, dtal.sireg);
+            }
+
+            fprintf(gen->fp, "    %s al\n", set_instr);
+            fprintf(gen->fp, "    movsx %s, al\n", set_dta.reg);
+
+            fprintf(gen->fp, "    mov %s [rsp + %zu], %s\n", set_dta.size, offset, set_dta.reg);
+
         default:
             break;
     }
