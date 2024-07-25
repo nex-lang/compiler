@@ -35,3 +35,5 @@ fn verify_input => (str: msg, str: condition, short int: fail_value) {
     }
     return (2 * x.pow(2) + 3 * x + 1) * pi_f.sin() + (x.pow(4) / (7 % x)) - e_f.pow((x + 2));
 }
+
+https://mystb.in/45a8539918407d9eec
