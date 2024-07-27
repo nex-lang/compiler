@@ -1,0 +1,18 @@
+import fprint, input from std.io;
+
+: fn main => () {
+    var int: param = 1;
+
+    for (var: i = 1; i < param; ++i) {
+        if (param > i) {
+            fprint(1);
+        } elif (param == 1) {
+            fprint(2);
+            fprint(0);
+        }
+    }
+
+    // note: this is an extremely rendom program
+
+    return 0;
+}

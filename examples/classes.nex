@@ -37,5 +37,5 @@ class BillGates ext Sapien, Rich => {
 }
 
 : fn main => () {
-
+    return 0;
 }

@@ -1,0 +1,14 @@
+import fprint from std.io;
+
+: fn main => () {
+    var int: rfscc = 0; // result_for_some_complex_computation   
+    
+    var int: param_1 = 99;
+    var int: param_2 = 7;
+
+    rfscc = (((param_1 * param_2) ** 3) / (91 + 21)) - (8 & 3);
+
+    fprint("rfscc: {rfscc}");
+
+    return 0;
+}

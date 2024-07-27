@@ -1,3 +1,17 @@
-fn x => () {
-    var str: name, username, usrname, usrname; 
+import load_banner from liscord.User.profile;
+import Error from liscord;
+
+
+err LiscordFilterError { long int: uid, str: filter };
+
+: fn main => () {
+    var long int: uid = 814030950597132321;
+
+    try {
+        load_banner(uid, "dank");
+    } except LiscordFilterError {
+        load_banner(uid, "normal");
+    }
+
+    return 0
 }

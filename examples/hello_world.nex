@@ -1,0 +1,6 @@
+import fprint from std.io;
+
+: fn main => () {
+    fprint("Hello World");
+    return 0;
+}

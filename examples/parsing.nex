@@ -1,9 +1,0 @@
-import plotttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttttt, zot, tot, not, man, lip from std.math.graph;
-
-fn verify_input => (msg, str: condition, short int: fail_value) {
-    return msg;
-}
-
-: fn main => (int: argc, str[]: argv, long int: deviceID, short int: instN) {
-    return argc;
-}
