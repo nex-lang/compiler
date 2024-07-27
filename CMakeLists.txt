@@ -1,63 +1,6 @@
 cmake_minimum_required(VERSION 3.20)
 project(nex-compiler)
 
-set(DEPS_DIR "${CMAKE_SOURCE_DIR}/deps")
-set(LLVM_SRC_TAR "llvm-project-18.1.8.src.tar.xz")
-set(LLVM_SRC_DIR "${DEPS_DIR}/llvm-project-18.1.8.src")
-set(LLVM_BUILD_DIR "${LLVM_SRC_DIR}/build")
-set(LLVM_INSTALL_DIR "${LLVM_SRC_DIR}/install")
-
-function(check_llvm_build)
-    if (NOT EXISTS "${LLVM_BUILD_DIR}/lib/libLLVMCore.a")
-        message(STATUS "LLVM-MLIR not found, starting build")
-        file(MAKE_DIRECTORY ${LLVM_BUILD_DIR})
-
-        if (NOT EXISTS "${DEPS_DIR}/${LLVM_SRC_TAR}")
-            message(STATUS "Downloading LLVM-SRC from https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/llvm-project-18.1.8.src.tar.xz")
-            execute_process(
-                COMMAND curl -L -o ${DEPS_DIR}/${LLVM_SRC_TAR} https://github.com/llvm/llvm-project/releases/download/llvmorg-18.1.8/llvm-project-18.1.8.src.tar.xz
-                RESULT_VARIABLE result
-                ERROR_VARIABLE error
-                OUTPUT_QUIET
-            )
-        endif()
-
-        if (NOT EXISTS "${LLVM_SRC_DIR}")
-            message(STATUS "Extracting LLVM-MLIR from ${LLVM_SRC_TAR}")
-            execute_process(
-                COMMAND tar -xJf ${DEPS_DIR}/${LLVM_SRC_TAR} -C ${DEPS_DIR}
-            )
-        endif()
-
-        message(STATUS "Configuring LLVM-MLIR build...")
-        execute_process(
-            COMMAND ${CMAKE_COMMAND} -S ${LLVM_SRC_DIR}/llvm -B ${LLVM_BUILD_DIR}
-                    -DLLVM_ENABLE_PROJECTS=mlir
-                    -DLLVM_TARGETS_TO_BUILD=X86
-                    -DCMAKE_BUILD_TYPE=Release
-                    -DCMAKE_INSTALL_PREFIX=${LLVM_INSTALL_DIR}
-        )
-
-        message(STATUS "Building and installing LLVM-MLIR...")
-        execute_process(
-            COMMAND cd ${LLVM_BUILD_DIR}/lib/IR && make
-        )
-
-        message(STATUS "LLVM-MLIR has been successfully built!")
-    else()
-        message(STATUS "LLVM-MLIR found!")
-    endif()
-endfunction()
-
-check_llvm_build()
-
-cmake_policy(SET CMP0077 NEW)
-
-include_directories(${LLVM_INCLUDE_DIRS} ${MLIR_INCLUDE_DIRS})
-include_directories(${LLVM_BUILD_DIR}/include)
-
-link_directories(${LLVM_INSTALL_DIR}/lib)
-
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall")
 

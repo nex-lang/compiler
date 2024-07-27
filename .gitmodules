@@ -1,0 +1,3 @@
+[submodule "deps/mlinr"]
+	path = deps/mlinr
+	url = https://github.com/nex-lang/mlinr/

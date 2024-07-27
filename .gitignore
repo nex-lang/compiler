@@ -1,7 +1,7 @@
 build/
-deps/
 dev/
 .vscode/
+deps/criterion-v2.3.3/
 
 prog.asm
 prog.o

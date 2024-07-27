@@ -68,7 +68,9 @@ void lexer_process_escape_code(Lexer* lexer, char **buf);
 
 // error manager
 
+#ifndef REPORT_ERROR
 #define REPORT_ERROR lexer_report_error
+#endif
 
 struct ErrorTemplate {
     const char* code;
