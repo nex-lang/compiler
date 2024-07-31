@@ -14,6 +14,7 @@ Parser* parser_init(char* filename) {
     parser->root = parser->tree;
 
     parser->highest_scope = 0;
+    parser->recent_root = 0;
     parser->scope = 0;
     parser->nest = 0;
 
@@ -437,7 +438,7 @@ ASTN_MutableTypes parser_parse_compatibilities(Parser* parser) {
 ASTN_Call parser_parse_call(Parser* parser, uint8_t scopeOS) {
     ASTN_Call call;
 
-    Symbol* symb = symtbl_lookup(parser->tbl, parser->cur->value, 0, 0);
+    Symbol* symb = symtbl_lookup(parser->tbl, parser->cur->value, 0, 0, parser->recent_root);
 
     if (symb == NULL || (symb->data.type != SYMBOL_FUNCTION && symb->data.type != SYMBOL_MODULE)) {
         call.identifier = 0;
@@ -506,7 +507,7 @@ ASTN_PrimaryExpr parser_parse_prim_expr(Parser* parser, uint8_t scopeOS) {
 
 
     if (parser->cur->type == TOK_IDEN) {
-        Symbol* symb = symtbl_lookup(parser->tbl, parser->cur->value, 0, 0);
+        Symbol* symb = symtbl_lookup(parser->tbl, parser->cur->value, 0, 0, 0);
         if (symb) {
             if (symb->data.type == SYMBOL_FUNCTION || symb->data.type == SYMBOL_CLASS ||
                 symb->data.type == SYMBOL_STRUCT) {
@@ -518,7 +519,7 @@ ASTN_PrimaryExpr parser_parse_prim_expr(Parser* parser, uint8_t scopeOS) {
                 parser_consume(parser);
             }
         } else {
-            Symbol* symb2 = symtbl_lookup(parser->tbl, parser->cur->value, parser->scope, scopeOS);
+            Symbol* symb2 = symtbl_lookup(parser->tbl, parser->cur->value, parser->scope, scopeOS, parser->recent_root);
             if (symb2) {
                 expr.type = PRIMARY_IDENTIFIER;
                 expr.data.identifier = symb2->data.id;
@@ -1603,7 +1604,6 @@ ASTN_VariableDecl parser_parse_var_decl(Parser* parser, uint8_t scopeOS) {
             return var;
         }
 
-        printf("-> %s\n", parser->cur->value);
         var.expr = parser_parse_expr(parser, scopeOS);
 
         if (var.expr->data.expr.type == -1) {
@@ -1618,7 +1618,7 @@ ASTN_VariableDecl parser_parse_var_decl(Parser* parser, uint8_t scopeOS) {
 ASTN_AssignmentStm parser_parse_assgn(Parser* parser, uint8_t scopeOS) {
     ASTN_AssignmentStm assgn;
     
-    Symbol* symb = symtbl_lookup(parser->tbl, parser->cur->value, parser->scope, scopeOS);
+    Symbol* symb = symtbl_lookup(parser->tbl, parser->cur->value, parser->scope, scopeOS, parser->recent_root);
 
     if (symb == NULL || symb->data.type != SYMBOL_VARIABLE) {
         assgn.sg.id = 0;
@@ -1634,7 +1634,7 @@ ASTN_AssignmentStm parser_parse_assgn(Parser* parser, uint8_t scopeOS) {
     while (parser->cur->type == TOK_COMMA) {
         parser_consume(parser);
 
-        Symbol* symb2 = symtbl_lookup(parser->tbl, parser->cur->value, parser->scope, scopeOS);
+        Symbol* symb2 = symtbl_lookup(parser->tbl, parser->cur->value, parser->scope, scopeOS, parser->recent_root);
 
         if (symb2 == NULL || symb2->data.type != SYMBOL_VARIABLE) {
             assgn.sg.id = 0;
@@ -1742,6 +1742,7 @@ AST_Node* parser_parse_function_decl(Parser* parser) {
 
 
     PES(parser);
+    parser->recent_root = parser->scope;
     PRN(parser);
 
     AST_Node* node = ast_init(STMT);
@@ -1901,7 +1902,7 @@ bool parser_parse_extend_attr(Parser* parser, ASTN_AttributeList* list) {
         }
 
         if (parser->cur->type == TOK_IDEN) {
-            symb = symtbl_lookup(parser->tbl, parser->cur->value, 0, 0);
+            symb = symtbl_lookup(parser->tbl, parser->cur->value, 0, 0, parser->recent_root);
 
             if (!symb) {
                 REPORT_ERROR(parser->lexer, "E_VALID_ATTR", parser->cur->value);
@@ -1934,7 +1935,7 @@ bool parser_parse_extend_attr(Parser* parser, ASTN_AttributeList* list) {
         }
 
 
-        symb = symtbl_lookup(parser->tbl, parser->cur->value, 0, 0);
+        symb = symtbl_lookup(parser->tbl, parser->cur->value, 0, 0, parser->recent_root);
 
         parser_consume(parser);
 
@@ -2405,17 +2406,14 @@ ASTN_ForStm parser_parse_for_stm(Parser* parser, uint8_t scopeOS) {
     }
 
 
-    __int128_t temp = parser->scope;
-    __int128_t temp2;
+    uint64_t temp = parser->scope;
+    uint64_t temp2;
 
-    printf("-> temp: %u\n", temp);
 
     PES(parser);
     scopeOS += 1;
 
     stm.var_decl = parser_parse_var_decl(parser, scopeOS);
-
-
 
     if (parser_expect(parser, TOK_COLON)) {
         temp2 = parser->scope;
@@ -2430,11 +2428,13 @@ ASTN_ForStm parser_parse_for_stm(Parser* parser, uint8_t scopeOS) {
     } else if (parser_expect(parser, TOK_SC)) {
         stm.data.generic.condition_expr = parser_parse_expr(parser, scopeOS);
 
+        printf("%s\n", parser->cur->value);
+
         if (!parser_expect(parser, TOK_SC)) {
             REPORT_ERROR(parser->lexer, "E_SC");
             return stm;
         }
-
+    
         stm.data.generic.next_expr = parser_parse_expr(parser, scopeOS);
 
     } else {
@@ -2609,7 +2609,7 @@ ASTN_TryStm parser_parse_try_stm(Parser* parser, uint8_t scopeOS) {
             return stm;
         }
 
-        Symbol* sym = symtbl_lookup(parser->tbl, parser->cur->value, 0, 0);
+        Symbol* sym = symtbl_lookup(parser->tbl, parser->cur->value, 0, 0, parser->recent_root);
         if (!sym || sym->data.type != SYMBOL_ERR) {
             REPORT_ERROR(parser->lexer, "E_PROP_ERRTT");
             return stm;
@@ -2739,7 +2739,7 @@ ASTN_ThrowStm parser_parse_throw_stm(Parser* parser, uint8_t scopeOS) {
         return statement;
     }
 
-    Symbol* sym = symtbl_lookup(parser->tbl, parser->cur->value, 0, 0);
+    Symbol* sym = symtbl_lookup(parser->tbl, parser->cur->value, 0, 0, parser->recent_root);
     if (!sym || sym->data.type != SYMBOL_ERR) {
         REPORT_ERROR(parser->lexer, "E_PROP_ERRTT");
         return statement;
@@ -2787,6 +2787,8 @@ ASTN_ThrowStm parser_parse_throw_stm(Parser* parser, uint8_t scopeOS) {
 
 
 ASTN_Statement parser_parse_statement(Parser* parser, uint8_t scopeOS) {
+    // allow root scope look ups
+
     ASTN_Statement stm;
     stm.type = -1;
 
@@ -2910,6 +2912,9 @@ AST_Node* parser_parse_mep_decl(Parser* parser) {
     parser_expect(parser, TOK_LBRACE);
 
     PES(parser);
+    parser->recent_root = parser->scope;
+    PRN(parser);
+
     node->data.mep.statements = parser_parse_statements(parser, 0);
     if (node->data.mep.statements == NULL) {
         return NULL;

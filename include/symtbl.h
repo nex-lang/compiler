@@ -47,7 +47,7 @@ void symtbl_free(SymTable* table);
 Symbol* symbol_init(char* id, unsigned int type, unsigned int scope, unsigned int nest, uint8_t mem_type, 
     uint8_t mem_mod, uint8_t mem_sto, uint8_t  access_type, uint8_t decl_line, uint8_t decl_col);
 
-Symbol* symtbl_lookup(SymTable* table, char* id, unsigned int scope, uint8_t scope_offset);
+Symbol* symtbl_lookup(SymTable* table, char* id, uint64_t scope, uint8_t scope_offset, uint64_t recent_root);
 
 int32_t symtbl_hash(const char* key, unsigned int scope);
 void symtbl_borrowsym(SymTable* table, Symbol* symbol, Symbol* borrower);

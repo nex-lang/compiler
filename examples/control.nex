@@ -24,6 +24,11 @@ import fprint, input from std.io;
 
     var int: test_var = 10;
 
+    var: x = 10;
+    while (x >= 100) {
+        x = x + 1;
+    }
+
 
 
     // note: this is an extremely random program

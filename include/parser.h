@@ -11,8 +11,7 @@ typedef struct Parser {
     AST_Node* root;
     SymTable* tbl;
 
-    __uint128_t highest_scope;
-    __uint128_t scope;
+    uint64_t highest_scope, scope, recent_root;
     uint8_t nest;
 } Parser;
 
