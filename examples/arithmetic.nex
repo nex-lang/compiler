@@ -1,4 +1,4 @@
-import fprint from std.io;
+@import fprint from std.io;
 
 : fn main => () {
     var int: rfscc = 0; // result_for_some_complex_computation   

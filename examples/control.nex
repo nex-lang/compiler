@@ -1,11 +1,12 @@
-import fprint, input from std.io;
+@import fprint, input from std.io;
 
 : fn main => () {
     var int: param = 10;
     var int[]: array = {10, 100, 1000, 100000};  
 
-    for (var: i = 1; i < param; ++i) {
-        if (param > i) {
+
+    for (var: j = 1; j < param; j++) {
+        if (param > j) {
             fprint(1);
         } elif (param == 1) {
             fprint(2);
@@ -25,10 +26,23 @@ import fprint, input from std.io;
     var int: test_var = 10;
 
     var: x = 10;
+
     while (x >= 100) {
-        x = x + 1;
+        x += 1;
     }
 
+    var: options = 2;
+    var: operation;
+
+    switch (options) {
+        case 1:
+            operation = "multiplication";
+            break;
+        case 2:
+            operation = "addition";
+            break;
+        default: break;
+    }
 
 
     // note: this is an extremely random program

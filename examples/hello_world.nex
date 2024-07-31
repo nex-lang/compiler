@@ -1,4 +1,4 @@
-import fprint from std.io;
+@import fprint from std.io;
 
 : fn main => () {
     fprint("Hello World");

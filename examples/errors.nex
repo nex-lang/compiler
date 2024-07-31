@@ -1,5 +1,5 @@
-import load_banner from liscord.User.profile;
-import Error from liscord;
+@import load_banner from liscord.User.profile;
+@import Error from liscord;
 
 
 err LiscordFilterError { long int: uid, str: filter };

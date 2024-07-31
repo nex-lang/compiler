@@ -100,7 +100,12 @@ void parser_parse(Parser* parser) {
         }
 
         switch (parser->cur->type) {
-            case TOK_IMPORT:
+            case TOK_ATHER:
+                parser_consume(parser);
+                if (parser->cur->type != TOK_IMPORT) {
+                    REPORT_ERROR(parser->lexer, "E_DECLS_AF_ATHER");
+                    break;
+                }
                 parser->tree->right = parser_parse_import(parser);
                 break;
             case TOK_COLON:
@@ -557,17 +562,6 @@ ASTN_FactorExpr parser_parse_factor_expr(Parser* parser, uint8_t scopeOS) {
             return expr;
         }
         expr.type = FACTOR_PRIMARY;
-        if (parser->cur->type == TOK_MINUS_MINUS || parser->cur->type == TOK_ADD_ADD) {
-            ASTN_FactorExpr post_expr;
-            post_expr.type = FACTOR_UNARY_OP;
-            post_expr.data.unary_op.op = parser->cur->type;
-            parser_consume(parser);
-            post_expr.data.unary_op.expr = parser_parse_expression(parser, scopeOS);
-            if (!post_expr.data.unary_op.expr) {
-                return expr;
-            }
-            return post_expr;
-        }
     }
 
     return expr;
@@ -1078,13 +1072,38 @@ ASTN_Expression* parser_parse_expression(Parser* parser, uint8_t scopeOS) {
         return NULL;
     }
 
+    
+
+    if (expr->type != EXPR_FACTOR && (parser->cur->type == TOK_MINUS_MINUS || parser->cur->type == TOK_ADD_ADD ||
+    parser->cur->type == TOK_MINUS || parser->cur->type == TOK_BANG)) {
+        ASTN_Expression* fa_expr = malloc(sizeof(ASTN_Expression));
+        
+        expr->type = EXPR_FACTOR;
+        expr->data.factor.type = FACTOR_UNARY_OP;
+        expr->data.factor.data.unary_op.op = parser->cur->type;
+
+        expr->data.factor.data.unary_op.expr = expr;
+
+        parser_consume(parser);
+
+        return fa_expr;
+    }
+
     return expr;
 }
 
 
 AST_Node* parser_parse_expr(Parser* parser, uint8_t scopeOS) {
     AST_Node* node = ast_init(EXPR);    
-    node->data.expr = *parser_parse_expression(parser, scopeOS);
+    
+    ASTN_Expression* expr = parser_parse_expression(parser, scopeOS);
+
+    if (expr == NULL) {
+        node->data.expr.type = EXPR_ERR;
+        return node;
+    }
+
+    node->data.expr = *expr;
 
     return node;
 }
@@ -1647,12 +1666,17 @@ ASTN_AssignmentStm parser_parse_assgn(Parser* parser, uint8_t scopeOS) {
         assgn.mult.ids[assgn.mult.size - 1] = symb2->data.id;   
     }
 
-    if (parser->cur->type != TOK_EQ) {
-        assgn.sg.id = 0;
-        return assgn;
-    } 
+    if (parser->cur->type == TOK_ADD_EQ || parser->cur->type == TOK_MINUS_EQ || parser->cur->type == TOK_SLASH_EQ || parser->cur->type == TOK_ASTK_EQ || parser->cur->type == TOK_PERC_EQ || parser->cur->type == TOK_EQ) {
+        assgn.op = parser->cur->type;
+        parser_consume(parser);
+    }
 
-    parser_consume(parser);
+    if (assgn.mult.size > 1 && assgn.op != TOK_EQ) {
+        assgn.sg.id = 0;
+        REPORT_ERROR(parser->lexer, "U_OPAS_TOMULT");
+        return assgn;
+    }
+
 
     if (assgn.mult.size == 1) {
         assgn.sg.id = symb->data.id;
@@ -2413,7 +2437,12 @@ ASTN_ForStm parser_parse_for_stm(Parser* parser, uint8_t scopeOS) {
     PES(parser);
     scopeOS += 1;
 
-    stm.var_decl = parser_parse_var_decl(parser, scopeOS);
+    if (parser->cur->type == TOK_VAR || parser->cur->type == TOK_MUT || parser->cur->type == TOK_CONST) {
+        stm.initial_expr.decl = parser_parse_var_decl(parser, scopeOS);
+    } else {
+        stm.initial_expr.norm = parser_parse_expr(parser, scopeOS);
+    }
+
 
     if (parser_expect(parser, TOK_COLON)) {
         temp2 = parser->scope;
@@ -2428,15 +2457,13 @@ ASTN_ForStm parser_parse_for_stm(Parser* parser, uint8_t scopeOS) {
     } else if (parser_expect(parser, TOK_SC)) {
         stm.data.generic.condition_expr = parser_parse_expr(parser, scopeOS);
 
-        printf("%s\n", parser->cur->value);
-
         if (!parser_expect(parser, TOK_SC)) {
             REPORT_ERROR(parser->lexer, "E_SC");
             return stm;
         }
+
     
         stm.data.generic.next_expr = parser_parse_expr(parser, scopeOS);
-
     } else {
         REPORT_ERROR(parser->lexer, "E_PROP_FOR_LOOP");
         return stm;

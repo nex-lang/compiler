@@ -382,6 +382,9 @@ Token* lexer_handle_1char(Lexer* lexer) {
             return lexer_process_pos_singlechar(lexer, next_char,
                 '=', '\0', TOK_PERC, TOK_PERC_EQ, TOK_ERROR);
             break;
+        case '@':
+            lexer_advance(lexer, 1); return lexer_token_init(lexer, "@", TOK_ATHER);
+            break;
         case '&':
             lexer_advance(lexer, 1); return lexer_token_init(lexer, "&", TOK_AMPER);
             break;

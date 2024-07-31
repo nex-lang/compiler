@@ -224,7 +224,8 @@ typedef struct ASTN_Expression {
         EXPR_ADDITION,
         EXPR_BITWISE,
         EXPR_COMPARISON,
-        EXPR_NEST
+        EXPR_NEST,
+        EXPR_ERR
     } type;
 
     union {
@@ -334,6 +335,8 @@ typedef struct ASTN_VariableDecl {
 
 
 typedef union ASTN_AssignmentStm {
+    int op;
+
     struct {
         int id;
         AST_Node* expr;
@@ -421,7 +424,10 @@ typedef struct ASTN_ConditionalStm {
 
 typedef struct ASTN_ForStm {
     char var[MAX_IDENTIFIER_LEN];
-    ASTN_VariableDecl var_decl;
+    union {
+        AST_Node* norm;
+        ASTN_VariableDecl decl;
+    } initial_expr;
 
     union {
         struct {
