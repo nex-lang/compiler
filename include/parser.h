@@ -97,6 +97,6 @@ AST_Node* parser_parse_mep_decl(Parser* parser);
 
 size_t parser_mem_for(ASTN_DataTypeSpecifier* dts);
 
-void symtbl_insert(Parser* table, Symbol* symbol);
+void symtbl_insert(Parser* table, Symbol* symbol, char* raw_symb);
 
 #endif // PARSER_H

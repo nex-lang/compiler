@@ -1,7 +1,8 @@
 import fprint, input from std.io;
 
 : fn main => () {
-    var int: param = 1;
+    var int: param = 10;
+    var int[]: array = {10, 100, 1000, 100000};  
 
     for (var: i = 1; i < param; ++i) {
         if (param > i) {
@@ -12,7 +13,20 @@ import fprint, input from std.io;
         }
     }
 
-    // note: this is an extremely rendom program
+    for (var: i = 1 : 10) {
+        fprint(i);
+    }
+
+
+    for (var: i = 1 :: array) {
+        fprint(i);
+    }
+
+    var int: test_var = 10;
+
+
+
+    // note: this is an extremely random program
 
     return 0;
 }

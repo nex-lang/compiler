@@ -423,8 +423,15 @@ typedef struct ASTN_ForStm {
     char var[MAX_IDENTIFIER_LEN];
     ASTN_VariableDecl var_decl;
 
-    AST_Node* condition_expr;
-    AST_Node* next_expr;
+    union {
+        struct {
+            AST_Node* condition_expr;
+            AST_Node* next_expr;
+        } generic;
+        AST_Node* range_expr;
+        AST_Node* iter_expr;
+    } data;
+    
 
     ASTN_Statements* statements;
 } ASTN_ForStm;

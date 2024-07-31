@@ -725,6 +725,7 @@ struct ErrorTemplate templates[] = {
     {"U_NUM_LIT_TYPE", "Unexpected numeric literal found - accepted formats: docs::literals::numeric"},
     {"U_DB_SOURCE_DECL", "Unexpected double source declration, first sourced: '%s' again: '%s' - expects: single 'from' statement"},
     {"U_MODULE_MULT_ALIAS", "Unexpected attempt to alias %d seperate identifiers into single '%s' - find proper syntax: docs::imports"},
+    {"U_REDEF", "Unexpected re-definition of `%s` previous definition found in %d:%d"},
 
     {"E_SHORTER_LENIDEN", "Expected a shorter identifier length - configuration expects: <= %d"},
     {"E_CHAR_TERMINATOR", "Expected a (') character literal terminator after starting of character literal"},
