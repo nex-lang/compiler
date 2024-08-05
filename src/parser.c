@@ -1358,8 +1358,6 @@ AST_Node* parser_parse_attr_decl(Parser* parser) {
                 list->items = realloc(list->items, (list->size + 1) * list->item_size);
                 list->items[list->size++] = node;
 
-                
-
                 break;
             case TOK_VAR:
             case TOK_MUT:
@@ -1918,7 +1916,7 @@ AST_Node* parser_parse_struct_decl(Parser* parser) {
 bool parser_parse_extend_attr(Parser* parser, ASTN_AttributeList* list) {
     while (parser->cur->type != TOK_FN_ARROW && parser->cur->type != TOK_SC) {
         bool is_class = false;
-        Symbol* symb;
+        Symbol* symb = NULL;
 
         if (parser->cur->type != TOK_ATTR && parser->cur->type != TOK_IDEN) {
             REPORT_ERROR(parser->lexer, "E_ATTRS_AF_EXT", parser->cur->value);
@@ -1935,15 +1933,16 @@ bool parser_parse_extend_attr(Parser* parser, ASTN_AttributeList* list) {
 
             if (symb->data.type == SYMBOL_CLASS) {
                 is_class = true;
-            } else if (symb->data.type != SYMBOL_ATTR) {
-                REPORT_ERROR(parser->lexer, "E_VALID_ATTR", parser->cur->value);
-                return false;
             }
         }
 
         if (parser->cur->type != TOK_IDEN) {
-            parser_consume(parser);
-            parser_consume(parser);
+            if (!parser_expect(parser, TOK_ATTR)) {
+                REPORT_ERROR(parser->lexer, "E_VALID_ATTR", parser->cur->value);
+                return false;
+            }
+
+            is_class = false;
         }
 
         while (true) {

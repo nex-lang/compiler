@@ -15,9 +15,6 @@ class Homo ext attr.Hominoldea => {
 
 
 attr talk => {
-    fn talk => (str: words) {   
-        play_text_to_voice(words);
-    }
 }
 
 class Sapien ext Homo, attr.talk => {
