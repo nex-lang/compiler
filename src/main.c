@@ -4,6 +4,8 @@
 #include <stdlib.h>
 #include <string.h>
 
+#define VERSION "beta.0.1"
+
 void print_status(const char* message) {
     printf("[NEX]: %s\n", message);
 }
@@ -11,45 +13,48 @@ void print_status(const char* message) {
 void print_usage(const char* program_name) {
     printf("Usage: %s [options] <source files>\n", program_name);
     printf("Options:\n");
-    printf("  -W <option>   Enable specific warnings (e.g., all, extra)\n");
-    printf("  -O <level>    Set optimization level (0-3)\n");
-    printf("  -o <file>     Set output file name\n");
-    printf("  -h            Show this help message\n");
+    printf("  -W<warning>          Enable specific warnings (e.g.,all,extra,unused,deprecated)\n");
+    printf("  -O<level>            Set optimization level (0-3)\n");
+    printf("  -o <file>            Set output file name\n");
+    printf("  -h, --help           Show this help message\n");
+    printf("  -v, --version        Show current version\n");
 }
 
 int main(int argc, char* argv[]) {
-    int enable_all_warnings = 0;
-    int enable_extra_warnings = 0;
-    int optimization_level = 0;
+    Warnings warnings = {0};
+    uint8_t optimization_level = 0;
     char* output_file = NULL;
-    int source_files_count = 0;
+    uint32_t source_files_count = 0;
     char** source_files = NULL;
 
     for (int i = 1; i < argc; i++) {
-        if (strcmp(argv[i], "-W") == 0) {
-            if (i + 1 < argc) {
-                if (strcmp(argv[i + 1], "all") == 0) {
-                    enable_all_warnings = 1;
-                } else if (strcmp(argv[i + 1], "extra") == 0) {
-                    enable_extra_warnings = 1;
+        if (strncmp(argv[i], "-W", 2) == 0) {
+            if (strlen(argv[i]) > 2) {
+                if (strcmp(argv[i] + 2, "all") == 0) {
+                    warnings.all = 1;
+                } else if (strcmp(argv[i] + 2, "extra") == 0) {
+                    warnings.extra = 1;
+                } else if (strcmp(argv[i] + 2, "unused") == 0) {
+                    warnings.unused = 1;
+                } else if (strcmp(argv[i] + 2, "deprecated") == 0) {
+                    warnings.deprecated = 1;
                 } else {
                     print_status("ERROR: INVALID WARNING OPTION");
                     return 1;
                 }
-                i++;
             } else {
-                print_status("ERROR: MISSING ARGUMENT FOR -W");
+                print_status("ERROR: MISSING WARNING OPTION AFTER -W");
                 return 1;
             }
-        } else if (strcmp(argv[i], "-O") == 0) {
-            if (i + 1 < argc) {
-                optimization_level = atoi(argv[++i]);
+        } else if (strncmp(argv[i], "-O", 2) == 0) {
+            if (strlen(argv[i]) > 2) {
+                optimization_level = atoi(argv[i] + 2);
                 if (optimization_level < 0 || optimization_level > 3) {
                     print_status("ERROR: INVALID OPTIMIZATION LEVEL");
                     return 1;
                 }
             } else {
-                print_status("ERROR: MISSING ARGUMENT FOR -O");
+                print_status("ERROR: MISSING OPTIMIZATION LEVEL AFTER -O");
                 return 1;
             }
         } else if (strcmp(argv[i], "-o") == 0) {
@@ -61,6 +66,9 @@ int main(int argc, char* argv[]) {
             }
         } else if (strcmp(argv[i], "-h") == 0 || strcmp(argv[i], "--help") == 0) {
             print_usage(argv[0]);
+            return 0;
+        } else if (strcmp(argv[i], "-v") == 0 || strcmp(argv[i], "--version") == 0) {
+            printf("Running version %s\n", VERSION);
             return 0;
         } else {
             source_files_count++;
@@ -79,22 +87,19 @@ int main(int argc, char* argv[]) {
     }
 
     for (int i = 0; i < source_files_count; i++) {
-        Parser* parser = parser_init(source_files[i]);
+        Parser* parser = parser_init(source_files[i],
+                                    NEX_WARNINGS, warnings,
+                                    NEX_OPTIMIZATION, optimization_level,
+                                    0);
+
         if (parser == NULL) {
             print_status("ERROR: FAILED TO INITIALIZE PARSER");
             return 1;
         }
 
-        // parser->enable_all_warnings = enable_all_warnings;
-        // parser->enable_extra_warnings = enable_extra_warnings;
-        // parser->optimization_level = optimization_level;
-        // parser->output_file = output_file;
-
         parser_parse(parser);
 
         SAO(parser->root);
-
-        // GEN(parser);
 
         parser_free(parser);
     }

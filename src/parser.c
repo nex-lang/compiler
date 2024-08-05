@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdio.h>
 
-Parser* parser_init(char* filename) {
+Parser* parser_init(char* filename, ...) {
     Parser* parser = calloc(1, sizeof(Parser));
 
     parser->lexer = lexer_init(filename);
@@ -17,6 +17,30 @@ Parser* parser_init(char* filename) {
     parser->recent_root = 0;
     parser->scope = 0;
     parser->nest = 0;
+
+    memset(&parser->warnings, 0, sizeof(Warnings));
+
+    va_list args;
+    va_start(args, filename);
+
+    Flags option;
+    while ((option = va_arg(args, Flags)) != 0) {
+        switch (option) {
+            case NEX_WARNINGS:
+                parser->warnings = va_arg(args, Warnings);
+                break;
+            case NEX_OPTIMIZATION:
+                parser->optimization = va_arg(args, int);
+                break;
+            default:
+                print_status("ERROR: INVALID PARSER OPTION");
+                va_end(args);
+                free(parser);
+                return NULL;
+        }
+    }
+
+    va_end(args);
 
     return (Parser*)parser;
 }

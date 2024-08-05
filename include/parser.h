@@ -4,18 +4,36 @@
 #include "lexer.h"
 #include "tmp/alphadev.h"
 
+typedef enum Flags {
+    NEX_WARNINGS = 1,
+    NEX_OPTIMIZATION  = 1 << 1,
+} Flags;
+
+typedef struct {
+    unsigned int all : 1;
+    unsigned int extra : 1;
+    unsigned int unused : 1;
+    unsigned int deprecated : 1;
+} Warnings;
+
 typedef struct Parser {
     Lexer* lexer;
     Token* cur;
+    
     AST_Node* tree;
     AST_Node* root;
+    
     SymTable* tbl;
 
     uint64_t highest_scope, scope, recent_root;
     uint8_t nest;
+
+    Warnings warnings;
+    unsigned int optimization: 2;
+
 } Parser;
 
-Parser* parser_init(char* filename);
+Parser* parser_init(char* filename, ...);
 void parser_free(Parser* parser);
 
 bool parser_expectsq(Parser* parser, ...);
