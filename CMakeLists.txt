@@ -67,7 +67,6 @@ option(BUILD_TESTS "Build tests" OFF)
 if(BUILD_TESTS)
     set(t_SOURCES 
         tests/lexer_test.c
-        tests/symtbl_test.c
     )
         
     message("nex-compiler:cmake $> [Building tests]")

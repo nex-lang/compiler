@@ -33,7 +33,6 @@ Parser* parser_init(char* filename, ...) {
                 parser->optimization = va_arg(args, int);
                 break;
             default:
-                print_status("ERROR: INVALID PARSER OPTION");
                 va_end(args);
                 free(parser);
                 return NULL;
@@ -111,6 +110,7 @@ void parser_consume(Parser* parser) {
         exit(0);
     }
 
+    token_free(parser->cur);
 
     parser->cur = lexer_next_token(parser->lexer);
 }
@@ -1002,7 +1002,7 @@ ASTN_Expression* parser_parse_expression(Parser* parser, uint8_t scopeOS) {
     }
 
     expr->type = -1;
-    bool expect_db_close;
+    bool expect_db_close = false;
 
     if (parser->cur->type == TOK_LPAREN) {
         parser_consume(parser);
@@ -1052,7 +1052,8 @@ ASTN_Expression* parser_parse_expression(Parser* parser, uint8_t scopeOS) {
         return expr;
     }
 
-    ASTN_ComparisonExpr x = parser_parse_comp_expr(parser, scopeOS);
+    ASTN_ComparisonExpr x = (ASTN_ComparisonExpr){0};
+    x = parser_parse_comp_expr(parser, scopeOS);
 
     if (x.type == COMPARISON_BINARY_OP) {
         expr->type = EXPR_COMPARISON;
@@ -1771,8 +1772,9 @@ AST_Node* parser_parse_function_decl(Parser* parser) {
         return NULL;
     }
 
-    Token* name_tok = parser->cur;
-    if (name_tok->type != TOK_IDEN) {
+    char* name = strdup(parser->cur->value);
+
+    if (parser->cur->type != TOK_IDEN) {
         REPORT_ERROR(parser->lexer, "E_FN_NAME", parser->cur->value);
         return NULL;
     }
@@ -1784,8 +1786,7 @@ AST_Node* parser_parse_function_decl(Parser* parser) {
         return NULL;
     }
 
-    Symbol* symb = symbol_init((char*)name_tok->value, SYMBOL_FUNCTION, 0, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc);
-
+    Symbol* symb = symbol_init(name, SYMBOL_FUNCTION, 0, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc);
 
     PES(parser);
     parser->recent_root = parser->scope;
@@ -1806,7 +1807,7 @@ AST_Node* parser_parse_function_decl(Parser* parser) {
         node->data.stm.data.function_decl.identifier = symb->data.id;
         symb->data.data = node;
 
-        symtbl_insert(parser, symb, name_tok->value);
+        symtbl_insert(parser, symb, name);
         
         return node;
     }
@@ -1827,8 +1828,9 @@ AST_Node* parser_parse_function_decl(Parser* parser) {
     node->data.stm.data.function_decl.identifier = symb->data.id;
     symb->data.data = node;
     
-    symtbl_insert(parser, symb, name_tok->value);
+    symtbl_insert(parser, symb, name);
 
+    free(name);
 
     return node;
 }

@@ -43,7 +43,7 @@ Symbol* symbol_init(char* id, unsigned int type, unsigned int scope, unsigned in
     symb->data.access_type = access_type;
 
     symb->data.life.borrower_size = 0;
-    symb->data.life.borrower_list = malloc(symb->data.life.borrower_size * sizeof(Symbol*));
+    symb->data.life.borrower_list = malloc(1 * sizeof(Symbol*));
 
     symb->data.decl_line = decl_line;
     symb->data.decl_col = decl_col;

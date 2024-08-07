@@ -10,7 +10,7 @@ char* io_load_file(char* filename) {
     */
     
     char* buffer = 0;
-    __uint128_t length;
+    long long length;
     FILE* f = fopen(filename, "rb");
     
     if (!f) {
@@ -33,7 +33,7 @@ char* io_load_file(char* filename) {
     size_t len =  fread(buffer, 1, length, f);
     fclose(f);
 
-    buffer[len + 1] = '\0';
+    buffer[len] = '\0';
 
     return buffer;
 }

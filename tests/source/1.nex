@@ -1,0 +1,18 @@
+/* 
+FOR TESTING PURPOSES ONLY! LIBRARIES STATED HERE MAY OR MAY NOT EXIST 
+*/
+
+@import print, read from std.io;
+@import sqrt, exp from std.math;
+@import concat, split from std.string;
+@import hash, encrypt from std.crypto;
+@import read, write from std.file;
+@import connect, disconnect from std.network;
+@import fetch, save from std.database;
+@import validate, sanitize from std.security;
+@import append, remove from std.list;
+@import decode, encode from std.codec;
+@import merge, split from std.data;
+@import render, display from std.graphics;
+@import authenticate, authorize from std.auth;
+@import bind, unbind from std.event;

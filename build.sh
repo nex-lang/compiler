@@ -9,30 +9,19 @@ UNDERLINE=$(tput smul)
 
 CURRENT_VERSION=$(cat version.txt)
 BUILD_TESTS=OFF
+EXAMPLE=""
 
-if [ "$1" == "-H" ] || [ "$1" == "--help" ]; then
-    printf "${MAGENTA}${BRIGHT}[BUILD.SH]${NORMAL} Usage: ./build.sh ${LIME_YELLOW}[OPTIONS]${NORMAL} \n${UNDERLINE}Options:${NORMAL}\n  ${BRIGHT}-H, --help${NORMAL}           Display this message [mitigates all options]\n  ${BRIGHT}-T, --test${NORMAL}           Equivalent to -DBUILD_TESTS=ON [see CMakeLists.txt] \n  ${BRIGHT}-D, --debug${NORMAL}           Equivalent to -DCMAKE_BUILD_TYPE=Debug [see CMake Documentation]\n  ${BRIGHT}-R, --release${NORMAL}           Equivalent to -DBUILD_TESTS=ON [see CMake Documentation]\n"
-    exit 0  
-fi
+print_help() {
+    printf "${MAGENTA}${BRIGHT}[BUILD.SH]${NORMAL} Usage: ./build.sh ${LIME_YELLOW}(-D | -R) [OPTIONS]${NORMAL} \n${UNDERLINE}Options:${NORMAL}\n"
+    printf "  ${BRIGHT}-H, --help${NORMAL}           Display this message [mitigates all options]\n"
+    printf "  ${BRIGHT}-T, --test${NORMAL}           Equivalent to -DBUILD_TESTS=ON [see CMakeLists.txt]\n"
+    printf "  ${BRIGHT}-D, --debug${NORMAL}          Equivalent to -DCMAKE_BUILD_TYPE=Debug [see CMake Documentation]\n"
+    printf "  ${BRIGHT}-R, --release${NORMAL}        Equivalent to -DCMAKE_BUILD_TYPE=Release [see CMake Documentation]\n"
+    printf "  ${BRIGHT}-C, --clean${NORMAL}          Force clearing build directory\n"
+    printf "  ${BRIGHT}-P, --profile <example>${NORMAL} Profile the given example\n"
+}
 
-if [ "$1" == "-C" ] || [ "$1" == "--clean" ]; then
-    printf "${MAGENTA}${BRIGHT}[BUILD.SH]${NORMAL} FORCE CLEARING BUILD DIRECTORY\n"
-    rm -rf build/
-    exit 0
-fi
-
-if [ "$1" == "-dev" ] || [ "$1" == "--dev" ]; then
-    printf "${MAGENTA}${BRIGHT}[BUILD.SH]${NORMAL} BUILDING ASM LIBRARIES\n"
-    cd dev/ && nasm -f elf64 $2.asm -o $2.o && ld $2.o -o $2 && rm $2.o
-    exit 0
-fi
-
-if [ "$1" == "-dec" ] || [ "$1" == "--devclean" ]; then
-    printf "${MAGENTA}${BRIGHT}[BUILD.SH]${NORMAL} CLEANING AND BUILDING ASM LIBRARIES\n"
-    cd dev/ && find . ! -name "*.asm" -type f -delete
-    exit 0
-fi
-
+# Parse arguments
 
 if [ "$#" -lt 1 ]; then
     printf "${MAGENTA}${BRIGHT}[BUILD.SH]${NORMAL} INSUFFICIENT ARGUMENTS PASSED (build.sh)\n"
@@ -40,21 +29,54 @@ if [ "$#" -lt 1 ]; then
     exit 1
 fi
 
-if [ "$2" == "-T" ] || [ "$2" == "--test" ] || [ "$1" == "-T" ] || [ "$1" == "--test" ]; then
-    BUILD_TESTS=ON
-fi
+while (( "$#" )); do
+    case "$1" in
+        -H|--help)
+            print_help
+            exit 0
+            ;;
+        -C|--clean)
+            printf "${MAGENTA}${BRIGHT}[BUILD.SH]${NORMAL} FORCE CLEARING BUILD DIRECTORY\n"
+            rm -rf build/
+            exit 0
+            ;;
+        -T|--test)
+            BUILD_TESTS=ON
+            shift
+            ;;
+        -P|--profile)
+            EXAMPLE="$2"
+            shift 2
+            ;;
+        -D|--debug)
+            BUILD_TYPE="Debug"
+            shift
+            ;;
+        -R|--release)
+            BUILD_TYPE="Release"
+            shift
+            ;;
+        -*|--*)
+            printf "${MAGENTA}${BRIGHT}[BUILD.SH]${NORMAL} INVALID ARGUMENT: $1\n"
+            printf "${MAGENTA}${BRIGHT}[BUILD.SH]${NORMAL} USE --help or -H flag to find a usage guide\n"
+            exit 1
+            ;;
+        *)
+            shift
+            ;;
+    esac
+done
 
-
-if [ "$1" == "-D" ] || [ "$1" == "--debug" ] || [ "$2" == "-D" ] || [ "$2" == "--debug" ]; then
+if [ "$BUILD_TYPE" == "Debug" ]; then
     printf "${MAGENTA}${BRIGHT}[BUILD.SH]${NORMAL} ${GREEN}LATEST VERIFIED VERSION ${CURRENT_VERSION}${NORMAL}: BUILDING IN DEBUG MODE\n"
     cmake -B build -DCMAKE_BUILD_TYPE=Debug -DBUILD_TESTS=${BUILD_TESTS}
     cd build/ && make
-elif [ "$1" == "-R" ] || [ "$1" == "--release" ] || [ "$2" == "-R" ] || [ "$2" == "--release" ]; then
+elif [ "$BUILD_TYPE" == "Release" ]; then
     printf "${MAGENTA}${BRIGHT}[BUILD.SH]${NORMAL} LATEST RELEASE VERSION ${CURRENT_VERSION}: BUILDING IN RELEASE MODE\n"
     cmake -B build -DCMAKE_BUILD_TYPE=Release -DBUILD_TESTS=${BUILD_TESTS}
     cd build/ && make
-else
-    printf "${MAGENTA}${BRIGHT}[BUILD.SH]${NORMAL} INVALID ARGUMENTS PASSED\n"
-    printf "${MAGENTA}${BRIGHT}[BUILD.SH]${NORMAL} USE --help or -H flag to find a usage guide\n"
-    exit 1
+fi
+
+if [ -n "$EXAMPLE" ]; then
+    valgrind --log-file=logs.txt --time-stamp=yes --leak-check=full --track-origins=yes --show-leak-kinds=all ./nex ../examples/$EXAMPLE.nex -o $EXAMPLE
 fi
