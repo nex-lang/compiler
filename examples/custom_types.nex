@@ -16,7 +16,7 @@ enum SpriteType {
 }
 
 : fn main => () {
-    var Vector: pos;
+    var Vector[10]: pos;
     var Vector3: pos3d;
     var SpriteType: sp;
 

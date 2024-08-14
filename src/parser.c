@@ -364,14 +364,17 @@ ASTN_DataTypeSpecifier parser_parse_dt_spec(Parser* parser) {
 
 
     if (parser_expect(parser, TOK_LBRACK)) {
-        if (parser->cur->type ==  TOK_L_SSINT ||
+        printf("%d\n", parser->cur->type);
+        if (!(parser->cur->type ==  TOK_L_SSUINT ||
             parser->cur->type ==  TOK_L_SUINT ||
-            parser->cur->type ==  TOK_L_UINT) {
-        REPORT_ERROR(parser->lexer, "E_PROP_ARR_SZ", parser->cur->value);
-        dts.data.prim = -1;
-        dts.arr = (size_t)strtoul(parser->cur->value, &endptr, 10);
-        return dts;
+            parser->cur->type ==  TOK_L_UINT)) {
+            REPORT_ERROR(parser->lexer, "E_PROP_ARR_SZ", parser->cur->value);
+            dts.data.prim = -1;
+            return dts;
         }
+
+        parser_consume(parser);
+        dts.arr = (size_t)strtoul(parser->cur->value, &endptr, 10);
 
         if (parser_expect(parser, TOK_RBRACK)) {
             dts.is_arr = true;
