@@ -30,7 +30,6 @@ typedef struct Parser {
 
     Warnings warnings;
     unsigned int optimization: 2;
-
 } Parser;
 
 Parser* parser_init(char* filename, ...);

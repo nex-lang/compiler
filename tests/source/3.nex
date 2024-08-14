@@ -1,0 +1,32 @@
+/* 
+FOR TESTING PURPOSES ONLY! THINGS MAY OR MAY NOT MAKE SENSE
+*/
+
+pub float : fn process_integer => (int: value);
+pub float : fn handle_float => (float: rate);
+pub float : fn retrieve_string => (str: message);
+pub float : fn process_char => (char: symbol);
+pub bool : fn check_boolean => (bool: flag);
+
+priv float : fn calculate_value => (double: amount);
+glob float : fn analyze_data => (int: data);
+pub float : fn format_text => (str: text);
+priv float : fn identify_character => (char: character);
+
+pub (bool, float) : fn validate_and_message => (bool: status, float: value);
+priv (float, bool) : fn scale_and_check => (float: scale, bool: valid);
+glob (float, bool) : fn process_and_flag => (float: measurement, bool: active);
+pub (bool, float) : fn sum_and_average => (bool: isValid, float: average);
+priv (float, bool) : fn combine_and_validate => (float: number, bool: isValid);
+
+pub [(int), (float)] : fn get_int_and_float => (int: count, float: ratio);
+priv [(float), (bool)] : fn calculate_and_check => (float: value, bool: is_valid);
+glob [(str), (char)] : fn get_string_and_char => (str: text, char: symbol);
+pub [(bool), (int)] : fn status_and_code => (bool: active, int: code);
+priv [(float), (str)] : fn measure_and_label => (float: measurement, str: label);
+
+pub [(float), (float)] : fn get_two_floats => (float: x, float: y);
+priv [(char), (bool)] : fn char_and_status => (char: letter, bool: flag);
+glob [(str), (int)] : fn text_and_number => (str: name, int: id);
+pub [(bool), (float)] : fn flag_and_rate => (bool: flag, float: rate);
+priv [(int), (str)] : fn id_and_message => (int: id, str: message);

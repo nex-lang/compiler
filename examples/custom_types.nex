@@ -1,0 +1,25 @@
+class Vector => {
+    var int: x;
+    var int: y;
+}
+
+struct Vector3 {
+    var int: x;
+    var int: y;
+}
+
+enum SpriteType {
+    COLID,
+    NCOLID,
+    LOUT,
+    LIN
+}
+
+: fn main => () {
+    var Vector: pos;
+    var Vector3: pos3d;
+    var SpriteType: sp;
+
+
+    return 0;
+}

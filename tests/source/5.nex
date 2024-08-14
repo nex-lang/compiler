@@ -1,0 +1,106 @@
+/* 
+FOR TESTING PURPOSES ONLY! THINGS MAY OR MAY NOT MAKE SENSE
+*/
+
+
+if (x > 10) {
+    print("x is greater than 10");
+} else {
+    print("x is 10 or less");
+}
+
+if (y < 5) {
+    print("y is less than 5");
+} elif (y == 5) {
+    print("y is exactly 5");
+} else {
+    print("y is greater than 5");
+}
+
+if (a == 0) {
+    print("a is zero");
+} elif (a > 0) {
+    print("a is positive");
+} elif (a < 0) {
+    print("a is negative");
+} else {
+    print("Unexpected value for a");
+}
+
+for (i = 0; i < 10; i++) {
+    print(i);
+}
+
+for (i : items) {
+    print(i);
+}
+
+for (item :: itemList) {
+    print(item);
+}
+
+for (k; k < 20; k++) {
+    print(k);
+}
+
+for (x; x != 0; x--) {
+    print(x);
+}
+
+switch (day) {
+    case 1: 
+        print("Monday");
+        break;
+    case 2:
+        print("Tuesday");
+        break;
+    case 3:
+        print("Wednesday");
+        break;
+    case 4:
+        print("Thursday");
+        break;
+    case 5:
+        print("Friday");
+        break;
+    default:
+        print("Weekend");
+}
+
+try {
+    result = divide(a, b);
+} except (ZeroDivisionError) {
+    print("Cannot divide by zero");
+} except (TypeError) {
+    print("Invalid type for division");
+} finally {
+    print("End of try block");
+}
+
+try {
+    file = open("file.txt", "r");
+    content = file.read();
+} except (FileNotFoundError) {
+    print("File not found");
+} finally {
+    file.close();
+}
+
+while (counter < 5) {
+    print(counter);
+    counter++;
+}
+
+while (isRunning) {
+    performTask();
+    if (checkCondition()) {
+        break;
+    }
+}
+
+while (true) {
+    if (conditionMet) {
+        break;
+    }
+    performAction();
+}

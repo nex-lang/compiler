@@ -1,0 +1,25 @@
+/* 
+FOR TESTING PURPOSES ONLY! THINGS MAY OR MAY NOT MAKE SENSE
+*/
+
+priv var int : x = 900_000;
+pub const str : xStr = "900_000";
+pub mut str: usr = "beep";
+var bool: you_re_cool = true;
+const float: pi = 3.1415d;
+mut cell: "Cells can mutate";
+var (double, float) : db_fl = 9.129d;
+var (char, str) : cha_str = 'c';
+priv var int : score = 42;
+pub const str : highScoreStr = "42";
+pub mut str : status = "active";
+var bool : is_verified = false;
+const float : golden_ratio = 1.618f;
+mut cell : "Cell content can change";
+var str : grade_name = "Excellent";
+priv var int : temperature = -5;
+pub const str : tempStr = "-5";
+pub mut str : message = "Update required";
+var bool : is_online = true;
+const float : gravity = 9.81f;
+var (int, double) : speed = 60;

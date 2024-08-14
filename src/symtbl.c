@@ -29,9 +29,9 @@ void symtbl_free(SymTable* table) {
 }
 
 Symbol* symbol_init(char* id, unsigned int type, unsigned int scope, unsigned int nest, uint8_t mem_type, 
-    uint8_t mem_mod, uint8_t mem_sto, uint8_t  access_type, uint8_t decl_line, uint8_t decl_col) {
+    uint8_t mem_mod, uint8_t mem_sto, uint8_t  access_type, uint8_t decl_line, uint8_t decl_col, size_t ty_size) {
     Symbol* symb = calloc(1, sizeof(Symbol));
-
+    
     symb->data.id = symtbl_hash((const char*)id, scope);
     symb->data.scope = scope;
     symb->data.nest = nest;
@@ -47,6 +47,8 @@ Symbol* symbol_init(char* id, unsigned int type, unsigned int scope, unsigned in
 
     symb->data.decl_line = decl_line;
     symb->data.decl_col = decl_col;
+
+    symb->data.ty_size = ty_size;
 
     symb->next = NULL;
 

@@ -75,9 +75,10 @@ typedef struct ASTN_Literal {
 
 typedef struct ASTN_DataTypeSpecifier {
     bool is_arr;
+    size_t arr;
     union {
         int prim;
-        int cust_type;
+        size_t cust_type;
     } data;
 } ASTN_DataTypeSpecifier;
 

@@ -154,7 +154,7 @@ void parser_parse(Parser* parser) {
                 parser->tree->right = parser_parse_enum_decl(parser);
                 break;
             case TOK_STRUCT:
-                parser->tree->right = parser_parse_struct_decl(parser);;
+                parser->tree->right = parser_parse_struct_decl(parser);
                 break;
             default:
                 break;
@@ -264,7 +264,53 @@ ASTN_Literal parser_parse_literal(Parser* parser) {
 ASTN_DataTypeSpecifier parser_parse_dt_spec(Parser* parser) {
     ASTN_DataTypeSpecifier dts;
     dts.data.prim = 0;
+    dts.is_arr = false;
+    char* iden;
+    char *endptr;
     int int_dts = 0;
+
+
+    while (parser->cur->type == TOK_IDEN) {
+        iden = parser->cur->value;
+        dts.data.prim = -1;
+
+        if (parser->cur->type == TOK_PERIOD) {
+            parser_consume(parser); 
+            if (parser->cur->type == TOK_IDEN) {
+                parser_consume(parser);
+            } else {
+                REPORT_ERROR(parser->lexer, "E_EXPECT_IDEN", parser->cur->value);
+                dts.data.prim = -1;
+                return dts;
+            }
+        }
+
+        if (parser->cur->type != TOK_PERIOD) {
+            iden = parser->cur->value;
+            break;
+        }
+    }
+
+    if (dts.data.prim == -1) {
+        Symbol* symb = symtbl_lookup(parser->tbl, (const char*)iden, 0, 0,  parser->recent_root);
+
+        if (symb == NULL) {
+            REPORT_ERROR(parser->lexer, "U_UOUDTY", parser->cur->value);
+            dts.data.prim = -1;
+            return dts;
+        }
+
+        if (!(symb->data.type == SYMBOL_CLASS || symb->data.type == SYMBOL_STRUCT || symb->data.type == SYMBOL_ENUM)) {
+            REPORT_ERROR(parser->lexer, "U_UOUDTY", parser->cur->value);
+            dts.data.prim = -1;
+            return dts;
+        }
+
+
+        dts.data.cust_type = symb->data.ty_size; 
+        parser_consume(parser);
+    }
+
 
     if (parser_expect(parser, TOK_S_SHORT)) {
         int_dts = 8;
@@ -318,12 +364,22 @@ ASTN_DataTypeSpecifier parser_parse_dt_spec(Parser* parser) {
 
 
     if (parser_expect(parser, TOK_LBRACK)) {
+        if (parser->cur->type ==  TOK_L_SSINT ||
+            parser->cur->type ==  TOK_L_SUINT ||
+            parser->cur->type ==  TOK_L_UINT) {
+        REPORT_ERROR(parser->lexer, "E_PROP_ARR_SZ", parser->cur->value);
+        dts.data.prim = -1;
+        dts.arr = (size_t)strtoul(parser->cur->value, &endptr, 10);
+        return dts;
+        }
+
         if (parser_expect(parser, TOK_RBRACK)) {
             dts.is_arr = true;
             return dts;
         }
+
         REPORT_ERROR(parser->lexer, "E_CLOSE_BRACK", parser->cur->value);
-        dts.data.prim = 0;
+        dts.data.prim = -1;
         return dts;
     }
 
@@ -492,7 +548,6 @@ ASTN_Call parser_parse_call(Parser* parser, uint8_t scopeOS) {
 
 
     while (parser->cur->type != TOK_RPAREN) {
-        printf("%d and %d\n", scopeOS, parser->scope);
         params->parameter[params->size] = parser_parse_expr(parser, scopeOS);
 
         if (!(parser_expect(parser, TOK_COMMA)) && (parser->cur->type != TOK_RPAREN)) {
@@ -1175,7 +1230,7 @@ ASTN_Parameters* parser_parse_parameters(Parser* parser) {
 
 
         symtbl_insert(parser, symbol_init(
-            (char*)params->parameter[params->size]->identifier, SYMBOL_VARIABLE, parser->scope, parser->nest, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc
+            (char*)params->parameter[params->size]->identifier, SYMBOL_VARIABLE, parser->scope, parser->nest, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc, 0
         ), params->parameter[params->size]->identifier);
 
         if (!(parser_expect(parser, TOK_COMMA)) && (parser->cur->type != TOK_RPAREN)) {
@@ -1236,7 +1291,7 @@ ASTN_Module* parser_parse_module(Parser* parser) {
     }
     
     symtbl_insert(parser, symbol_init(
-        current_module->module, SYMBOL_MODULE, 0, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc 
+        current_module->module, SYMBOL_MODULE, 0, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc, 0
     ), current_module->module);
 
     return current_module;
@@ -1319,7 +1374,7 @@ AST_Node* parser_parse_attr_decl(Parser* parser) {
     }
 
     char* name = parser->cur->value;
-    Symbol* symb = symbol_init((char*)parser->cur->value, SYMBOL_ATTR, 0, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc);
+    Symbol* symb = symbol_init((char*)parser->cur->value, SYMBOL_ATTR, 0, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc, 0);
     parser_consume(parser);
 
     PES(parser);
@@ -1510,7 +1565,7 @@ ASTN_VariableDecl parser_parse_var_decl(Parser* parser, uint8_t scopeOS) {
     while (parser->cur->type == TOK_IDEN) {
         identifiers = realloc(identifiers, (size + 1) * sizeof(int));
 
-        Symbol* symb = symbol_init((char*)parser->cur->value, SYMBOL_VARIABLE, parser->scope, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc);
+        Symbol* symb = symbol_init((char*)parser->cur->value, SYMBOL_VARIABLE, parser->scope, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc, 0);
         symtbl_insert(parser, symb, parser->cur->value);
 
         parser_consume(parser);
@@ -1786,7 +1841,7 @@ AST_Node* parser_parse_function_decl(Parser* parser) {
         return NULL;
     }
 
-    Symbol* symb = symbol_init(name, SYMBOL_FUNCTION, 0, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc);
+    Symbol* symb = symbol_init(name, SYMBOL_FUNCTION, 0, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc, 0);
 
     PES(parser);
     parser->recent_root = parser->scope;
@@ -1865,7 +1920,7 @@ ASTN_StructMemberDecl parser_parse_struct_mem(Parser* parser) {
         return stm;
     }
 
-    Symbol* symb = symbol_init(parser->cur->value, SYMBOL_VARIABLE, parser->scope, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc);
+    Symbol* symb = symbol_init(parser->cur->value, SYMBOL_VARIABLE, parser->scope, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc, 0);
     symtbl_insert(parser, symb, parser->cur->value);
     parser_consume(parser);
     
@@ -1882,6 +1937,7 @@ ASTN_StructMemberDecl parser_parse_struct_mem(Parser* parser) {
 
 AST_Node* parser_parse_struct_decl(Parser* parser) {
     ASTN_StructDecl stm;
+    size_t sz = 0;
 
     parser_consume(parser);
 
@@ -1894,8 +1950,10 @@ AST_Node* parser_parse_struct_decl(Parser* parser) {
     node->data.stm.type = STMT_STRUCT_DECL;
 
     char* name = parser->cur->value;
-    Symbol* symb = symbol_init(name, SYMBOL_STRUCT, 0, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc);
+    Symbol* symb = symbol_init(name, SYMBOL_STRUCT, 0, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc, 0);
     parser_consume(parser);
+
+    PES(parser);
 
     stm.identifier = symb->data.id;
 
@@ -1922,6 +1980,8 @@ AST_Node* parser_parse_struct_decl(Parser* parser) {
             return NULL;
         }
 
+        sz += parser_mem_for(&mem.data_type_specifier);
+
         stm.members.items = realloc(stm.members.items, (stm.members.size + 1) * stm.members.item_size);
         stm.members.items[stm.members.size++] = mem;
     }
@@ -1930,7 +1990,9 @@ AST_Node* parser_parse_struct_decl(Parser* parser) {
 
     node->data.stm.data.struct_decl = stm;
     symb->data.data = node;
-    
+    symb->data.ty_size = sz;
+
+
     symtbl_insert(parser, symb, name);
 
     return node;
@@ -2028,6 +2090,7 @@ bool parser_parse_extend_attr(Parser* parser, ASTN_AttributeList* list) {
 
 AST_Node* parser_parse_class_decl(Parser* parser) {
     ASTN_ClassDecl stm;
+    size_t sz = 0;
     stm.attributes = NULL;
 
     parser_consume(parser);    
@@ -2037,6 +2100,8 @@ AST_Node* parser_parse_class_decl(Parser* parser) {
         return NULL;
     }
 
+    Symbol* symb = symbol_init((const char*)parser->cur->value, SYMBOL_CLASS, 0, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc, 0);
+    stm.identifier = symb->data.id;
     char* iden = parser->cur->value;
 
     parser_consume(parser);
@@ -2058,8 +2123,7 @@ AST_Node* parser_parse_class_decl(Parser* parser) {
         stm.attributes = ext_list;
     }
 
-    Symbol* symb = symbol_init(iden, SYMBOL_CLASS, 0, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc);
-    stm.identifier = symb->data.id;
+
 
     AST_Node* node = ast_init(STMT);
     node->data.stm.type = STMT_CLASS_DECL;
@@ -2143,6 +2207,9 @@ AST_Node* parser_parse_class_decl(Parser* parser) {
                 node->data.stm.data.attribute_unit.data.var = tmpnode;
                 node->data.stm.data.attribute_unit.scope = parser->scope;
 
+                sz += node->data.stm.data.attribute_unit.data.var->data.stm.data.variable_decl.mem;
+
+
                 list->items = realloc(list->items, (list->size + 1) * list->item_size);
                 list->items[list->size++] = node;
 
@@ -2184,6 +2251,8 @@ AST_Node* parser_parse_class_decl(Parser* parser) {
     stm.attributes = list;
     node->data.stm.data.class_decl = stm;
     symb->data.data = node;
+    symb->data.ty_size = sz;
+    
 
     symtbl_insert(parser, symb, iden);
 
@@ -2204,7 +2273,7 @@ AST_Node* parser_parse_err_decl(Parser* parser) {
     node->data.stm.type = STMT_ERR_DECL;
 
     char* name = parser->cur->value;
-    Symbol* symb = symbol_init(parser->cur->value, SYMBOL_ERR, 0, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc);
+    Symbol* symb = symbol_init(parser->cur->value, SYMBOL_ERR, 0, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc, 0);
     parser_consume(parser);
 
     stm.identifier = symb->data.id;
@@ -2241,7 +2310,7 @@ AST_Node* parser_parse_err_decl(Parser* parser) {
             return NULL;
         }
 
-        Symbol* symb = symbol_init(parser->cur->value, SYMBOL_VARIABLE, parser->scope, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc);
+        Symbol* symb = symbol_init(parser->cur->value, SYMBOL_VARIABLE, parser->scope, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc, 0);
         symtbl_insert(parser, symb, parser->cur->value);
 
         parser_consume(parser);
@@ -2283,7 +2352,7 @@ AST_Node* parser_parse_enum_decl(Parser* parser) {
 
 
     char* name = parser->cur->value;
-    Symbol* symb = symbol_init(name, SYMBOL_ENUM, 0, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc);
+    Symbol* symb = symbol_init(name, SYMBOL_ENUM, 0, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc, 0);
     parser_consume(parser);
 
     stm.identifier = symb->data.id;
@@ -2300,7 +2369,7 @@ AST_Node* parser_parse_enum_decl(Parser* parser) {
         stm.members.items = realloc(stm.members.items, (stm.members.size + 1) * sizeof(uint32_t));
 
         if (parser->cur->type == TOK_IDEN) {
-            Symbol* symb2 = symbol_init(parser->cur->value, SYMBOL_VARIABLE, 0, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc);
+            Symbol* symb2 = symbol_init(parser->cur->value, SYMBOL_VARIABLE, 0, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc, 0);
             stm.members.items[stm.members.size] = symb2->data.id;
             symtbl_insert(parser, symb2, parser->cur->value);
             parser_consume(parser);
@@ -2315,8 +2384,11 @@ AST_Node* parser_parse_enum_decl(Parser* parser) {
 
     parser_consume(parser);
 
+    printf("stm.members.size: %zu\n", stm.members.size);
+
     node->data.stm.data.enum_decl = stm;
     symb->data.data = node;
+    symb->data.ty_size = stm.members.size * 4;
 
     symtbl_insert(parser, symb, name);
 
@@ -2858,6 +2930,7 @@ ASTN_Statement parser_parse_statement(Parser* parser, uint8_t scopeOS) {
         case TOK_MUT:
             stm.type = STMT_VARIABLE_DECL;
             stm.data.variable_decl = parser_parse_var_decl(parser, scopeOS);
+            printf("%zu\n", stm.data.variable_decl.mem);
             break;
         case TOK_IDEN:
             stm.type = STMT_CALL;
@@ -2936,7 +3009,7 @@ ASTN_Statements* parser_parse_statements(Parser* parser, uint8_t scopeOS) {
 
 AST_Node* parser_parse_mep_decl(Parser* parser) {
     symtbl_insert(parser, symbol_init(
-        (char*)"main", SYMBOL_MEP, parser->scope, parser->nest, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc
+        (char*)"main", SYMBOL_MEP, parser->scope, parser->nest, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc, 0
     ), "main");
 
     parser_consume(parser);
@@ -2976,42 +3049,38 @@ AST_Node* parser_parse_mep_decl(Parser* parser) {
 }
 
 size_t parser_mem_for(ASTN_DataTypeSpecifier* dts) {
+
+    size_t sz = 0;
+
     switch (dts->data.prim) {
-        case TOK_L_SSINT:
-            return sizeof(int8_t);
-        case TOK_L_SINT:
-            return sizeof(int16_t);
-        case TOK_L_INT:
-            return sizeof(int32_t);
-        case TOK_L_LINT:
-            return sizeof(int64_t);
-        case TOK_L_LLINT:
-            return sizeof(int128_t);
-        case TOK_L_SSUINT:
-            return sizeof(uint8_t);
-        case TOK_L_SUINT:
-            return sizeof(uint16_t);
-        case TOK_L_UINT:
-            return sizeof(uint32_t);
-        case TOK_L_LUINT:
-            return sizeof(uint64_t);
-        case TOK_L_LLUINT:
-            return sizeof(uint128_t);
-        case TOK_L_FLOAT:
-            return sizeof(float);
-        case TOK_L_DOUBLE:
-            return sizeof(double);
-        case TOK_L_BOOL:
-            return sizeof(bool);
-        case TOK_L_CHAR:
-            return 0;
-        case TOK_L_STRING:
-            return 0;
-        case TOK_L_SIZE:
-            return sizeof(size_t);
-        default:
-            return 8;
+        case TOK_L_SSINT:  sz = 1;  break;  // int8_t
+        case TOK_L_SINT:   sz = 2;  break;  // int16_t
+        case TOK_L_INT:    sz = 4;  break;  // int32_t
+        case TOK_L_LINT:   sz = 8;  break;  // int64_t
+        case TOK_L_LLINT:  sz = 16; break;  // int128_t
+        case TOK_L_SSUINT: sz = 1;  break;  // uint8_t
+        case TOK_L_SUINT:  sz = 2;  break;  // uint16_t
+        case TOK_L_UINT:   sz = 4;  break;  // uint32_t
+        case TOK_L_LUINT:  sz = 8;  break;  // uint64_t
+        case TOK_L_LLUINT: sz = 16; break;  // uint128_t
+        case TOK_L_FLOAT:  sz = 4;  break;  // float
+        case TOK_L_DOUBLE: sz = 8;  break;  // double
+        case TOK_L_BOOL:   sz = 1;  break;  // bool
+        case TOK_L_SIZE:   sz = sizeof(size_t); break; // machine specefic
+        case TOK_L_CHAR: 
+        case TOK_L_STRING: sz = 0;
+        default: sz = -1; break;  
     }
+
+    if (sz == -1) {
+        sz = dts->data.cust_type;
+    }
+
+    if (dts->is_arr) {
+        sz = dts->arr * sz;
+    }
+
+    return sz;
 }
 
 void symtbl_insert(Parser* parser, Symbol* symbol, char* raw_symb) {
