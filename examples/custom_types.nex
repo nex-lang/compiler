@@ -20,6 +20,7 @@ enum SpriteType {
     var Vector3: pos3d;
     var SpriteType: sp;
 
+    var str: sting = "BZZ bzzz bzzzz\u00G1";
 
     return 0;
 }

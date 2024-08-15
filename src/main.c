@@ -87,7 +87,6 @@ int main(int argc, char* argv[]) {
     }
 
     for (int i = 0; i < source_files_count; i++) {
-        printf("%u\n", source_files_count);
         Parser* parser = parser_init(source_files[i],
                                     NEX_WARNINGS, warnings,
                                     NEX_OPTIMIZATION, optimization_level,
@@ -101,7 +100,7 @@ int main(int argc, char* argv[]) {
         parser_parse(parser);
 
         SAO(parser->root);
-
+        GEN(parser->root, source_files[i]);
         parser_free(parser);
     }
 

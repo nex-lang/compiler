@@ -62,11 +62,6 @@ Generator* gen_init(char* filename) {
         exit(EXIT_FAILURE);
     }
 
-    fprintf(gen->fp, "section .text\n");
-    fprintf(gen->fp, "global _start\n\n");
-
-    fprintf(gen->fp, "%%include \"src/asm/print.asm\"\n\n");
-
     return gen;
 }
 
@@ -242,67 +237,11 @@ void gen_stmt(AST_Node* statement, Generator* gen) {
     }
 
     switch (statement->data.stm.type) {
-        case STMT_RETURN: {
-            ASTN_Expression return_expr = statement->data.stm.data.return_stm.value.expr->data.expr;
-            if (return_expr.data.identifier) {
-                for (size_t i = 0; i < gen->cur_variables.ac_size; i++) {
-                    if (gen->cur_variables.vars[i]->id == return_expr.data.identifier) {
-                        fprintf(gen->fp, "    movzx edi, byte [rsp + %zu]\n", gen->cur_variables.vars[i]->offset);
-                        break;
-                    }
-                }
-                break;
-            }
-
-            fprintf(gen->fp, "    mov edi, %d\n", 0);
-            break;
-        }
-        case STMT_CALL: {
-            if (statement->data.stm.data.call.identifier == -1124075304) {
-                ASTN_Expression expr = statement->data.stm.data.call.params->parameter[0]->data.expr; 
-                if (expr.data.identifier) {
-                    if (gen_for_char_str(gen, expr.data.identifier)) {
-                        fprintf(gen->fp, "    call print\n");
-                        break;
-                    }
-
-                    for (size_t i = 0; i < gen->cur_variables.ac_size; i++) {
-                        if (gen->cur_variables.vars[i]->id == expr.data.identifier) {
-                            gen_print_prep(gen, gen->cur_variables.vars[i]->size, gen->cur_variables.vars[i]->offset);
-                            fprintf(gen->fp, "    mov rcx, 8\n"); 
-                            fprintf(gen->fp, "    call print\n");
-                            break;
-                        }
-                    }
-                } else {
-                    char *string_value = statement->data.stm.data.call.params->parameter[0]->data.expr.data.literal.value.string;
-                    unsigned long label_hash = gen_str_symb(&(gen->str_literals->head), string_value, &(gen->str_literals->counter), false, 0);
-                    fprintf(gen->fp, "    lea rsi, [str_%lu_%d]\n", label_hash, gen->str_literals->counter - 1);
-                    fprintf(gen->fp, "    mov rdx, %zu\n", strlen(string_value) + 2);
-                    fprintf(gen->fp, "    syscall\n");
-                }
-                break;
-            }
-            break;
-        }
-        case STMT_VARIABLE_DECL: {
-            if (statement->data.stm.data.variable_decl.iden.mult.size > 1) {
-                // for (int i = 0; i < statement->data.stm.data.variable_decl.iden.mult.size; i++) {
-                //     var_name = statement->data.stm.data.variable_decl.iden.mult.items[i];
-
-                //     fprintf(gen->fp, "    mov rax, %s\n", "0");
-                //     fprintf(gen->fp, "    push rax\n");
-                //     free(value);
-                // }
-            } else {
-                handle_literal_agn(gen, statement->data.stm.data.variable_decl);
-            }
-            break;
-        }
-        case STMT_ASSGN: {
-            arth_lit_expr(statement, gen->cur_variables, gen->fp);
-            break;
-        }
+        case STMT_RETURN:
+            fprintf(gen->fp, "\tret\n");
+        case STMT_CALL:
+        case STMT_VARIABLE_DECL:
+        case STMT_ASSGN:
         default:
             break;
     }
@@ -316,34 +255,13 @@ void generate_program(AST_Node* node, Generator* gen) {
 
     switch (node->type) {
         case MEP:
-            fprintf(gen->fp, "_start:\n");
-
-            size_t total_mem = 0;
-            for (size_t i = 0; i < node->data.mep.statements->size; i++) {
-                if (node->data.mep.statements->statement[i]->data.stm.type == STMT_VARIABLE_DECL) {
-                    total_mem += node->data.mep.statements->statement[i]->data.stm.data.variable_decl.mem;
-                }
-            }
-
-            if (total_mem > 0) {
-                fprintf(gen->fp, "    sub rsp, %zu\n", total_mem);
-            }
-
-            gen->cur_variables.size = total_mem;
+            fprintf(gen->fp, "define i32 @_start() {\n");
 
             for (size_t i = 0; i < node->data.mep.statements->size; i++) {
                 gen_stmt(node->data.mep.statements->statement[i], gen);
             }
 
-            if (total_mem > 0) {
-                fprintf(gen->fp, "    add rsp, %zu\n", total_mem);
-            }
-
-
-            fprintf(gen->fp, "    mov rax, 60\n");
-            fprintf(gen->fp, "    syscall\n\n");
-
-
+            fprintf(gen->fp, "}\n\n");
             break;
         default:
             break;
@@ -356,13 +274,16 @@ void generate_program(AST_Node* node, Generator* gen) {
 
 
 void generate_data(Generator* gen) {
-    fprintf(gen->fp, "\nsection .data\n");
     gen_string_lits(gen->fp, gen->str_literals->head);
     gen_char_lits(gen->fp, gen->char_literals->head);
 }
 
-void GEN(AST_Node *root) {
-    Generator* gen = gen_init("prog.asm");
+void GEN(AST_Node *root, char* name) {
+    char filename[256];
+    snprintf(filename, sizeof(filename), "%s.inr", name);
+
+
+    Generator* gen = gen_init(filename);
 
     generate_program(root, gen);
     generate_data(gen);

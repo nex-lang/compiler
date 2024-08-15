@@ -666,11 +666,6 @@ Token* lexer_process_single_quote(Lexer* lexer) {
 
     char next_char = (lexer_peek(lexer, 1))[0];
 
-    if (next_char == '\\') {
-        lexer_advance(lexer, 1); // consume '\'
-        lexer_process_escape_code(lexer, &value);
-    }
-
     if (lexer->c == '\'') {
         lexer_advance(lexer, 1); // consume '
         return lexer_token_init(lexer, value, TOK_L_CHAR);
@@ -694,6 +689,7 @@ Token* lexer_process_double_quote(Lexer* lexer) {
         if (lexer->c == '\\') {
             lexer_advance(lexer, 1); // consume '\'
             lexer_process_escape_code(lexer, &value);
+            printf("%s\n", value);
         } else {
             size_t len = strlen(value);
             value = realloc(value, (len + 2) * sizeof(char));
@@ -724,34 +720,65 @@ Token* lexer_process_double_quote(Lexer* lexer) {
 
 void lexer_process_escape_code(Lexer* lexer, char** buf) {
     char next_char = (lexer_peek(lexer, 1))[0];
-    char esc_chars[12] = "\n\r\t\b\a\f\\\'\"\0";
+    char esc_chars[] = "\n\r\t\b\a\f\\\'\"";
 
     if (next_char == 'x' || next_char == 'u') {
-        int len = (next_char == 'x') ? 5 : 7; 
-        char digits[5];
-        char* peeked_digits = lexer_peek(lexer, len - 1);
+        int len = (next_char == 'x') ? 3 : 5; 
+        lexer_advance(lexer, 1);
+        char digits[5] = {0}; 
 
-        if (peeked_digits && isxdigit(peeked_digits[0]) && isxdigit(peeked_digits[1])) {
-            strncpy(digits, peeked_digits, len - 1);
-            digits[len - 1] = '\0';
-            strncat(*buf, digits, len - 1);
-            lexer_advance(lexer, len);
+        char* peeked_digits = lexer_peek(lexer, len);
+        bool condition;
+
+        printf("-> %i\n", peeked_digits[1]);
+
+        if (len == 3) {
+            condition = isxdigit(peeked_digits[0]) && isxdigit(peeked_digits[1]);
         } else {
-            strncat(*buf, &lexer->c, 1);
-            lexer_advance(lexer, 2);
+            condition = isxdigit(peeked_digits[0]) && isxdigit(peeked_digits[1])
+                        && isxdigit(peeked_digits[2]) && isxdigit(peeked_digits[3]);
         }
 
-        free(peeked_digits);
+        if (condition) {
+            strncpy(digits, peeked_digits, len);
+            lexer_advance(lexer, len);
+
+            long int hex_value = strtol(digits, NULL, 16);
+
+            size_t buf_len = strlen(*buf);
+            *buf = realloc(*buf, buf_len + 2);
+            (*buf)[buf_len] = (char)hex_value;
+            (*buf)[buf_len + 1] = '\0';
+        } else {
+            if (len == 3) {
+                REPORT_ERROR(lexer, "E_VESC2", peeked_digits[0], peeked_digits[1]);   
+            } else {
+                REPORT_ERROR(lexer, "E_VESC4", peeked_digits[0], peeked_digits[1], peeked_digits[2], peeked_digits[3]);                
+            }
+            // size_t buf_len = strlen(*buf);
+            // *buf = realloc(*buf, buf_len + 3);
+            // (*buf)[buf_len] = '\\';
+            // (*buf)[buf_len + 1] = next_char;
+            // (*buf)[buf_len + 2] = '\0';
+            // lexer_advance(lexer, len + 1);
+            while (lexer->c != '"') { lexer_advance(lexer, 1); }
+        }
+
     } else if (strchr(esc_chars, next_char)) {
-        *buf = realloc(*buf, (strlen(*buf) + 2) * sizeof(char));
-        if (!*buf) exit(EXIT_FAILURE);
-        strcat(*buf, (char[]){'\\', next_char, '\0'});
+        size_t buf_len = strlen(*buf);
+        *buf = realloc(*buf, buf_len + 2);
+        (*buf)[buf_len] = next_char;
+        (*buf)[buf_len + 1] = '\0';
         lexer_advance(lexer, 2);
     } else {
-        strncat(*buf, &lexer->c, 1);
-        lexer_advance(lexer, 2);
+        size_t buf_len = strlen(*buf);
+        *buf = realloc(*buf, buf_len + 2);
+        (*buf)[buf_len] = lexer->c;
+        (*buf)[buf_len + 1] = '\0';
+        lexer_advance(lexer, 1);
     }
 }
+
 
 struct ErrorTemplate templates[] = {
     {"U_NO_OF_DECIMAL", "Unexpected number of digits after decimal point - configuration expects: %d found: %d"},
@@ -766,7 +793,9 @@ struct ErrorTemplate templates[] = {
     {"E_DTS_FN_PARAM", "Expected a valid data type specifier while specifying parameters for a function, '%s' needs a type"},
     {"E_MEP_MATCH_LBRACK", "Expected a '}' to match brackets for MEP, found '%s'"},
     {"E_PROP_EXP", "Expected a propper expression, got '%s'"},
-    {"E_EQ_VAR_EXPR", "%zu variables cant be assigned with %zu expressions - to set all %zu variables to a singular value, use one expression (e.g. a, b = 1)"}
+    {"E_EQ_VAR_EXPR", "%zu variables cant be assigned with %zu expressions - to set all %zu variables to a singular value, use one expression (e.g. a, b = 1)"},
+    {"E_VESC2", "Expected valid hex charachters after \\x expected 2 hexadecimal digits (0-F) got %d%d"},
+    {"E_VESC4", "Expected valid hex charachters after \\u expected 4 hexadecimal (0-F) got %d%d%d%d"}
 };
 
 char* lexer_get_reference(Lexer* lexer) {

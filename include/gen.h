@@ -30,6 +30,6 @@ void gen_stmt(AST_Node* statement, Generator* gen);
 void generate_program(AST_Node* node, Generator* gen);
 void generate_data(Generator* gen);
 
-void GEN(AST_Node *root);
+void GEN(AST_Node *root, char* name);
 
 #endif // GEN_H
