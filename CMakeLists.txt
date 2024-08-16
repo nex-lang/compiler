@@ -25,6 +25,7 @@ set(LIB_SOURCES
     src/gen/mem.c
     src/gen/stack.c
     src/gen/struct.c
+    src/gen/utils.c
 )
 
 set(EXE_SOURCES
@@ -54,6 +55,7 @@ set(HEADERS
     include/gen/mem.h
     include/gen/stack.h
     include/gen/struct.h
+    include/gen/utils.h
 )
 
 include_directories(include)
