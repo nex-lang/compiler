@@ -112,7 +112,7 @@ int main(int argc, char* argv[]) {
         }
 
         GEN(parser->root, source_files[i]);
-        EXEC("mlinr/build/mlinr x86 %s.inr", source_files[i]);
+        EXEC("mlinr x86 %s.inr", source_files[i]);
         
         parser_free(parser);
     }
