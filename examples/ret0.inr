@@ -1,4 +1,0 @@
-define i32 @_start() {
-	ret u8, 0
-}
-

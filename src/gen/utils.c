@@ -55,7 +55,7 @@ char* glval(AST_Node* expr) {
             return str;
             break;
         case TOK_L_DOUBLE:
-            sprintf(str, "%d", expr->data.expr.data.literal.value.float_.bit64);
+            sprintf(str, "%lf", expr->data.expr.data.literal.value.float_.bit64);
             return str;
             break;
         case TOK_L_CHAR:
@@ -81,9 +81,30 @@ char* glval(AST_Node* expr) {
 }
 
 int16_t gltype(AST_Node* expr) {
-    if ((uint8_t)expr->type != (uint8_t)EXPR_LITERAL) {
+    if (expr->type != EXPR) {
         return -1;
     }
 
+    if (expr->data.expr.type != EXPR_LITERAL) {
+        return -1;
+    } 
+
     return expr->data.expr.data.literal.type;
+}
+
+
+char* get_id(ASTN_Litlist iden) {
+    if (iden.mult.size != 0) {
+        return NULL;
+    }
+
+    char* res = malloc(sizeof(char) * 10);
+    sprintf(res, "x%x", iden.sg);
+
+    return res;
+}
+
+
+char** get_ids(ASTN_Litlist iden) {
+
 }

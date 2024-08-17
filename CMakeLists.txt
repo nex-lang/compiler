@@ -14,7 +14,6 @@ set(LIB_SOURCES
     src/parser.c
     src/sao.c
     src/imc.c
-    src/gen.c
     src/gen/arth.c
     src/gen/class.c
     src/gen/control.c
@@ -26,6 +25,8 @@ set(LIB_SOURCES
     src/gen/stack.c
     src/gen/struct.c
     src/gen/utils.c
+    src/gen/var.c
+    src/gen.c
 )
 
 set(EXE_SOURCES
@@ -44,7 +45,6 @@ set(HEADERS
     include/parser.h
     include/sao.h
     include/imc.h
-    include/gen.h
     include/gen/arth.h
     include/gen/class.h
     include/gen/control.h
@@ -56,6 +56,8 @@ set(HEADERS
     include/gen/stack.h
     include/gen/struct.h
     include/gen/utils.h
+    include/gen/var.h
+    include/gen.h
 )
 
 include_directories(include)

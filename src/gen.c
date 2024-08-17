@@ -1,7 +1,7 @@
 #include "gen.h"
-#include "token.h"
 
-#include "gen/utils.h"
+#include "ast.h"
+#include "token.h"
 
 Generator* gen_init(char* filename) {
     Generator* gen = malloc(sizeof(Generator));
@@ -46,10 +46,13 @@ void gen_stmt(AST_Node* statement, Generator* gen) {
                 WO(gen->fp, 1, "ret\n"); 
             }
 
-            WO(gen->fp, 1, "ret %s, %s\n", shortkw((uint8_t)lit_t), str);
+            WO(gen->fp, 1, "ret %s %s\n", shortkw((uint8_t)lit_t), str);
             break; 
         case STMT_CALL:
+            break;
         case STMT_VARIABLE_DECL:
+            gen_var_decl(statement->data.stm.data.variable_decl, gen->fp);
+            break;
         case STMT_ASSGN:
             break;
         default:
@@ -65,13 +68,13 @@ void generate_program(AST_Node* node, Generator* gen) {
 
     switch (node->type) {
         case MEP:
-            fprintf(gen->fp, "define i32 @_start() {\n");
+            WO(gen->fp, 0, "define i32 @_start() {\n");
 
             for (size_t i = 0; i < node->data.mep.statements->size; i++) {
                 gen_stmt(node->data.mep.statements->statement[i], gen);
             }
 
-            fprintf(gen->fp, "}\n\n");
+            WO(gen->fp, 0, "}");
             break;
         default:
             break;

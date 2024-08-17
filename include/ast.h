@@ -10,6 +10,8 @@
 
 typedef struct AST_Node AST_Node;
 
+typedef union ASTN_Litlist ASTN_Litlist; 
+
 typedef struct ASTN_Literal ASTN_Literal;
 typedef struct ASTN_DataTypeSpecifier ASTN_DataTypeSpecifier;
 typedef struct ASTN_Statement ASTN_Statement;
@@ -45,6 +47,16 @@ typedef struct ASTN_ThrowStm ASTN_ThrowStm;
 
 typedef struct ASTN_Statements ASTN_Statements;
 typedef struct ASTN_MEP ASTN_MEP;
+
+
+typedef union ASTN_Litlist {
+    int sg;
+    struct {
+        AST_Node** expr;
+        int* items;
+        size_t size; 
+    } mult;
+} ASTN_Litlist;
 
 typedef struct ASTN_Literal {
     int type;
@@ -321,14 +333,7 @@ typedef struct ASTN_VariableDecl {
     ASTN_MutableTypes compatibles;
     ASTN_DataTypeSpecifier data_type_specifier;
     
-    union {
-        int sg;
-        struct {
-            AST_Node** expr;
-            int* items;
-            size_t size;
-        } mult;
-    } iden;
+    ASTN_Litlist iden;
     size_t mem;
 
     AST_Node* expr;

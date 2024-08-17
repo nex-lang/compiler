@@ -2,9 +2,14 @@
 #define GEN_H
 
 #include "sao.h"
+#include "parser.h"
+#include "ast.h"
+#include "token.h"
 #include "io.h"
 
 #include "gen/stack.h"
+#include "gen/var.h"
+#include "gen/utils.h"
 #include "gen/arth.h"
 
 #include <string.h>

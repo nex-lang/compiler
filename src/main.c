@@ -100,8 +100,20 @@ int main(int argc, char* argv[]) {
         parser_parse(parser);
 
         SAO(parser->root);
+        char *extension = strstr(source_files[i], ".nex");
+    
+        if (extension != NULL && strcmp(extension, ".nex") == 0) {
+            *extension = '\0';
+        }
+
+        extension = strstr(source_files[i], ".nx");
+        if (extension != NULL && strcmp(extension, ".nx") == 0) {
+            *extension = '\0';
+        }
+
         GEN(parser->root, source_files[i]);
-        EXEC("mlinr/build/mlinr x86 ../../%s.inr", source_files[i]);
+        EXEC("mlinr/build/mlinr x86 %s.inr", source_files[i]);
+        
         parser_free(parser);
     }
 

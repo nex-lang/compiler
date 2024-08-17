@@ -1,8 +1,11 @@
 build/
 dev/
 .vscode/
+.tmp/
 deps/criterion-v2.3.3/
 
 prog.asm
 prog.o
 prog
+
+*.inr

@@ -32,10 +32,7 @@ Parser* parser_init(char* filename, ...) {
             case NEX_OPTIMIZATION:
                 parser->optimization = va_arg(args, int);
                 break;
-            default:
-                va_end(args);
-                free(parser);
-                return NULL;
+            default: break;
         }
     }
 
@@ -364,7 +361,6 @@ ASTN_DataTypeSpecifier parser_parse_dt_spec(Parser* parser) {
 
 
     if (parser_expect(parser, TOK_LBRACK)) {
-        printf("%d\n", parser->cur->type);
         if (!(parser->cur->type ==  TOK_L_SSUINT ||
             parser->cur->type ==  TOK_L_SUINT ||
             parser->cur->type ==  TOK_L_UINT)) {
@@ -373,8 +369,9 @@ ASTN_DataTypeSpecifier parser_parse_dt_spec(Parser* parser) {
             return dts;
         }
 
-        parser_consume(parser);
         dts.arr = (size_t)strtoul(parser->cur->value, &endptr, 10);
+        parser_consume(parser);
+
 
         if (parser_expect(parser, TOK_RBRACK)) {
             dts.is_arr = true;
