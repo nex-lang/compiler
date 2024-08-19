@@ -1,5 +1,5 @@
 : fn main => () {
     var s_short int: x;
-    x = 10;
+    x = 10 + 99;
     return 0;
 }

@@ -11,6 +11,7 @@ char* shortkw(uint8_t kw);
 
 char* glval(AST_Node* expr);
 int16_t gltype(AST_Node* expr);
+char* glepval(ASTN_Expression* expr);
 
 char* get_fid(int iden);
 char* get_fidtyvar(int iden, SymTable* tbl);

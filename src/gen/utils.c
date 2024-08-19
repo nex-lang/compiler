@@ -27,7 +27,7 @@ char* shortkw(uint8_t kw) {
 }
 
 char* glval(AST_Node* expr) {
-    if ((uint8_t)expr->type != (uint8_t)EXPR_LITERAL) {
+    if ((uint8_t)expr->data.expr.type != (uint8_t)EXPR_LITERAL) {
         return NULL;
     }
 
@@ -92,6 +92,62 @@ int16_t gltype(AST_Node* expr) {
     } 
 
     return expr->data.expr.data.literal.type;
+}
+
+char* glepval(ASTN_Expression* expr) {
+    if ((uint8_t)expr->type != (uint8_t)EXPR_LITERAL) {
+        return NULL;
+    }
+
+    char* str = (char*)malloc(255 * sizeof(char)); 
+
+    switch (expr->data.literal.type) {
+        case TOK_L_SSINT:
+        case TOK_L_SINT:
+        case TOK_L_INT:
+        case TOK_L_LINT:
+            sprintf(str, "%ld", expr->data.literal.value.int_.norm);
+            return str;
+            break;
+        case TOK_L_LLINT:
+            break;
+        case TOK_L_SSUINT:
+        case TOK_L_SUINT:
+        case TOK_L_UINT:
+        case TOK_L_LUINT:
+            sprintf(str, "%lu", expr->data.literal.value.uint.norm);
+            return str;
+            break;
+        case TOK_L_LLUINT:
+            break;
+        case TOK_L_FLOAT:
+            sprintf(str, "%f", expr->data.literal.value.float_.bit32);
+            return str;
+            break;
+        case TOK_L_DOUBLE:
+            sprintf(str, "%lf", expr->data.literal.value.float_.bit64);
+            return str;
+            break;
+        case TOK_L_CHAR:
+            sprintf(str, "%i", expr->data.literal.value.character);
+            return str;
+            break;
+        case TOK_L_STRING:
+            break;
+        case TOK_TRUE:
+            return "1";
+            break;
+        case TOK_FALSE:
+            return "0";
+            break;
+        case TOK_L_SIZE:
+            sprintf(str, "%zu", expr->data.literal.value.size);
+            return str;
+            break;
+        default: break;
+    }
+
+    return NULL;
 }
 
 char* get_fid(int iden) {

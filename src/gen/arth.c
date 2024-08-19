@@ -4,10 +4,149 @@
 #include <string.h>
 
 #include "token.h"
+#include "gen.h"
 
-void gen_binop() {
-    
+char* gen_binop(AST_Node* expr, FILE* fp, char* res) {
+    char* str = malloc(sizeof(char) * 256);
+    if (!str) {
+        return NULL;  // Handle memory allocation failure
+    }
+    ASTN_Expression ex = expr->data.expr;
+    char* le;
+    char* re;
+
+    switch (ex.type) {
+        case EXPR_FUNCTION_CALL:
+            break;
+
+        case EXPR_IDENTIFIER:
+            break;
+
+        case EXPR_LITERAL:
+            break;
+
+        case EXPR_FACTOR:
+            break;
+
+        case EXPR_TERM:
+            break;
+
+        case EXPR_MULTIPLICATION:
+            le = glepval(ex.data.multiplication.data.binary_op.left);
+            re = glepval(ex.data.multiplication.data.binary_op.right);
+
+            if (le == NULL || re == NULL) {
+                free(str);
+                return NULL;
+            }
+
+            if (ex.data.multiplication.data.binary_op.op == TOK_ASTK) {
+                sprintf(str, "mul %s %s, %s", res, le, re);
+            } else if (ex.data.multiplication.data.binary_op.op == TOK_SLASH) {
+                sprintf(str, "sdiv %s %s, %s", res, le, re);
+            }
+            break;
+
+        case EXPR_ADDITION:
+            le = glepval(ex.data.addition.data.binary_op.left);
+            re = glepval(ex.data.addition.data.binary_op.right);
+
+            if (le == NULL || re == NULL) {
+                free(str);
+                return NULL;
+            }
+
+            if (ex.data.addition.data.binary_op.op == TOK_ADD) {
+                sprintf(str, "add %s %s, %s", res, le, re);
+            } else if (ex.data.addition.data.binary_op.op == TOK_MINUS) {
+                sprintf(str, "sub %s %s, %s", res, le, re);
+            }
+            break;
+
+        case EXPR_BITWISE:
+            le = glepval(ex.data.bitwise.data.binary_op.left);
+            re = glepval(ex.data.bitwise.data.binary_op.right);
+
+            if (le == NULL || re == NULL) {
+                free(str);
+                return NULL;
+            }
+
+            switch (ex.data.bitwise.data.binary_op.op) {
+                case TOK_AMPER:
+                    sprintf(str, "and %s %s, %s", res, le, re);
+                    break;
+                case TOK_PIPE:
+                    sprintf(str, "or %s %s, %s", res, le, re);
+                    break;
+                case TOK_CARET:
+                    sprintf(str, "xor %s %s, %s", res, le, re);
+                    break;
+                case TOK_LT_LT:
+                    sprintf(str, "shl %s %s, %s", res, le, re);
+                    break;
+                case TOK_GT_GT:
+                    sprintf(str, "shr %s %s, %s", res, le, re);
+                    break;
+                default:
+                    free(str);
+                    return NULL;
+            }
+            break;
+
+        case EXPR_COMPARISON:
+            le = glepval(ex.data.comparison.data.binary_op.left);
+            re = glepval(ex.data.comparison.data.binary_op.right);
+
+            if (le == NULL || re == NULL) {
+                free(str);
+                return NULL;
+            }
+
+            switch (ex.data.comparison.data.binary_op.op) {
+                case TOK_EQ:
+                    sprintf(str, "icmp eq %s, %s", le, re);
+                    break;
+                case TOK_BANG_EQ:
+                    sprintf(str, "icmp ne %s, %s", le, re);
+                    break;
+                case TOK_GT:
+                    sprintf(str, "icmp sgt %s, %s", le, re);
+                    break;
+                case TOK_GT_EQ:
+                    sprintf(str, "icmp sge %s, %s", le, re);
+                    break;
+                case TOK_LT:
+                    sprintf(str, "icmp slt %s, %s", le, re);
+                    break;
+                case TOK_LT_EQ:
+                    sprintf(str, "icmp sle %s, %s", le, re);
+                    break;
+                default:
+                    free(str);
+                    return NULL;
+            }
+            break;
+
+        case EXPR_NEST:
+            // Handle nested expression
+            break;
+
+        case EXPR_ERR:
+            // Handle erroneous expression
+            free(str);
+            return NULL;
+
+        default:
+            // Handle unrecognized expression type
+            free(str);
+            return NULL;
+    }
+
+    return str;
 }
+
+
 
 // GenArthData get_arth_regsize(size_t sz) {
 //     GenArthData result;

@@ -63,6 +63,7 @@ typedef struct Token {
         TOK_MINUS_MINUS,        // --
         TOK_COLON_COLON,        // ::
         TOK_ATHER,              // @
+        TOK_CARET,              // ^
 
         // Keywords
         TOK_AS,                 // as

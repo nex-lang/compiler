@@ -1,5 +1,6 @@
 #include "gen/var.h"
 #include "gen/utils.h"
+#include "gen/arth.h"
 
 #include "io.h"
 
@@ -55,5 +56,15 @@ void gen_assgn(ASTN_AssignmentStm assgn, FILE* fp, SymTable* tbl) {
         }
 
         WO(fp, 1, "store %s %s, %s %%%s\n", shortkw(type), asgn_val, ty, id);
+        return;
     }   
+
+    char* id = get_fid(assgn.sg.id);
+    if (id == NULL) {
+        return;
+    }
+
+    char* ty = get_fidtyvar(assgn.sg.id, tbl);
+
+    WO(fp, 1, "%%%s = %s\n", id, gen_binop(assgn.sg.expr, fp, ty)); 
 }

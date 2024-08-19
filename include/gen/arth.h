@@ -15,6 +15,6 @@
 // } GenArthData;
 
 
-void gen_binop();
+char* gen_binop(AST_Node* expr, FILE* fp, char* res);
 
 #endif // GEN_ARTH_H
