@@ -54,6 +54,7 @@ void gen_stmt(AST_Node* statement, Generator* gen) {
             gen_var_decl(statement->data.stm.data.variable_decl, gen->fp);
             break;
         case STMT_ASSGN:
+            gen_assgn(statement->data.stm.data.assgn, gen->fp, gen->tbl);
             break;
         default:
             break;
@@ -84,12 +85,13 @@ void generate_program(AST_Node* node, Generator* gen) {
     generate_program(node->right, gen);
 }
 
-void GEN(AST_Node *root, char* name) {
+void GEN(AST_Node *root, char* name, SymTable* tbl) {
     char filename[256];
     snprintf(filename, sizeof(filename), "%s.inr", name);
 
 
     Generator* gen = gen_init(filename);
+    gen->tbl = tbl;
 
     generate_program(root, gen);
     // generate_data(gen);

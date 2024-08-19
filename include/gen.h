@@ -16,6 +16,7 @@
 
 typedef struct Generator {
     FILE* fp;
+    SymTable* tbl;
 } Generator;
 
 
@@ -26,6 +27,6 @@ void gen_free(Generator* gen);
 void gen_stmt(AST_Node* statement, Generator* gen);
 void generate_program(AST_Node* node, Generator* gen);
 
-void GEN(AST_Node *root, char* name);
+void GEN(AST_Node *root, char* name, SymTable* tbl);
 
 #endif // GEN_H

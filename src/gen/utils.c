@@ -1,6 +1,8 @@
 #include "gen/utils.h"
 
-#include "stdio.h"
+#include <stdio.h>
+
+#include "symtbl.h"
 
 char* shortkw(uint8_t kw) {
 
@@ -90,6 +92,22 @@ int16_t gltype(AST_Node* expr) {
     } 
 
     return expr->data.expr.data.literal.type;
+}
+
+char* get_fid(int iden) {
+    char* res = malloc(sizeof(char) * 10);
+    sprintf(res, "x%x", iden);
+
+    return res;
+}
+
+char* get_fidtyvar(int iden, SymTable* tbl) {
+    Symbol* sym = symtbl_slookup(tbl, iden);
+    if (sym == NULL) {
+        return NULL;
+    }
+
+    return shortkw(sym->data.data.var.data_type_specifier.data.prim);
 }
 
 

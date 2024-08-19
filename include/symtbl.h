@@ -26,7 +26,15 @@ typedef struct Symbol {
             SYMBOL_ERR
         } type;
         
-        AST_Node* data;
+        union {
+            ASTN_VariableDecl var;
+            ASTN_FunctionDecl fn;
+            ASTN_ClassDecl clas;
+            ASTN_StructDecl stru;
+            ASTN_EnumDecl enu;
+            ASTN_ErrDecl err;
+            ASTN_AttributeDecl attr;
+        } data;
 
         struct {
             struct Symbol** borrower_list;
@@ -49,6 +57,7 @@ Symbol* symbol_init(char* id, unsigned int type, unsigned int scope, unsigned in
     uint8_t mem_mod, uint8_t mem_sto, uint8_t  access_type, uint8_t decl_line, uint8_t decl_col, size_t ty_size);
 
 Symbol* symtbl_lookup(SymTable* table, char* id, uint64_t scope, uint8_t scope_offset, uint64_t recent_root);
+Symbol* symtbl_slookup(SymTable* table, int id);
 
 int32_t symtbl_hash(const char* key, unsigned int scope);
 void symtbl_borrowsym(SymTable* table, Symbol* symbol, Symbol* borrower);

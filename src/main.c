@@ -111,7 +111,7 @@ int main(int argc, char* argv[]) {
             *extension = '\0';
         }
 
-        GEN(parser->root, source_files[i]);
+        GEN(parser->root, source_files[i], parser->tbl);
         EXEC("mlinr x86 %s.inr", source_files[i]);
         
         parser_free(parser);

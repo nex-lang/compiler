@@ -52,6 +52,7 @@ Symbol* symbol_init(char* id, unsigned int type, unsigned int scope, unsigned in
 
     symb->next = NULL;
 
+
     return symb;
 }
 
@@ -82,6 +83,19 @@ Symbol* symtbl_lookup(SymTable* table, char* id, uint64_t scope, uint8_t scope_o
     hash_id = symtbl_hash((const char*)id, recent_root);
     while (current != NULL) {
         if (current->data.id == hash_id) {
+            return current;
+        }
+        current = current->next;
+    }
+
+    return NULL;
+}
+
+Symbol* symtbl_slookup(SymTable* table, int id) {
+    Symbol* current = table->symbol;
+
+    while (current != NULL) {
+        if (current->data.id == id) {
             return current;
         }
         current = current->next;

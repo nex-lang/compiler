@@ -1502,7 +1502,7 @@ AST_Node* parser_parse_attr_decl(Parser* parser) {
     node->data.stm.data.attribute_decl = attr;
 
 
-    symb->data.data = node;
+    symb->data.data.attr = attr;
     symtbl_insert(parser, symb, name);
 
     return node;
@@ -1566,6 +1566,7 @@ ASTN_VariableDecl parser_parse_var_decl(Parser* parser, uint8_t scopeOS) {
         identifiers = realloc(identifiers, (size + 1) * sizeof(int));
 
         Symbol* symb = symbol_init((char*)parser->cur->value, SYMBOL_VARIABLE, parser->scope, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc, 0);
+        symb->data.data.var = var;
         symtbl_insert(parser, symb, parser->cur->value);
 
         parser_consume(parser);
@@ -1860,7 +1861,7 @@ AST_Node* parser_parse_function_decl(Parser* parser) {
         node->data.stm.data.function_decl.statements = NULL;
         
         node->data.stm.data.function_decl.identifier = symb->data.id;
-        symb->data.data = node;
+        symb->data.data.fn = node->data.stm.data.function_decl;
 
         symtbl_insert(parser, symb, name);
         
@@ -1881,7 +1882,8 @@ AST_Node* parser_parse_function_decl(Parser* parser) {
     }
 
     node->data.stm.data.function_decl.identifier = symb->data.id;
-    symb->data.data = node;
+    symb->data.data.fn = node->data.stm.data.function_decl;
+
     
     symtbl_insert(parser, symb, name);
 
@@ -1959,7 +1961,7 @@ AST_Node* parser_parse_struct_decl(Parser* parser) {
 
     if (parser_expect(parser, TOK_SC)) {
         node->data.stm.data.struct_decl = stm;
-        symb->data.data = node;
+        symb->data.data.stru = stm;
         symtbl_insert(parser, symb, name);
 
         return node;
@@ -1989,7 +1991,7 @@ AST_Node* parser_parse_struct_decl(Parser* parser) {
     parser_consume(parser);
 
     node->data.stm.data.struct_decl = stm;
-    symb->data.data = node;
+    symb->data.data.stru = stm;
     symb->data.ty_size = sz;
 
 
@@ -2057,17 +2059,17 @@ bool parser_parse_extend_attr(Parser* parser, ASTN_AttributeList* list) {
 
 
         if (is_class) {
-            for (size_t i = 0; i < symb->data.data->data.stm.data.class_decl.attributes->size; i++) {
+            for (size_t i = 0; i < symb->data.data.clas.attributes->size; i++) {
                 list->items = realloc(list->items, (list->size + 1) * sizeof(AST_Node*));
-                AST_Node* itm = symb->data.data->data.stm.data.class_decl.attributes->items[i];
+                AST_Node* itm = symb->data.data.clas.attributes->items[i];
                 itm->data.stm.data.attribute_unit.re_scope = parser->scope;
                 list->items[list->size] = itm;
                 list->size++;
             }
         } else if (symb->data.type == SYMBOL_ATTR) {
-            for (size_t i = 0; i < symb->data.data->data.stm.data.attribute_decl.list->size; i++) {
+            for (size_t i = 0; i < symb->data.data.attr.list->size; i++) {
                 list->items = realloc(list->items, (list->size + 1) * sizeof(AST_Node*));
-                AST_Node* itm = symb->data.data->data.stm.data.attribute_decl.list->items[i];
+                AST_Node* itm = symb->data.data.attr.list->items[i];
                 itm->data.stm.data.attribute_unit.re_scope = parser->scope;
                 list->items[list->size] = itm;
                 list->size++;
@@ -2130,7 +2132,7 @@ AST_Node* parser_parse_class_decl(Parser* parser) {
 
     if (parser->cur->type == TOK_SC) {
         node->data.stm.data.class_decl = stm;
-        symb->data.data = node;
+        symb->data.data.clas = stm;
 
         symtbl_insert(parser, symb, iden);
         parser_consume(parser);
@@ -2250,7 +2252,7 @@ AST_Node* parser_parse_class_decl(Parser* parser) {
 
     stm.attributes = list;
     node->data.stm.data.class_decl = stm;
-    symb->data.data = node;
+    symb->data.data.clas = stm;
     symb->data.ty_size = sz;
     
 
@@ -2280,7 +2282,7 @@ AST_Node* parser_parse_err_decl(Parser* parser) {
 
     if (parser_expect(parser, TOK_SC)) {
         node->data.stm.data.err_decl = stm;
-        symb->data.data = node;
+        symb->data.data.err = stm;
         symtbl_insert(parser, symb, name);
 
         return node;
@@ -2330,7 +2332,7 @@ AST_Node* parser_parse_err_decl(Parser* parser) {
 
     parser_consume(parser);
     node->data.stm.data.err_decl = stm;
-    symb->data.data = node;
+    symb->data.data.err = stm;
     
     symtbl_insert(parser, symb, name);
 
@@ -2387,7 +2389,7 @@ AST_Node* parser_parse_enum_decl(Parser* parser) {
     printf("stm.members.size: %zu\n", stm.members.size);
 
     node->data.stm.data.enum_decl = stm;
-    symb->data.data = node;
+    symb->data.data.enu = stm;
     symb->data.ty_size = stm.members.size * 4;
 
     symtbl_insert(parser, symb, name);
@@ -3098,11 +3100,12 @@ void symtbl_insert(Parser* parser, Symbol* symbol, char* raw_symb) {
         checks = checks->next;
     }
 
-
     if (parser->tbl->symbol == NULL) {
         parser->tbl->symbol = symbol;
         return;
     }
+
+
 
     Symbol* current = parser->tbl->symbol;
 

@@ -38,3 +38,22 @@ void gen_var_decl(ASTN_VariableDecl decl, FILE* fp) {
     }
 
 }
+
+void gen_assgn(ASTN_AssignmentStm assgn, FILE* fp, SymTable* tbl) {
+    if (assgn.mult.size > 1) {
+        return;
+    }
+
+    char* asgn_val = glval(assgn.sg.expr);
+    int16_t type = gltype(assgn.sg.expr);
+    if (asgn_val != NULL && type != -1) {
+        char* id = get_fid(assgn.sg.id);
+        char* ty = get_fidtyvar(assgn.sg.id, tbl);
+        
+        if (id == NULL) {
+            return;
+        }
+
+        WO(fp, 1, "store %s %s, %s %%%s\n", shortkw(type), asgn_val, ty, id);
+    }   
+}
