@@ -20,11 +20,11 @@ void trav(AST_Node *node) {
     //         break;
     // }
 
-    if (node->right != NULL) {
-        trav(node->right);
+    if (node->next != NULL) {
+        trav(node->next);
     }
     
-    if (node->left != NULL) {
-        trav(node->left);
-    }
+    // if (node->left != NULL) {
+        // trav(node->left);
+    // }
 }

@@ -565,9 +565,7 @@ struct AST_Node {
         ASTN_Expression expr;
     } data;
 
-    AST_Node* parent;
-    AST_Node* right;
-    AST_Node* left;
+    AST_Node* next;
 };
 
 AST_Node* ast_init(int type);

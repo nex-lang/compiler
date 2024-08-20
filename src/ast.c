@@ -13,5 +13,16 @@ AST_Node* ast_init(int type) {
 }
 
 void ast_free(AST_Node* node) {
-    free(node);
+    if (!node) {
+        return;
+    }
+
+    AST_Node* current = node;
+    AST_Node* next;
+
+    while (current != NULL) {
+        next = current->next;
+        free(current);
+        current = next;
+    }
 }

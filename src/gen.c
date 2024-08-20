@@ -91,8 +91,9 @@ void generate_program(AST_Node* node, Generator* gen) {
             break;
     }
 
-    generate_program(node->left, gen);
-    generate_program(node->right, gen);
+    if (node->next != NULL) {
+        generate_program(node->next, gen);
+    }
 }
 
 void GEN(AST_Node *root, char* name, SymTable* tbl) {

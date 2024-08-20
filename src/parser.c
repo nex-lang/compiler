@@ -21,6 +21,8 @@ Parser* parser_init(char* filename, char** srcs, LibraryList* lib_list, ...) {
     parser->lib_list = lib_list;
     parser->source_list = srcs;
 
+    printf("%zu\n", sizeof(lib_list));
+
     memset(&parser->warnings, 0, sizeof(Warnings));
 
     va_list args;
@@ -59,7 +61,6 @@ void parser_free(Parser* parser) {
     PRINT_AST_NODE(parser->root, 0);
 
     ast_free(parser->tree);
-    ast_free(parser->root);
 
     Symbol* cur = parser->tbl->symbol;
     PRINT_SYMB_TBL(cur);
@@ -88,7 +89,7 @@ bool parser_expectsq(Parser* parser, ...) {
 
 
 bool parser_expect(Parser* parser, uint8_t expected) {
-    if (parser->cur->type != expected) {
+    if (parser->cur->type != expected) { 
         return false;            
     }
 
@@ -116,11 +117,19 @@ void parser_consume(Parser* parser) {
 }
 
 void parser_parse(Parser* parser) {
+    AST_Node* current = parser->tree;
 
     while (parser->cur->type != TOK_EOF) {
-        AST_Node* n = parser_parse_typestart(parser);
-        if (n != NULL) {
-            parser->tree->right = n;
+        AST_Node* new_node = parser_parse_typestart(parser);
+        
+        if (new_node != NULL) {
+            if (current == NULL) {
+                parser->tree = new_node;
+                current = new_node;
+            } else {
+                current->next = new_node;
+                current = new_node; 
+            }
         } else {
             switch (parser->cur->type) {
                 case TOK_ATHER:
@@ -129,51 +138,53 @@ void parser_parse(Parser* parser) {
                         REPORT_ERROR(parser->lexer, "E_DECLS_AF_ATHER");
                         break;
                     }
-                    parser->tree->right = parser_parse_import(parser);
+                    new_node = parser_parse_import(parser);
                     break;
                 case TOK_COLON:
-                    parser->tree->right = parser_parse_mep_decl(parser);
+                    new_node = parser_parse_mep_decl(parser);
                     break;
                 case TOK_FN:
-                    parser->tree->right = parser_parse_function_decl(parser);
+                    new_node = parser_parse_function_decl(parser);
                     break;
-                case TOK_IDEN:  
-                    parser->tree->right = parser_parse_expr(parser, 0);
+                case TOK_IDEN:
+                    new_node = parser_parse_expr(parser, 0);
                     break;
                 case TOK_ATTR:
-                    parser->tree->right = parser_parse_attr_decl(parser);                
+                    new_node = parser_parse_attr_decl(parser);
                     break;
-                case TOK_CLASS:                
-                    parser->tree->right = parser_parse_class_decl(parser);
+                case TOK_CLASS:
+                    new_node = parser_parse_class_decl(parser);
                     break;
-                case TOK_ERR: 
-                    parser->tree->right = parser_parse_err_decl(parser);
+                case TOK_ERR:
+                    new_node = parser_parse_err_decl(parser);
                     break;
                 case TOK_ENUM:
-                    parser->tree->right = parser_parse_enum_decl(parser);
+                    new_node = parser_parse_enum_decl(parser);
                     break;
                 case TOK_STRUCT:
-                    parser->tree->right = parser_parse_struct_decl(parser);
+                    new_node = parser_parse_struct_decl(parser);
                     break;
                 default:
                     break;
             }
 
+            if (new_node != NULL) {
+                if (current == NULL) {
+                    parser->tree = new_node;
+                    current = new_node;
+                } else {
+                    current->next = new_node;
+                    current = new_node;
+                }
+            }
         }
-        
 
-        if (!(parser->tree && parser->tree->right)) {
+        if (new_node == NULL) {
             break;
         }
-
-        AST_Node* tmp = parser->tree->right; 
-
-        parser->tree = tmp;
     }
-
-
-    return;
 }
+
 
 
 /* int parse_stospec(Parser* parser, bool expect_further) {
