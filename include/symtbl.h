@@ -12,7 +12,6 @@ typedef struct Symbol {
         int32_t id; 
         unsigned int scope, nest;
         size_t ty_size;
-        uint8_t mem_type, mem_mod, mem_sto, access_type;
         
         enum SymbolType {
             SYMBOL_VARIABLE,
@@ -34,6 +33,7 @@ typedef struct Symbol {
             ASTN_EnumDecl enu;
             ASTN_ErrDecl err;
             ASTN_AttributeDecl attr;
+            ASTN_DataTypeSpecifier param;
         } data;
 
         struct {
@@ -53,9 +53,7 @@ typedef struct SymTable {
 
 SymTable* symtbl_init();
 void symtbl_free(SymTable* table);
-Symbol* symbol_init(char* id, unsigned int type, unsigned int scope, unsigned int nest, uint8_t mem_type, 
-    uint8_t mem_mod, uint8_t mem_sto, uint8_t  access_type, uint8_t decl_line, uint8_t decl_col, size_t ty_size);
-
+Symbol* symbol_init(char* id, unsigned int type, unsigned int scope, unsigned int nest, uint8_t decl_line, uint8_t decl_col, size_t ty_size);
 Symbol* symtbl_lookup(SymTable* table, char* id, uint64_t scope, uint8_t scope_offset, uint64_t recent_root);
 Symbol* symtbl_slookup(SymTable* table, int id);
 

@@ -42,7 +42,7 @@ void print_ast_node(AST_Node* node, int indent_level) {
 
                     for (int i = 0; i < node->data.stm.data.function_decl.parameters->size; i++) {
                         print_indent(indent_level + 4);
-                        printf("%i: %s \n", (i + 1), node->data.stm.data.function_decl.parameters->parameter[i]->identifier);
+                        printf("%i: %i \n", (i + 1), node->data.stm.data.function_decl.parameters->parameter[i]->identifier);
                     }
 
                     print_indent(indent_level + 3);
@@ -339,14 +339,13 @@ void print_expr(ASTN_Expression* expr, int indent_level, int dir) {
 }
 
 void print_symb_tbl(Symbol* cur) {
-    printf("---------------------------------------------------------------------------------------------------------------------\n");
-    printf("| %-15s | %-5s | %-4s | %-10s | %-8s | %-9s | %-11s | %-10s | %-5s | %-5s |\n", 
-           "ID", "Scope", "Nest", "Mem Type", "Mem Mod", "Mem Sto", "Access Type", "Type", "Line", "Col");
-    printf("---------------------------------------------------------------------------------------------------------------------\n");
+    printf("--------------------------------------------------------------------\n");
+    printf("| %-15s | %-5s | %-4s | %-10s | %-5s | %-5s |\n", 
+           "ID", "Scope", "Nest", "Type", "Line", "Col");
+    printf("--------------------------------------------------------------------\n");
     while (cur != NULL) {
-        printf("| %-15d | %-5u | %-4u | %-10d | %-8d | %-9d | %-11d | %-10s | %-5d | %-5d |\n", 
-               cur->data.id, cur->data.scope, cur->data.nest, cur->data.mem_type, cur->data.mem_mod, cur->data.mem_sto, 
-               cur->data.access_type, 
+        printf("| %-15d | %-5u | %-4u | %-10s | %-5d | %-5d |\n", 
+               cur->data.id, cur->data.scope, cur->data.nest,
                cur->data.type == SYMBOL_ATTR ? "Attribute" : 
                cur->data.type == SYMBOL_VARIABLE ? "Variable" : 
                cur->data.type == SYMBOL_FUNCTION ? "Function" : 
@@ -360,6 +359,5 @@ void print_symb_tbl(Symbol* cur) {
 
         cur = cur->next;
     }
-
-    printf("---------------------------------------------------------------------------------------------------------------------\n");
+    printf("--------------------------------------------------------------------\n");
 }

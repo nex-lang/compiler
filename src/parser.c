@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdio.h>
 
-Parser* parser_init(char* filename, ...) {
+Parser* parser_init(char* filename, char** srcs, LibraryList* lib_list, ...) {
     Parser* parser = calloc(1, sizeof(Parser));
 
     parser->lexer = lexer_init(filename);
@@ -18,10 +18,13 @@ Parser* parser_init(char* filename, ...) {
     parser->scope = 0;
     parser->nest = 0;
 
+    parser->lib_list = lib_list;
+    parser->source_list = srcs;
+
     memset(&parser->warnings, 0, sizeof(Warnings));
 
     va_list args;
-    va_start(args, filename);
+    va_start(args, lib_list);
 
     Flags option;
     while ((option = va_arg(args, Flags)) != 0) {
@@ -118,43 +121,44 @@ void parser_parse(Parser* parser) {
         AST_Node* n = parser_parse_typestart(parser);
         if (n != NULL) {
             parser->tree->right = n;
-        }
-
-        switch (parser->cur->type) {
-            case TOK_ATHER:
-                parser_consume(parser);
-                if (parser->cur->type != TOK_IMPORT) {
-                    REPORT_ERROR(parser->lexer, "E_DECLS_AF_ATHER");
+        } else {
+            switch (parser->cur->type) {
+                case TOK_ATHER:
+                    parser_consume(parser);
+                    if (parser->cur->type != TOK_IMPORT) {
+                        REPORT_ERROR(parser->lexer, "E_DECLS_AF_ATHER");
+                        break;
+                    }
+                    parser->tree->right = parser_parse_import(parser);
                     break;
-                }
-                parser->tree->right = parser_parse_import(parser);
-                break;
-            case TOK_COLON:
-                parser->tree->right = parser_parse_mep_decl(parser);
-                break;
-            case TOK_FN:
-                parser->tree->right = parser_parse_function_decl(parser);
-                break;
-            case TOK_IDEN:  
-                parser->tree->right = parser_parse_expr(parser, 0);
-                break;
-            case TOK_ATTR:
-                parser->tree->right = parser_parse_attr_decl(parser);                
-                break;
-            case TOK_CLASS:                
-                parser->tree->right = parser_parse_class_decl(parser);
-                break;
-            case TOK_ERR: 
-                parser->tree->right = parser_parse_err_decl(parser);
-                break;
-            case TOK_ENUM:
-                parser->tree->right = parser_parse_enum_decl(parser);
-                break;
-            case TOK_STRUCT:
-                parser->tree->right = parser_parse_struct_decl(parser);
-                break;
-            default:
-                break;
+                case TOK_COLON:
+                    parser->tree->right = parser_parse_mep_decl(parser);
+                    break;
+                case TOK_FN:
+                    parser->tree->right = parser_parse_function_decl(parser);
+                    break;
+                case TOK_IDEN:  
+                    parser->tree->right = parser_parse_expr(parser, 0);
+                    break;
+                case TOK_ATTR:
+                    parser->tree->right = parser_parse_attr_decl(parser);                
+                    break;
+                case TOK_CLASS:                
+                    parser->tree->right = parser_parse_class_decl(parser);
+                    break;
+                case TOK_ERR: 
+                    parser->tree->right = parser_parse_err_decl(parser);
+                    break;
+                case TOK_ENUM:
+                    parser->tree->right = parser_parse_enum_decl(parser);
+                    break;
+                case TOK_STRUCT:
+                    parser->tree->right = parser_parse_struct_decl(parser);
+                    break;
+                default:
+                    break;
+            }
+
         }
         
 
@@ -393,6 +397,13 @@ AST_Node* parser_parse_typestart(Parser* parser) {
     }
 
 
+    if (parser->cur->type == TOK_FN) { 
+        AST_Node* n = parser_parse_function_decl(parser);
+        n->data.stm.data.function_decl.data_type_specifier = dts;
+        return n;
+    }
+
+
     if (parser_expect(parser, TOK_LBRACK)) {
         ASTN_MutableTypes comps;
         ASTN_ReturnTypes rt;
@@ -476,6 +487,7 @@ AST_Node* parser_parse_typestart(Parser* parser) {
         return n;
     }
 
+
     return NULL;
 }
 
@@ -525,11 +537,25 @@ ASTN_Call parser_parse_call(Parser* parser, uint8_t scopeOS) {
 
     Symbol* symb = symtbl_lookup(parser->tbl, parser->cur->value, 0, 0, parser->recent_root);
 
-    if (symb == NULL || (symb->data.type != SYMBOL_FUNCTION && symb->data.type != SYMBOL_MODULE)) {
+    if (symb == NULL) {
         call.identifier = 0;
         return call;
     }
-    
+
+    switch (symb->data.type) {
+        case SYMBOL_FUNCTION:
+            call.type = CALL_FN;
+            break;
+        case SYMBOL_CLASS:
+            call.type = CALL_CLASS;
+            break;
+        case SYMBOL_STRUCT:
+            call.type = CALL_STRUCT;
+            break;
+        default:
+            call.identifier = 0;
+            return call;
+    }
 
     parser_consume(parser);
 
@@ -561,8 +587,6 @@ ASTN_Call parser_parse_call(Parser* parser, uint8_t scopeOS) {
     }
 
     call.params = params;
-    call.type = CALL_FN;
-
 
     parser_expect(parser, TOK_RPAREN);
 
@@ -1203,7 +1227,11 @@ ASTN_Parameter* parser_parse_parameter(Parser* parser) {
         return NULL;
     }   
 
-    param->identifier = parser->cur->value;
+    Symbol* sym = symbol_init((char*)parser->cur->value, SYMBOL_VARIABLE, parser->scope, parser->nest, parser->lexer->cl, parser->lexer->cc, 0);
+    symtbl_insert(parser, sym, parser->cur->value);
+    sym->data.data.param = param->data_type_specifier;
+    param->identifier = sym->data.id;
+
 
     if (!(parser_expect(parser, TOK_IDEN))) {
         REPORT_ERROR(parser->lexer, "E_PARAM_IDEN", parser->cur->value);
@@ -1227,11 +1255,6 @@ ASTN_Parameters* parser_parse_parameters(Parser* parser) {
 
     while (parser->cur->type != TOK_RPAREN) {
         params->parameter[params->size] = parser_parse_parameter(parser);
-
-
-        symtbl_insert(parser, symbol_init(
-            (char*)params->parameter[params->size]->identifier, SYMBOL_VARIABLE, parser->scope, parser->nest, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc, 0
-        ), params->parameter[params->size]->identifier);
 
         if (!(parser_expect(parser, TOK_COMMA)) && (parser->cur->type != TOK_RPAREN)) {
             REPORT_ERROR(parser->lexer, "E_PARAMS_COMMA", parser->cur->value);
@@ -1291,7 +1314,7 @@ ASTN_Module* parser_parse_module(Parser* parser) {
     }
     
     symtbl_insert(parser, symbol_init(
-        current_module->module, SYMBOL_MODULE, 0, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc, 0
+        current_module->module, SYMBOL_MODULE, 0, parser->nest, parser->lexer->cl, parser->lexer->cc, 0
     ), current_module->module);
 
     return current_module;
@@ -1374,7 +1397,7 @@ AST_Node* parser_parse_attr_decl(Parser* parser) {
     }
 
     char* name = parser->cur->value;
-    Symbol* symb = symbol_init((char*)parser->cur->value, SYMBOL_ATTR, 0, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc, 0);
+    Symbol* symb = symbol_init((char*)parser->cur->value, SYMBOL_ATTR, 0, parser->nest, parser->lexer->cl, parser->lexer->cc, 0);
     parser_consume(parser);
 
     PES(parser);
@@ -1565,7 +1588,7 @@ ASTN_VariableDecl parser_parse_var_decl(Parser* parser, uint8_t scopeOS) {
     while (parser->cur->type == TOK_IDEN) {
         identifiers = realloc(identifiers, (size + 1) * sizeof(int));
 
-        Symbol* symb = symbol_init((char*)parser->cur->value, SYMBOL_VARIABLE, parser->scope, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc, 0);
+        Symbol* symb = symbol_init((char*)parser->cur->value, SYMBOL_VARIABLE, parser->scope, parser->nest, parser->lexer->cl, parser->lexer->cc, 0);
         symb->data.data.var = var;
         symtbl_insert(parser, symb, parser->cur->value);
 
@@ -1842,7 +1865,7 @@ AST_Node* parser_parse_function_decl(Parser* parser) {
         return NULL;
     }
 
-    Symbol* symb = symbol_init(name, SYMBOL_FUNCTION, 0, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc, 0);
+    Symbol* symb = symbol_init(name, SYMBOL_FUNCTION, 0, parser->nest, parser->lexer->cl, parser->lexer->cc, 0);
 
     PES(parser);
     parser->recent_root = parser->scope;
@@ -1922,7 +1945,7 @@ ASTN_StructMemberDecl parser_parse_struct_mem(Parser* parser) {
         return stm;
     }
 
-    Symbol* symb = symbol_init(parser->cur->value, SYMBOL_VARIABLE, parser->scope, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc, 0);
+    Symbol* symb = symbol_init(parser->cur->value, SYMBOL_VARIABLE, parser->scope, parser->nest, parser->lexer->cl, parser->lexer->cc, 0);
     symtbl_insert(parser, symb, parser->cur->value);
     parser_consume(parser);
     
@@ -1952,7 +1975,7 @@ AST_Node* parser_parse_struct_decl(Parser* parser) {
     node->data.stm.type = STMT_STRUCT_DECL;
 
     char* name = parser->cur->value;
-    Symbol* symb = symbol_init(name, SYMBOL_STRUCT, 0, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc, 0);
+    Symbol* symb = symbol_init(name, SYMBOL_STRUCT, 0, parser->nest, parser->lexer->cl, parser->lexer->cc, 0);
     parser_consume(parser);
 
     PES(parser);
@@ -2102,7 +2125,7 @@ AST_Node* parser_parse_class_decl(Parser* parser) {
         return NULL;
     }
 
-    Symbol* symb = symbol_init((const char*)parser->cur->value, SYMBOL_CLASS, 0, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc, 0);
+    Symbol* symb = symbol_init((const char*)parser->cur->value, SYMBOL_CLASS, 0, parser->nest, parser->lexer->cl, parser->lexer->cc, 0);
     stm.identifier = symb->data.id;
     char* iden = parser->cur->value;
 
@@ -2275,7 +2298,7 @@ AST_Node* parser_parse_err_decl(Parser* parser) {
     node->data.stm.type = STMT_ERR_DECL;
 
     char* name = parser->cur->value;
-    Symbol* symb = symbol_init(parser->cur->value, SYMBOL_ERR, 0, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc, 0);
+    Symbol* symb = symbol_init(parser->cur->value, SYMBOL_ERR, 0, parser->nest, parser->lexer->cl, parser->lexer->cc, 0);
     parser_consume(parser);
 
     stm.identifier = symb->data.id;
@@ -2312,7 +2335,7 @@ AST_Node* parser_parse_err_decl(Parser* parser) {
             return NULL;
         }
 
-        Symbol* symb = symbol_init(parser->cur->value, SYMBOL_VARIABLE, parser->scope, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc, 0);
+        Symbol* symb = symbol_init(parser->cur->value, SYMBOL_VARIABLE, parser->scope, parser->nest, parser->lexer->cl, parser->lexer->cc, 0);
         symtbl_insert(parser, symb, parser->cur->value);
 
         parser_consume(parser);
@@ -2354,7 +2377,7 @@ AST_Node* parser_parse_enum_decl(Parser* parser) {
 
 
     char* name = parser->cur->value;
-    Symbol* symb = symbol_init(name, SYMBOL_ENUM, 0, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc, 0);
+    Symbol* symb = symbol_init(name, SYMBOL_ENUM, 0, parser->nest, parser->lexer->cl, parser->lexer->cc, 0);
     parser_consume(parser);
 
     stm.identifier = symb->data.id;
@@ -2371,7 +2394,7 @@ AST_Node* parser_parse_enum_decl(Parser* parser) {
         stm.members.items = realloc(stm.members.items, (stm.members.size + 1) * sizeof(uint32_t));
 
         if (parser->cur->type == TOK_IDEN) {
-            Symbol* symb2 = symbol_init(parser->cur->value, SYMBOL_VARIABLE, 0, 0, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc, 0);
+            Symbol* symb2 = symbol_init(parser->cur->value, SYMBOL_VARIABLE, 0, parser->nest, parser->lexer->cl, parser->lexer->cc, 0);
             stm.members.items[stm.members.size] = symb2->data.id;
             symtbl_insert(parser, symb2, parser->cur->value);
             parser_consume(parser);
@@ -2932,7 +2955,6 @@ ASTN_Statement parser_parse_statement(Parser* parser, uint8_t scopeOS) {
         case TOK_MUT:
             stm.type = STMT_VARIABLE_DECL;
             stm.data.variable_decl = parser_parse_var_decl(parser, scopeOS);
-            printf("%zu\n", stm.data.variable_decl.mem);
             break;
         case TOK_IDEN:
             stm.type = STMT_CALL;
@@ -3011,7 +3033,7 @@ ASTN_Statements* parser_parse_statements(Parser* parser, uint8_t scopeOS) {
 
 AST_Node* parser_parse_mep_decl(Parser* parser) {
     symtbl_insert(parser, symbol_init(
-        (char*)"main", SYMBOL_MEP, parser->scope, parser->nest, 0, 0, 0, 0, parser->lexer->cl, parser->lexer->cc, 0
+        (char*)"main", SYMBOL_MEP, 0, parser->nest, parser->lexer->cl, parser->lexer->cc, 0
     ), "main");
 
     parser_consume(parser);

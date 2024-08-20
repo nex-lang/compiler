@@ -1,5 +1,13 @@
+int: fn returns_1 => (int: a, int: b) {
+    return 1 + 0;
+}
+
 : fn main => () {
     var s_short int: x;
+
+    returns_1();
     x = 10 + 99;
+
+
     return 0;
 }

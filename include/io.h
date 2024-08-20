@@ -1,7 +1,18 @@
 #ifndef IO_H
 #define IO_H
 
-char* io_load_file(char* filename);
+#include <stdlib.h>
+
+typedef struct {
+    char* name;
+    float version;
+} Library;
+
+typedef struct {
+    Library* libraries;
+    size_t count;
+} LibraryList;
+
 
 #define WO(fp, indent, format, ...) \
     do { \
@@ -19,5 +30,8 @@ char* io_load_file(char* filename);
             fprintf(stderr, "Error executing command: %s\n", command); \
         } \
     } while (0)
+
+char* io_load_file(char* filename);
+void parse_library_args(int argc, char* argv[], LibraryList* lib_list);
 
 #endif // IO_H

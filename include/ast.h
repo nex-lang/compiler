@@ -265,7 +265,7 @@ typedef struct ASTN_Expression {
 
 typedef struct ASTN_Parameter {
     ASTN_DataTypeSpecifier data_type_specifier;
-    char* identifier;
+    int32_t identifier;
 } ASTN_Parameter;
 
 typedef struct ASTN_Parameters {

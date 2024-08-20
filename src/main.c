@@ -26,6 +26,7 @@ int main(int argc, char* argv[]) {
     char* output_file = NULL;
     uint32_t source_files_count = 0;
     char** source_files = NULL;
+    LibraryList* lib_list = malloc(sizeof(LibraryList));
 
     for (int i = 1; i < argc; i++) {
         if (strncmp(argv[i], "-W", 2) == 0) {
@@ -88,6 +89,7 @@ int main(int argc, char* argv[]) {
 
     for (int i = 0; i < source_files_count; i++) {
         Parser* parser = parser_init(source_files[i],
+                                    source_files, lib_list,
                                     NEX_WARNINGS, warnings,
                                     NEX_OPTIMIZATION, optimization_level,
                                     0);
@@ -117,6 +119,10 @@ int main(int argc, char* argv[]) {
         parser_free(parser);
     }
 
+    for (size_t i = 0; i < lib_list->count; i++) {
+        free(lib_list->libraries[i].name);
+    }   
+    free(lib_list->libraries);
     free(source_files);
 
     print_status("PROGRAM GENERATED SUCCESSFULLY");

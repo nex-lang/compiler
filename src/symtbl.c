@@ -28,19 +28,13 @@ void symtbl_free(SymTable* table) {
     free(table);
 }
 
-Symbol* symbol_init(char* id, unsigned int type, unsigned int scope, unsigned int nest, uint8_t mem_type, 
-    uint8_t mem_mod, uint8_t mem_sto, uint8_t  access_type, uint8_t decl_line, uint8_t decl_col, size_t ty_size) {
+Symbol* symbol_init(char* id, unsigned int type, unsigned int scope, unsigned int nest, uint8_t decl_line, uint8_t decl_col, size_t ty_size) {
     Symbol* symb = calloc(1, sizeof(Symbol));
     
     symb->data.id = symtbl_hash((const char*)id, scope);
     symb->data.scope = scope;
     symb->data.nest = nest;
     symb->data.type = type;
-
-    symb->data.mem_type = mem_type;
-    symb->data.mem_mod = mem_mod;
-    symb->data.mem_sto = mem_sto;
-    symb->data.access_type = access_type;
 
     symb->data.life.borrower_size = 0;
     symb->data.life.borrower_list = malloc(1 * sizeof(Symbol*));
@@ -97,6 +91,7 @@ Symbol* symtbl_slookup(SymTable* table, int id) {
     while (current != NULL) {
         if (current->data.id == id) {
             return current;
+            printf("%i = %i\n", current->data.id, id);
         }
         current = current->next;
     }

@@ -37,6 +37,7 @@ void gen_stmt(AST_Node* statement, Generator* gen) {
             if (lit_t == -1) {
                 // HANDLE ACTUAL EXPR RETURNS
                 WO(gen->fp, 1, "ret\n"); 
+                break;
             }
 
             char* str = glval(statement->data.stm.data.return_stm.value.expr);
@@ -44,11 +45,13 @@ void gen_stmt(AST_Node* statement, Generator* gen) {
             if (str == NULL) {
                 // ERROR
                 WO(gen->fp, 1, "ret\n"); 
+                break;
             }
 
             WO(gen->fp, 1, "ret %s %s\n", shortkw((uint8_t)lit_t), str);
             break; 
         case STMT_CALL:
+            gen_call(statement->data.stm.data.call, gen->fp, gen->tbl);
             break;
         case STMT_VARIABLE_DECL:
             gen_var_decl(statement->data.stm.data.variable_decl, gen->fp);
@@ -77,6 +80,13 @@ void generate_program(AST_Node* node, Generator* gen) {
 
             WO(gen->fp, 0, "}");
             break;
+        case STMT:
+            if (node->data.stm.type == STMT_FUNCTION_DECL) {
+                gen_fn(node->data.stm.data.function_decl, gen);
+                break;
+            } 
+                // gen_import(node->data.stm.data.function_decl, gen);
+            // }
         default:
             break;
     }

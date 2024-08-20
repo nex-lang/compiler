@@ -2,6 +2,8 @@
 #define PARSER_H
 
 #include "lexer.h"
+#include "io.h"
+
 #include "tmp/alphadev.h"
 
 typedef enum Flags {
@@ -28,11 +30,14 @@ typedef struct Parser {
     uint64_t highest_scope, scope, recent_root;
     uint8_t nest;
 
+    LibraryList* lib_list;
+    char** source_list;
+
     Warnings warnings;
     unsigned int optimization: 2;
 } Parser;
 
-Parser* parser_init(char* filename, ...);
+Parser* parser_init(char* filename, char** srcs, LibraryList* lib_list, ...);
 void parser_free(Parser* parser);
 
 bool parser_expectsq(Parser* parser, ...);
