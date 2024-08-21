@@ -3,16 +3,20 @@
 
 #include <stdlib.h>
 
-typedef struct {
+typedef struct Library {
     char* name;
     float version;
 } Library;
 
-typedef struct {
+typedef struct LibraryList {
     Library* libraries;
     size_t count;
 } LibraryList;
 
+typedef struct LocalFiles {
+    char** src;
+    size_t count;
+} LocalFiles;
 
 #define WO(fp, indent, format, ...) \
     do { \

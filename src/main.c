@@ -91,7 +91,7 @@ int main(int argc, char* argv[]) {
 
     for (int i = 0; i < source_files_count; i++) {
         parser = parser_init(source_files[i],
-                                    source_files, lib_list,
+                                    source_files, lib_list, i, source_files_count,
                                     NEX_WARNINGS, warnings,
                                     NEX_OPTIMIZATION, optimization_level,
                                     0);
@@ -116,7 +116,7 @@ int main(int argc, char* argv[]) {
         }
 
         GEN(parser->root, source_files[i], parser->tbl);
-        EXEC("mlinr x86 %s.inr", source_files[i]);        
+        // EXEC("mlinr x86 %s.inr", source_files[i]);        
     }
 
     for (size_t i = 0; i < lib_list->count; i++) {

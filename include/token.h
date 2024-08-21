@@ -4,7 +4,7 @@
 #include "p_info.h"
 #include "utils/bit128.h"
 
-#define NO_OF_KEYWORDS 45
+#define NO_OF_KEYWORDS 46
 #define KEYWORDS keywords
 #define MAX_KEYWORD_LEN 7
 
@@ -111,6 +111,7 @@ typedef struct Token {
         TOK_ERR, // err
         TOK_THROW,
         TOK_DEFAULT,
+        TOK_NEW, // new
 
         // Literals
         TOK_L_SSINT,            // 8-bit signed integer

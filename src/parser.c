@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdio.h>
 
-Parser* parser_init(char* filename, char** srcs, LibraryList* lib_list, ...) {
+Parser* parser_init(char* filename, char** srcs, LibraryList* lib_list, uint32_t src_n, uint32_t nosrc, ...) {
     Parser* parser = calloc(1, sizeof(Parser));
 
     parser->lexer = lexer_init(filename);
@@ -20,13 +20,13 @@ Parser* parser_init(char* filename, char** srcs, LibraryList* lib_list, ...) {
 
     parser->lib_list = lib_list;
     parser->source_list = srcs;
-
-    printf("%zu\n", sizeof(lib_list));
+    parser->src_n = src_n;
+    parser->nosrc = nosrc;
 
     memset(&parser->warnings, 0, sizeof(Warnings));
 
     va_list args;
-    va_start(args, lib_list);
+    va_start(args, src_n);
 
     Flags option;
     while ((option = va_arg(args, Flags)) != 0) {
@@ -276,6 +276,7 @@ ASTN_Literal parser_parse_literal(Parser* parser) {
 ASTN_DataTypeSpecifier parser_parse_dt_spec(Parser* parser) {
     ASTN_DataTypeSpecifier dts;
     dts.data.prim = 0;
+    dts.data.cust_type = 0;
     dts.is_arr = false;
     char* iden;
     char *endptr;
@@ -312,12 +313,12 @@ ASTN_DataTypeSpecifier parser_parse_dt_spec(Parser* parser) {
             return dts;
         }
 
+
         if (!(symb->data.type == SYMBOL_CLASS || symb->data.type == SYMBOL_STRUCT || symb->data.type == SYMBOL_ENUM)) {
             REPORT_ERROR(parser->lexer, "U_UOUDTY", parser->cur->value);
             dts.data.prim = -1;
             return dts;
         }
-
 
         dts.data.cust_type = symb->data.ty_size; 
         parser_consume(parser);
@@ -543,34 +544,20 @@ ASTN_MutableTypes parser_parse_compatibilities(Parser* parser) {
 }
 
 
-ASTN_Call parser_parse_call(Parser* parser, uint8_t scopeOS) {
+ASTN_Call parser_parse_call(Parser* parser, uint8_t scopeOS, char* iden, uint8_t start, uint8_t end) {
     ASTN_Call call;
 
-    Symbol* symb = symtbl_lookup(parser->tbl, parser->cur->value, 0, 0, parser->recent_root);
+    Symbol* symb = symtbl_lookup(parser->tbl, iden, 0, 0, 0);
+
+    printf("-> %s\n", iden);
+
 
     if (symb == NULL) {
         call.identifier = 0;
         return call;
     }
 
-    switch (symb->data.type) {
-        case SYMBOL_FUNCTION:
-            call.type = CALL_FN;
-            break;
-        case SYMBOL_CLASS:
-            call.type = CALL_CLASS;
-            break;
-        case SYMBOL_STRUCT:
-            call.type = CALL_STRUCT;
-            break;
-        default:
-            call.identifier = 0;
-            return call;
-    }
-
-    parser_consume(parser);
-
-    if (!(parser_expect(parser, TOK_LPAREN))) {
+    if (!(parser_expect(parser, start))) {
         call.identifier = 0;
         return call;
     } 
@@ -584,10 +571,10 @@ ASTN_Call parser_parse_call(Parser* parser, uint8_t scopeOS) {
     params->parameter = calloc(1, sizeof(AST_Node*));
 
 
-    while (parser->cur->type != TOK_RPAREN) {
+    while (parser->cur->type != end) {
         params->parameter[params->size] = parser_parse_expr(parser, scopeOS);
 
-        if (!(parser_expect(parser, TOK_COMMA)) && (parser->cur->type != TOK_RPAREN)) {
+        if (!(parser_expect(parser, TOK_COMMA)) && (parser->cur->type != end)) {
             REPORT_ERROR(parser->lexer, "E_PARAMS_COMMA", parser->cur->value);
             call.identifier = 0;
             return call;
@@ -599,7 +586,7 @@ ASTN_Call parser_parse_call(Parser* parser, uint8_t scopeOS) {
 
     call.params = params;
 
-    parser_expect(parser, TOK_RPAREN);
+    parser_expect(parser, end);
 
     printf("[STACK CALL]: %i\n", call.identifier);
 
@@ -624,31 +611,118 @@ ASTN_PrimaryExpr parser_parse_prim_expr(Parser* parser, uint8_t scopeOS) {
         return expr;
     }
 
+    Symbol* symb;
+    char* iden;
 
-    if (parser->cur->type == TOK_IDEN) {
-        Symbol* symb = symtbl_lookup(parser->tbl, parser->cur->value, 0, 0, 0);
-        if (symb) {
-            if (symb->data.type == SYMBOL_FUNCTION || symb->data.type == SYMBOL_CLASS ||
-                symb->data.type == SYMBOL_STRUCT) {
-                expr.type = PRIMARY_CALL;
-                expr.data.call = parser_parse_call(parser, scopeOS);
-            } else if (symb->data.type == SYMBOL_MODULE) {
-                expr.type = PRIMARY_IDENTIFIER;
-                expr.data.identifier = symb->data.id;
-                parser_consume(parser);
-            }
-        } else {
-            Symbol* symb2 = symtbl_lookup(parser->tbl, parser->cur->value, parser->scope, scopeOS, parser->recent_root);
-            if (symb2) {
-                expr.type = PRIMARY_IDENTIFIER;
-                expr.data.identifier = symb2->data.id;
-                parser_consume(parser);
-            } else {
-                REPORT_ERROR(parser->lexer, "U_USOF_UNDEFV");
-                expr.type = PRIMARY_IDENTIFIER;
-                expr.data.identifier = 0;
-            }
+    if (parser->cur->type == TOK_NEW) {
+        parser_consume(parser);
+
+        symb = symtbl_lookup(parser->tbl, parser->cur->value, 0, 0, 0);
+
+        if (symb == NULL) {
+            REPORT_ERROR(parser->lexer, "U_USOF_UNDEFV");
+            expr.type = PRIMARY_IDENTIFIER;
+            expr.data.identifier = 0;
+
+            return expr;
         }
+
+        if (symb->data.type == SYMBOL_CLASS) {
+            expr.type = PRIMARY_CALL;
+            iden = strdup(parser->cur->value);
+            parser_consume(parser);
+            
+            expr.data.call = parser_parse_call(parser, scopeOS, iden, TOK_LPAREN, TOK_RPAREN);
+            expr.data.call.type = CALL_CLASS;
+
+            return expr;
+        } 
+        
+        if (symb->data.type == SYMBOL_UNRE) {
+            expr.type = PRIMARY_CALL;
+            iden = strdup(parser->cur->value);
+            parser_consume(parser);
+
+            parser_parse_call(parser, scopeOS, iden, TOK_LPAREN, TOK_RPAREN);
+            expr.data.call.type = CALL_CLASS;
+            
+            // UNRE
+            return expr;
+        }
+    }
+    
+    if (parser->cur->type != TOK_IDEN) {
+        expr.type = PRIMARY_IDENTIFIER;
+        expr.data.identifier = 0;
+        return expr;
+    }
+
+
+    symb = symtbl_lookup(parser->tbl, parser->cur->value, 0, 0, 0);
+    if (symb == NULL) {
+        Symbol* symb2 = symtbl_lookup(parser->tbl, parser->cur->value, parser->scope, scopeOS, parser->recent_root);
+        
+        if (symb2) {
+            expr.type = PRIMARY_IDENTIFIER;
+            expr.data.identifier = symb2->data.id;
+            parser_consume(parser);
+            
+            return expr;
+        }
+
+        REPORT_ERROR(parser->lexer, "U_USOF_UNDEFV");
+        expr.type = PRIMARY_IDENTIFIER;
+        expr.data.identifier = 0;
+
+        return expr;
+    }
+
+    if (symb->data.type == SYMBOL_FUNCTION) {
+        expr.type = PRIMARY_CALL;
+        iden = strdup(parser->cur->value);
+        parser_consume(parser);
+
+        parser_parse_call(parser, scopeOS, iden, TOK_LPAREN, TOK_RPAREN);
+        expr.data.call.type = CALL_FN;
+
+        return expr;
+    }
+    
+    if (symb->data.type == SYMBOL_STRUCT) {
+        expr.type = PRIMARY_CALL;
+        iden = strdup(parser->cur->value);
+        parser_consume(parser);
+
+        if (parser->cur->type != TOK_LBRACE) {
+            REPORT_ERROR(parser->lexer, "E_STRUCT_CALL");
+            return expr;
+        }
+
+        expr.data.call = parser_parse_call(parser, scopeOS, iden, TOK_LBRACE, TOK_RBRACE);
+        expr.data.call.type = CALL_STRUCT;
+
+        return expr;
+    } 
+    
+    if (symb->data.type == SYMBOL_UNRE) {
+        expr.type = PRIMARY_CALL;
+        iden = strdup(parser->cur->value);
+        parser_consume(parser);
+
+        if (parser->cur->type == TOK_LBRACE) {
+            expr.data.call = parser_parse_call(parser, scopeOS, iden, TOK_LBRACE, TOK_RBRACE);
+            expr.data.call.type = CALL_STRUCT;
+            // UNRE
+        } else if (parser->cur->type == TOK_LPAREN) {
+            expr.data.call = parser_parse_call(parser, scopeOS, iden, TOK_LPAREN, TOK_RPAREN);
+            expr.data.call.type = CALL_FN;
+            // UNRE
+        } else {
+            REPORT_ERROR(parser->lexer, "E_PAREN_CALL");
+            return expr;
+        }
+
+        return expr;
     }
 
     return expr;
@@ -1291,7 +1365,8 @@ ASTN_Module* parser_parse_module(Parser* parser) {
     mod->module = NULL;
     mod->head_module = NULL;
 
-    ASTN_Module* current_module = mod;
+    ASTN_Module* current_module = malloc(sizeof(ASTN_Module));
+    current_module = mod;
 
     while (parser->cur->type == TOK_IDEN || parser->cur->type == TOK_PERIOD) {
         if (parser->cur->type == TOK_PERIOD) {
@@ -1318,15 +1393,12 @@ ASTN_Module* parser_parse_module(Parser* parser) {
             return NULL;
         }
         
+
         new_module->head_module = current_module;
         current_module = new_module;
 
         parser_consume(parser);
     }
-    
-    symtbl_insert(parser, symbol_init(
-        current_module->module, SYMBOL_MODULE, 0, parser->nest, parser->lexer->cl, parser->lexer->cc, 0
-    ), current_module->module);
 
     return current_module;
 }
@@ -1367,9 +1439,39 @@ AST_Node* parser_parse_import(Parser* parser) {
     statement->data.stm.type = STMT_IMPORT_DECL;
 
     if (parser_expect(parser, TOK_FROM)) {
-        import.source = parser_parse_module(parser);
-        for (size_t i = 0; i < import.modules.size; i++) {
-            import.modules.items[i]->head_module = import.source;
+        ASTN_Module* mod;
+        import.source = NULL;
+        if (parser->cur->type == TOK_L_STRING) {
+            mod = malloc(sizeof(ASTN_Module));
+
+            for (size_t j = 0; j < parser->nosrc; j++) {
+                if (strcmp(parser->cur->value, parser->source_list[j]) == 0) {
+                    import.source = mod;
+                    
+                    if (parser->src_n == j) {
+                        REPORT_ERROR(parser->lexer, "U_SELF_IMPORT");
+                        break; 
+                    }
+                    
+                    for (size_t i = 0; i < import.modules.size; i++) {
+                        import.modules.items[i]->head_module = mod->module;
+                    }
+                }
+
+                mod->module = parser->cur->value;
+            }
+
+            if (import.source == NULL) {
+                REPORT_ERROR(parser->lexer, "U_UNRES_IMPORT", parser->cur->value);
+                return NULL;
+            }
+            
+            parser_consume(parser);
+        } else {
+            import.source = parser_parse_module(parser);
+            for (size_t i = 0; i < import.modules.size; i++) {
+                import.modules.items[i]->head_module = import.source;
+            }
         }
     }
 
@@ -1391,7 +1493,21 @@ AST_Node* parser_parse_import(Parser* parser) {
 
     statement->data.stm.data.import_decl = import;
     
-    parser_expect(parser, TOK_SC);
+    parser_expect(parser, TOK_SC);    
+
+    if (parser->lib_list->count == 0) {
+        REPORT_ERROR(parser->lexer, "U_IMPLISRB");
+        return NULL;
+    } 
+
+    ASTN_Module* mod;
+    Symbol* sym;
+
+    for (size_t i = 0; i < import.modules.size; i++) {
+        sym = symbol_init(import.modules.items[i]->module, SYMBOL_MODULE, 0, parser->nest, parser->lexer->cl, parser->lexer->cc, 0);
+        sym->data.data.mod = *import.modules.items[i];
+        symtbl_insert(parser, sym, import.modules.items[i]->module);
+    }
 
     return statement;
 }
@@ -1571,6 +1687,11 @@ ASTN_VariableDecl parser_parse_var_decl(Parser* parser, uint8_t scopeOS) {
             if (dts.data.prim != 0) {
                 var.data_type_specifier = dts;
                 var.mem = parser_mem_for(&var.data_type_specifier);
+                has_dts = true;
+                continue;
+            } else if (dts.data.cust_type != 0) {
+                printf("! %zu\n", dts.data.cust_type);
+                var.mem = dts.data.cust_type;
                 has_dts = true;
                 continue;
             }
@@ -1949,6 +2070,8 @@ ASTN_StructMemberDecl parser_parse_struct_mem(Parser* parser) {
         stm.storage = -1;
         return stm;
     }
+
+    printf("%s\n", parser->cur->value);
 
     if (parser->cur->type != TOK_IDEN) {
         REPORT_ERROR(parser->lexer, "E_IDEN_DECL");
@@ -2969,8 +3092,19 @@ ASTN_Statement parser_parse_statement(Parser* parser, uint8_t scopeOS) {
             break;
         case TOK_IDEN:
             stm.type = STMT_CALL;
-            stm.data.call = parser_parse_call(parser, scopeOS);
-            if (stm.data.call.identifier != 0) { break; }
+            Symbol* symb = symtbl_lookup(parser->tbl, parser->cur->value, 0, 0, 0);
+
+
+            if (symb != NULL) {
+                if (symb->data.type != SYMBOL_FUNCTION) { break; }
+                
+                char* iden = parser->cur->value;
+                parser_consume(parser);
+                stm.data.call = parser_parse_call(parser, scopeOS, iden, TOK_LPAREN, TOK_RPAREN);
+                stm.data.call.type = CALL_FN;
+
+                if (stm.data.call.identifier != 0) { break; }
+            } 
             
             stm.type = STMT_ASSGN;
             stm.data.assgn = parser_parse_assgn(parser, scopeOS);

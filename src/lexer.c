@@ -11,7 +11,7 @@ char* keywords[NO_OF_KEYWORDS] = {
     "as", "attr", "bool", "char", "class", "const", "double", "enum", "ext",
     "false", "float", "fn", "from", "glob", "import", "int", "l_long", "long", "mut",
     "priv", "pub", "return", "short", "s_short", "size", "str", "struct", "true", "uint", "var",
-    "if", "elif", "else", "for", "while", "switch", "case", "try", "except", "finally", "break", "continue", "err", "throw", "default"
+    "if", "elif", "else", "for", "while", "switch", "case", "try", "except", "finally", "break", "continue", "err", "throw", "default", "new"
 };
 
 Lexer* lexer_init(char* filename) {
@@ -28,6 +28,7 @@ Lexer* lexer_init(char* filename) {
 
     lexer->buf = io_load_file(filename);
     lexer->buf_size = strlen(lexer->buf);
+    lexer->fn = filename;
 
 
     lexer->i = 0;
@@ -279,7 +280,8 @@ Token* lexer_handle_alpha(Lexer* lexer) {
         TOK_AS, TOK_ATTR, TOK_BOOL, TOK_CHAR, TOK_CLASS, TOK_CONST, TOK_DOUBLE, TOK_ENUM, TOK_EXT,
         TOK_FALSE, TOK_FLOAT, TOK_FN, TOK_FROM, TOK_GLOB, TOK_IMPORT, TOK_INT, TOK_L_LONG, TOK_LONG, TOK_MUT,
         TOK_PRIV, TOK_PUB, TOK_RETURN, TOK_SHORT, TOK_S_SHORT, TOK_SIZE, TOK_STRING, TOK_STRUCT, TOK_TRUE, TOK_UINT, TOK_VAR,
-        TOK_IF, TOK_ELIF, TOK_ELSE, TOK_FOR, TOK_WHILE, TOK_SWITCH, TOK_CASE, TOK_TRY, TOK_EXCEPT, TOK_FINALLY, TOK_BREAK, TOK_CONTINUE, TOK_ERR, TOK_THROW, TOK_DEFAULT
+        TOK_IF, TOK_ELIF, TOK_ELSE, TOK_FOR, TOK_WHILE, TOK_SWITCH, TOK_CASE, TOK_TRY, TOK_EXCEPT, TOK_FINALLY, TOK_BREAK,
+        TOK_CONTINUE, TOK_ERR, TOK_THROW, TOK_DEFAULT, TOK_NEW
     };
 
     for (uint8_t i = 0; i < NO_OF_KEYWORDS; i++) {
@@ -786,6 +788,8 @@ struct ErrorTemplate templates[] = {
     {"U_DB_SOURCE_DECL", "Unexpected double source declration, first sourced: '%s' again: '%s' - expects: single 'from' statement"},
     {"U_MODULE_MULT_ALIAS", "Unexpected attempt to alias %d seperate identifiers into single '%s' - find proper syntax: docs::imports"},
     {"U_REDEF", "Unexpected re-definition of `%s` previous definition found in %d:%d"},
+    {"U_IMPLISRB", "Unexpected non-standard imports when no libs are configured and no source files are provided"},
+    {"U_UNRES_IMPORT", "Unexpected attempt to import external '%s' module. Un-resolved imports found"},
 
     {"E_SHORTER_LENIDEN", "Expected a shorter identifier length - configuration expects: <= %d"},
     {"E_CHAR_TERMINATOR", "Expected a (') character literal terminator after starting of character literal"},
@@ -848,12 +852,12 @@ void lexer_report_error(Lexer* lexer, char* error_code, ...) {
 
             char* refrence = lexer_get_reference(lexer);
 
-            printf("[%d : %d] > %s\n\t%d | %s\n", lexer->cl, lexer->cc, final_content, lexer->cl, refrence);
+            printf("/%s:%d:%d > %s\n\t%d | %s\n", lexer->fn, lexer->cl, lexer->cc, final_content, lexer->cl, refrence);
             free(final_content);
             return;
         }
     }
 
     char* refrence = lexer_get_reference(lexer);
-    printf("[%d : %d] > %s\n\t%d | %s\n", lexer->cl, lexer->cc, error_code, lexer->cl, refrence);
+    printf("/%s:%d:%d > %s\n\t%d | %s\n", lexer->fn, lexer->cl, lexer->cc, error_code, lexer->cl, refrence);
 }

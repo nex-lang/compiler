@@ -22,7 +22,8 @@ typedef struct Symbol {
             SYMBOL_MEP,
             SYMBOL_MODULE,
             SYMBOL_ATTR,
-            SYMBOL_ERR
+            SYMBOL_ERR,
+            SYMBOL_UNRE
         } type;
         
         union {
@@ -33,6 +34,7 @@ typedef struct Symbol {
             ASTN_EnumDecl enu;
             ASTN_ErrDecl err;
             ASTN_AttributeDecl attr;
+            ASTN_Module mod;
             ASTN_DataTypeSpecifier param;
         } data;
 

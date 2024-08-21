@@ -15,6 +15,7 @@
 typedef struct Lexer {
     char c; // current charachter
     unsigned int i; // current index 
+    char* fn;
 
     char* buf; // buffer
     unsigned int buf_size; // buffer size 

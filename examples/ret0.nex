@@ -1,13 +1,12 @@
-int: fn returns_1 => (int: a, int: b) {
-    return 1 + 0;
-}
+class Vec2 => { var int: x; var int: y; }
+struct Vec3 { var int: x; var int: y; var int: z; }
 
 : fn main => () {
-    var s_short int: x;
+    var Vec2: point;
+    var Vec3: model;
 
-    returns_1();
-    x = 10 + 99;
-
+    point = new Vec2(20, 10);
+    model = Vec3{32, 32, 32};
 
     return 0;
 }

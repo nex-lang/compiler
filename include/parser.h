@@ -31,13 +31,15 @@ typedef struct Parser {
     uint8_t nest;
 
     LibraryList* lib_list;
+    
     char** source_list;
+    uint32_t src_n, nosrc;
 
     Warnings warnings;
     unsigned int optimization: 2;
 } Parser;
 
-Parser* parser_init(char* filename, char** srcs, LibraryList* lib_list, ...);
+Parser* parser_init(char* filename, char** srcs, LibraryList* lib_list, uint32_t src_n, uint32_t nosrc, ...);
 void parser_free(Parser* parser);
 
 bool parser_expectsq(Parser* parser, ...);
@@ -70,7 +72,7 @@ ASTN_DataTypeSpecifier parser_parse_dt_spec(Parser* parser);
 AST_Node* parser_parse_typestart(Parser* parser);
 ASTN_MutableTypes parser_parse_compatibilities(Parser* parser);
 
-ASTN_Call parser_parse_call(Parser* parser, uint8_t scopeOS);
+ASTN_Call parser_parse_call(Parser* parser, uint8_t scopeOS, char* iden, uint8_t start, uint8_t end);
 ASTN_PrimaryExpr parser_parse_prim_expr(Parser* parser, uint8_t scopeOS);
 ASTN_FactorExpr parser_parse_factor_expr(Parser* parser, uint8_t scopeOS);
 ASTN_TermExpr parser_parse_term_expr(Parser* parser, uint8_t scopeOS);
@@ -88,7 +90,6 @@ ASTN_Module* parser_parse_module(Parser* parser);
 AST_Node* parser_parse_import(Parser* parser);
 
 AST_Node* parser_parse_attr_decl(Parser* parser);
-// void parser_parse_extend_attr(Parser* parser, ASTN_AttributeList* src, ASTN_AttributeList* dest);
 
 ASTN_VariableDecl parser_parse_var_decl(Parser* parser, uint8_t scopeOS);
 ASTN_AssignmentStm parser_parse_assgn(Parser* parser, uint8_t scopeOS);
