@@ -26,6 +26,7 @@ int main(int argc, char* argv[]) {
     char* output_file = NULL;
     uint32_t source_files_count = 0;
     char** source_files = NULL;
+
     LibraryList* lib_list = malloc(sizeof(LibraryList));
 
     for (int i = 1; i < argc; i++) {
@@ -89,6 +90,9 @@ int main(int argc, char* argv[]) {
 
     Parser* parser;
 
+    AST_Node** ast_list = malloc(source_files_count * sizeof(AST_Node));
+    SymTable** symtbl_list = malloc(source_files_count * sizeof(SymTable));
+
     for (int i = 0; i < source_files_count; i++) {
         parser = parser_init(source_files[i],
                                     source_files, lib_list, i, source_files_count,
@@ -102,8 +106,22 @@ int main(int argc, char* argv[]) {
         }
 
         parser_parse(parser);
+        
+        ast_list[i] = parser->tree;
+        symtbl_list[i] = parser->tbl;
 
-        SAO(parser->root);
+        PRINT_AST_NODE(parser->root, 0);
+
+    }
+
+    for (int i = 0; i < source_files_count; i++) {
+        SAO(ast_list, symtbl_list, source_files, source_files_count, i);        
+    
+        Symbol* cur = symtbl_list[i]->symbol;
+        PRINT_SYMB_TBL(cur);
+    }
+
+    for (int i = 0; i < source_files_count; i++) {
         char *extension = strstr(source_files[i], ".nex");
     
         if (extension != NULL && strcmp(extension, ".nex") == 0) {
@@ -114,17 +132,20 @@ int main(int argc, char* argv[]) {
         if (extension != NULL && strcmp(extension, ".nx") == 0) {
             *extension = '\0';
         }
-
         GEN(parser->root, source_files[i], parser->tbl);
         // EXEC("mlinr x86 %s.inr", source_files[i]);        
     }
-
+         
     for (size_t i = 0; i < lib_list->count; i++) {
         free(lib_list->libraries[i].name);
     }   
+
+
+    parser_free(parser);
+    
     free(lib_list->libraries);
     free(source_files);
-    parser_free(parser);
+    
     print_status("PROGRAM GENERATED SUCCESSFULLY");
 
     return 0;

@@ -58,12 +58,9 @@ void parser_free(Parser* parser) {
     lexer_free(parser->lexer);
     token_free(parser->cur);
 
-    PRINT_AST_NODE(parser->root, 0);
 
     ast_free(parser->tree);
 
-    Symbol* cur = parser->tbl->symbol;
-    PRINT_SYMB_TBL(cur);
 
     symtbl_free(parser->tbl);
     parser = NULL;
@@ -305,7 +302,7 @@ ASTN_DataTypeSpecifier parser_parse_dt_spec(Parser* parser) {
     }
 
     if (dts.data.prim == -1) {
-        Symbol* symb = symtbl_lookup(parser->tbl, (const char*)iden, 0, 0,  parser->recent_root);
+        Symbol* symb = symtbl_lookup(parser->tbl, (char*)iden, 0, 0, 0);
 
         if (symb == NULL) {
             REPORT_ERROR(parser->lexer, "U_UOUDTY", parser->cur->value);
@@ -313,8 +310,7 @@ ASTN_DataTypeSpecifier parser_parse_dt_spec(Parser* parser) {
             return dts;
         }
 
-
-        if (!(symb->data.type == SYMBOL_CLASS || symb->data.type == SYMBOL_STRUCT || symb->data.type == SYMBOL_ENUM)) {
+        if (!(symb->data.type == SYMBOL_CLASS || symb->data.type == SYMBOL_STRUCT || symb->data.type == SYMBOL_ENUM || symb->data.type == SYMBOL_UNRE)) {
             REPORT_ERROR(parser->lexer, "U_UOUDTY", parser->cur->value);
             dts.data.prim = -1;
             return dts;
@@ -549,9 +545,6 @@ ASTN_Call parser_parse_call(Parser* parser, uint8_t scopeOS, char* iden, uint8_t
 
     Symbol* symb = symtbl_lookup(parser->tbl, iden, 0, 0, 0);
 
-    printf("-> %s\n", iden);
-
-
     if (symb == NULL) {
         call.identifier = 0;
         return call;
@@ -587,8 +580,6 @@ ASTN_Call parser_parse_call(Parser* parser, uint8_t scopeOS, char* iden, uint8_t
     call.params = params;
 
     parser_expect(parser, end);
-
-    printf("[STACK CALL]: %i\n", call.identifier);
 
     // if (call.params && call.params->parameter) {
     //     for (size_t i = 0; i < call.params->size; i++) {
@@ -1441,6 +1432,7 @@ AST_Node* parser_parse_import(Parser* parser) {
     if (parser_expect(parser, TOK_FROM)) {
         ASTN_Module* mod;
         import.source = NULL;
+
         if (parser->cur->type == TOK_L_STRING) {
             mod = malloc(sizeof(ASTN_Module));
 
@@ -1453,12 +1445,16 @@ AST_Node* parser_parse_import(Parser* parser) {
                         break; 
                     }
                     
+                    Symbol* sym;
                     for (size_t i = 0; i < import.modules.size; i++) {
                         import.modules.items[i]->head_module = mod->module;
-                    }
+                        sym = symbol_init(import.modules.items[i]->module, SYMBOL_UNRE, 0, 0, parser->lexer->cl, parser->lexer->cc, 0);
+                        symtbl_insert(parser, sym, import.modules.items[i]->module);
+                    } 
+            
+                    mod->module = strdup(parser->cur->value);
+                    break;
                 }
-
-                mod->module = parser->cur->value;
             }
 
             if (import.source == NULL) {
@@ -1467,11 +1463,17 @@ AST_Node* parser_parse_import(Parser* parser) {
             }
             
             parser_consume(parser);
+            import.type = IMP_LOCAL;
         } else {
             import.source = parser_parse_module(parser);
             for (size_t i = 0; i < import.modules.size; i++) {
                 import.modules.items[i]->head_module = import.source;
             }
+
+            // if (parser->lib_list->count == 0) {
+                // REPORT_ERROR(parser->lexer, "U_IMPLISRB");
+                // return NULL;
+            // } 
         }
     }
 
@@ -1495,19 +1497,16 @@ AST_Node* parser_parse_import(Parser* parser) {
     
     parser_expect(parser, TOK_SC);    
 
-    if (parser->lib_list->count == 0) {
-        REPORT_ERROR(parser->lexer, "U_IMPLISRB");
-        return NULL;
-    } 
+
 
     ASTN_Module* mod;
     Symbol* sym;
 
-    for (size_t i = 0; i < import.modules.size; i++) {
-        sym = symbol_init(import.modules.items[i]->module, SYMBOL_MODULE, 0, parser->nest, parser->lexer->cl, parser->lexer->cc, 0);
-        sym->data.data.mod = *import.modules.items[i];
-        symtbl_insert(parser, sym, import.modules.items[i]->module);
-    }
+    // for (size_t i = 0; i < import.modules.size; i++) {
+    //     sym = symbol_init(import.modules.items[i]->module, SYMBOL_MODULE, 0, parser->nest, parser->lexer->cl, parser->lexer->cc, 0);
+    //     sym->data.data.mod = *import.modules.items[i];
+    //     symtbl_insert(parser, sym, import.modules.items[i]->module);
+    // }
 
     return statement;
 }
@@ -1690,7 +1689,6 @@ ASTN_VariableDecl parser_parse_var_decl(Parser* parser, uint8_t scopeOS) {
                 has_dts = true;
                 continue;
             } else if (dts.data.cust_type != 0) {
-                printf("! %zu\n", dts.data.cust_type);
                 var.mem = dts.data.cust_type;
                 has_dts = true;
                 continue;
@@ -2071,7 +2069,6 @@ ASTN_StructMemberDecl parser_parse_struct_mem(Parser* parser) {
         return stm;
     }
 
-    printf("%s\n", parser->cur->value);
 
     if (parser->cur->type != TOK_IDEN) {
         REPORT_ERROR(parser->lexer, "E_IDEN_DECL");
@@ -2542,8 +2539,6 @@ AST_Node* parser_parse_enum_decl(Parser* parser) {
     }
 
     parser_consume(parser);
-
-    printf("stm.members.size: %zu\n", stm.members.size);
 
     node->data.stm.data.enum_decl = stm;
     symb->data.data.enu = stm;
@@ -3254,11 +3249,15 @@ size_t parser_mem_for(ASTN_DataTypeSpecifier* dts) {
 
 void symtbl_insert(Parser* parser, Symbol* symbol, char* raw_symb) {
     if (!parser->tbl) {
-        exit(EXIT_FAILURE);
+        exit(EXIT_FAILURE); 
         return;
     }
 
-    Symbol* checks = parser->tbl->symbol;
+    Symbol* cur = parser->tbl->symbol;
+
+    Symbol* checks;
+    checks = parser->tbl->symbol;
+
     while (checks != NULL) {
         if (checks->data.id == symbol->data.id) {
             REPORT_ERROR(parser->lexer, "U_REDEF", raw_symb, checks->data.decl_line, checks->data.decl_col);
@@ -3267,12 +3266,11 @@ void symtbl_insert(Parser* parser, Symbol* symbol, char* raw_symb) {
         checks = checks->next;
     }
 
-    if (parser->tbl->symbol == NULL) {
+
+    if (parser->tbl->symbol == NULL) {        
         parser->tbl->symbol = symbol;
         return;
     }
-
-
 
     Symbol* current = parser->tbl->symbol;
 

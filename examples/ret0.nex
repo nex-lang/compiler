@@ -1,12 +1,6 @@
-class Vec2 => { var int: x; var int: y; }
-struct Vec3 { var int: x; var int: y; var int: z; }
+@import Vec2, Vec3 from "examples/vec.nex";
 
 : fn main => () {
-    var Vec2: point;
-    var Vec3: model;
-
-    point = new Vec2(20, 10);
-    model = Vec3{32, 32, 32};
 
     return 0;
 }

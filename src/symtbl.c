@@ -6,6 +6,7 @@
 SymTable* symtbl_init() {
     SymTable* table = calloc(1, sizeof(SymTable));
 
+    table->symbol = malloc(sizeof(Symbol));
     table->symbol = NULL;
 
     return table;

@@ -279,15 +279,22 @@ typedef struct ASTN_Module {
     ASTN_Module* head_module;
 } ASTN_Module;
 
+typedef struct ASTN_Modules{
+    ASTN_Module** items;
+    size_t size;
+    size_t item_size;
+} ASTN_Modules;
+
 typedef struct ASTN_ImportDecl {
-    struct {
-        ASTN_Module** items;
-        size_t size;
-        size_t item_size;
-    } modules;
+    ASTN_Modules modules;
 
     ASTN_Module* source;
     char* alias;
+    enum {
+        IMP_LIB,
+        IMP_PLIB,
+        IMP_LOCAL
+    } type;
 } ASTN_ImportDecl;
 
 

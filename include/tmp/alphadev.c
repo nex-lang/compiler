@@ -160,7 +160,7 @@ void print_ast_node(AST_Node* node, int indent_level) {
             printf("Statements: %zu\n", node->data.mep.statements->size);
 
             for (int i = 0; i < node->data.mep.statements->size; i++) {
-                print_ast_node(node->data.mep.statements->statement[i], indent_level + 3);
+                print_ast_node(node->data.mep.statements->statement[i], indent_level);
             }
 
             break;
@@ -170,7 +170,7 @@ void print_ast_node(AST_Node* node, int indent_level) {
     }
 
     if (node->next != NULL) {
-        printf("@----------!\n");
+        print_ast_node(node->next, 0);
     }
 }
 
@@ -279,11 +279,11 @@ void print_expr(ASTN_Expression* expr, int indent_level, int dir) {
 
 void print_symb_tbl(Symbol* cur) {
     printf("--------------------------------------------------------------------\n");
-    printf("| %-15s | %-5s | %-4s | %-10s | %-5s | %-5s |\n", 
+    printf("| %-15s | %-5s | %-4s | %-15s | %-5s | %-5s |\n", 
            "ID", "Scope", "Nest", "Type", "Line", "Col");
     printf("--------------------------------------------------------------------\n");
     while (cur != NULL) {
-        printf("| %-15d | %-5u | %-4u | %-10s | %-5d | %-5d |\n", 
+        printf("| %-15d | %-5u | %-4u | %-15s | %-5d | %-5d |\n", 
                cur->data.id, cur->data.scope, cur->data.nest,
                cur->data.type == SYMBOL_ATTR ? "Attribute" : 
                cur->data.type == SYMBOL_VARIABLE ? "Variable" : 
@@ -293,7 +293,8 @@ void print_symb_tbl(Symbol* cur) {
                cur->data.type == SYMBOL_ENUM ? "Enum" : 
                cur->data.type == SYMBOL_MEP ? "MEP" : 
                cur->data.type == SYMBOL_ERR ? "ERR" : 
-               cur->data.type == SYMBOL_MODULE ? "Module" : "Unknown",
+               cur->data.type == SYMBOL_MODULE ? "Module" :
+               cur->data.type == SYMBOL_UNRE ? "Unresolved" : "Unknown",
                cur->data.decl_line, cur->data.decl_col);
 
         cur = cur->next;
