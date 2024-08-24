@@ -31,6 +31,7 @@ typedef struct Parser {
     uint8_t nest;
 
     LibraryList* lib_list;
+    LibraryList* pclib_list;
     
     char** source_list;
     uint32_t src_n, nosrc;
@@ -39,7 +40,7 @@ typedef struct Parser {
     unsigned int optimization: 2;
 } Parser;
 
-Parser* parser_init(char* filename, char** srcs, LibraryList* lib_list, uint32_t src_n, uint32_t nosrc, ...);
+Parser* parser_init(char* filename, char** srcs, LibraryList* lib_list, LibraryList* pclib_list, uint32_t src_n, uint32_t nosrc, ...);
 void parser_free(Parser* parser);
 
 bool parser_expectsq(Parser* parser, ...);
@@ -63,9 +64,6 @@ void parser_consume(Parser* parser);
 
 #define PRN(parser) ((parser)->nest = 0)
 #define PRR(parser) ((parser)->root_scope = 0)
-
-int parse_stospec(Parser* parser, bool expect_further);
-int parse_accspec(Parser* parser, bool expect_further);
 
 ASTN_Literal parser_parse_literal(Parser* parser);
 ASTN_DataTypeSpecifier parser_parse_dt_spec(Parser* parser);

@@ -1,4 +1,5 @@
 #include "gen.h"
+#include "io.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -26,8 +27,11 @@ int main(int argc, char* argv[]) {
     char* output_file = NULL;
     uint32_t source_files_count = 0;
     char** source_files = NULL;
-
     LibraryList* lib_list = malloc(sizeof(LibraryList));
+    LibraryList* pclib_list = malloc(sizeof(LibraryList));
+
+    parse_library_args(argc, argv, lib_list);
+    parse_pclibrary_args(argc, argv, lib_list);
 
     for (int i = 1; i < argc; i++) {
         if (strncmp(argv[i], "-W", 2) == 0) {
@@ -89,13 +93,18 @@ int main(int argc, char* argv[]) {
     }
 
     Parser* parser;
+    SAO* sao;
 
     AST_Node** ast_list = malloc(source_files_count * sizeof(AST_Node));
     SymTable** symtbl_list = malloc(source_files_count * sizeof(SymTable));
+    Lexer** lexer_list = malloc(source_files_count * sizeof(Lexer));
+    char** *flag_list = malloc((lib_list->count + pclib_list->count + STD_LIBS) * sizeof(char) * source_files_count);
+    uint8_t* flag_sz = malloc(sizeof(uint8_t) * source_files_count);
+
 
     for (int i = 0; i < source_files_count; i++) {
         parser = parser_init(source_files[i],
-                                    source_files, lib_list, i, source_files_count,
+                                    source_files, lib_list, pclib_list, i, source_files_count,
                                     NEX_WARNINGS, warnings,
                                     NEX_OPTIMIZATION, optimization_level,
                                     0);
@@ -109,17 +118,33 @@ int main(int argc, char* argv[]) {
         
         ast_list[i] = parser->tree;
         symtbl_list[i] = parser->tbl;
+        lexer_list[i] = parser->lexer;
 
         PRINT_AST_NODE(parser->root, 0);
-
     }
 
     for (int i = 0; i < source_files_count; i++) {
-        SAO(ast_list, symtbl_list, source_files, source_files_count, i);        
-    
-        Symbol* cur = symtbl_list[i]->symbol;
-        PRINT_SYMB_TBL(cur);
+        sao = sao_init(ast_list, lexer_list, symtbl_list, source_files, source_files_count, i);
+        sao_analyze(sao, sao->roots[i], sao->tbls[i]);
+        
+        flag_list[i] = sao->flags;
+        flag_sz[i] = sao->flag_no;
+
+        Symbol* sym = sao->tbls[sao->cur]->symbol;   
+        PRINT_SYMB_TBL(sym);
+
+        sym = sao->tbls[sao->cur]->symbol; 
+
+        while (sym->next != NULL) {
+            if (sym->data.type == SYMBOL_UNRE) {
+                REPORT_ERROR(sao->lexers[sao->cur], "U_RESOLVED_SYM");
+            }
+
+            sym = sym->next;
+        }
     }
+
+    char* flags;
 
     for (int i = 0; i < source_files_count; i++) {
         char *extension = strstr(source_files[i], ".nex");
@@ -132,8 +157,21 @@ int main(int argc, char* argv[]) {
         if (extension != NULL && strcmp(extension, ".nx") == 0) {
             *extension = '\0';
         }
+
+        flags = malloc(sizeof(char) * flag_sz[i] * 14);
+
+        for (size_t j = 0; j < flag_sz[i]; j++) {
+            sprintf(flags, "-l%s", flag_list[i][j]);
+        }
+
         GEN(parser->root, source_files[i], parser->tbl);
-        // EXEC("mlinr x86 %s.inr", source_files[i]);        
+        if (flag_sz[i] == 0) {
+            EXEC("mlinr x86 %s.inr", source_files[i]); 
+            free(flags);   
+        } else {
+            EXEC("mlinr x86 %s.inr %s", source_files[i], flags); 
+            free(flags);   
+        }
     }
          
     for (size_t i = 0; i < lib_list->count; i++) {

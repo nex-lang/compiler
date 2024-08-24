@@ -293,7 +293,9 @@ typedef struct ASTN_ImportDecl {
     enum {
         IMP_LIB,
         IMP_PLIB,
-        IMP_LOCAL
+        IMP_LOCAL,
+        IMP_LOCALF,
+        IMP_STD
     } type;
 } ASTN_ImportDecl;
 

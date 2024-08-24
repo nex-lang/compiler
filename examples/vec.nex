@@ -1,10 +1,10 @@
-class Vec2 => { 
-    var int: x;
-    var int: y;
-}
-
 struct Vec3 { 
     var int: x;
     var int: y;
     var int: z;
+}
+
+class Vec2 => { 
+    var int: x;
+    var int: y;
 }

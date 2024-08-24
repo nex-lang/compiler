@@ -1,36 +1,57 @@
 #include "sao.h"
 
 
-void SAO(AST_Node** roots, SymTable** tbls, char** files, uint32_t count, uint32_t cur) {
-    trav(roots, tbls, files, count, roots[cur], tbls[cur]);
-    // optimize and analyze
+SAO* sao_init(AST_Node** roots, Lexer** lexers, SymTable** tables, char** files, uint32_t count, uint32_t cur) {
+    SAO* sao = malloc(sizeof(SAO));
+
+    sao->roots = roots;
+    sao->tbls = tables;
+    sao->lexers = lexers;
+    sao->flags = malloc(sizeof(char));
+    sao->flag_no = 0;
+
+    sao->files = files;
+    sao->count = count;
+    sao->cur = cur;
+
+    return sao;
 }
 
-void trav(AST_Node** roots, SymTable** tbls, char** files, uint32_t count, AST_Node* node, SymTable* tbl) {
-    if (node->next != NULL) {
 
+void sao_analyze(SAO* sao, AST_Node* node, SymTable* tbl) {
+    if (node->next != NULL) {
         if (node->type == STMT) {
+
             switch (node->data.stm.type) {
             case STMT_IMPORT_DECL:
-                int16_t idx = get_source_file_index(files, count, node->data.stm.data.import_decl.source->module);
+                int16_t idx = -1;
+                if (node->data.stm.data.import_decl.type == IMP_LOCAL) {
+                    idx = get_source_file_index(sao->files, sao->count, node->data.stm.data.import_decl.source->module);
 
-                if (idx == -1) {
-                    exit(-1);
+                    if (idx == -1) {
+                        exit(-1);
+                    }
+
+                    resolve_sym(sao->tbls[idx], tbl, node->data.stm.data.import_decl.modules);
+                } else if (node->data.stm.data.import_decl.type == IMP_LOCALF) {                    
+                    idx = get_source_file_index(sao->files, sao->count, node->data.stm.data.import_decl.modules.items[0]->module);
+                    
+                    if (idx == -1) {
+                        exit(-1);
+                    }
+
+                    fi_resolve_sym(sao->tbls[idx], tbl);
+                } else if (node->data.stm.data.import_decl.type == IMP_STD) {
+                    resolve_std_sym(sao, node->data.stm.data.import_decl.source->module, node->data.stm.data.import_decl.modules);
                 }
-
-                resolve_sym(tbls[idx], tbl, node->data.stm.data.import_decl.modules);
                 break;            
             default:
                 break;
             }
         }
 
-        trav(roots, tbls, files, count, node->next, tbl);
+        sao_analyze(sao, node->next, tbl);
     }
-    
-    // if (node->left != NULL) {
-        // trav(node->left);
-    // }
 }
 
 bool resolve_sym(SymTable* src, SymTable* dest, ASTN_Modules mods) {
@@ -59,6 +80,42 @@ bool resolve_sym(SymTable* src, SymTable* dest, ASTN_Modules mods) {
     }
 
     return true;
+}
+
+bool resolve_std_sym(SAO* sao, char* sub, ASTN_Modules mods) {
+    char* libs[2] = {"io", "math"};
+
+    for (size_t i = 0; i < 2; i++) {
+        if (strcmp(libs[i], sub) == 0) {
+            sao->flags = realloc(sao->flags, sizeof(char) * (sao->flag_no + 1));
+            sao->flags[sao->flag_no] = libs[i];
+            sao->flag_no += 1;
+            return true;
+        }
+    } 
+
+    return false;
+}
+
+void fi_resolve_sym(SymTable* src, SymTable* dest) {
+    Symbol* sym = malloc(sizeof(Symbol));
+    Symbol* sym2 = malloc(sizeof(Symbol));
+    
+    sym2 = dest->symbol;
+
+    while (sym2->next != NULL) {
+        if (sym2->data.type == SYMBOL_UNRE) {
+            sym = symtbl_slookup(src, sym2->data.id);
+            
+            
+            if (sym != NULL) {
+                sym2->data = sym->data;
+            }
+        }
+
+        sym2 = sym2->next;
+    }
+
 }
 
 int get_source_file_index(char** source_files, uint32_t source_files_count, char* filename) {

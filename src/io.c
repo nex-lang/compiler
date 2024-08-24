@@ -68,3 +68,35 @@ void parse_library_args(int argc, char* argv[], LibraryList* lib_list) {
         }
     }
 }
+
+
+void parse_pclibrary_args(int argc, char* argv[], LibraryList* lib_list) {
+    for (int i = 1; i < argc; i++) {
+        if (strncmp(argv[i], "-plib", 4) == 0) {
+            if (strlen(argv[i]) > 5) {
+                char* libs = argv[i] + 4;
+                char* token = strtok(libs, " ");
+                while (token != NULL) {
+                    lib_list->libraries = realloc(lib_list->libraries, (lib_list->count + 1) * sizeof(Library));
+                    if (lib_list->libraries == NULL) {
+                        print_status("ERROR: MEMORY ALLOCATION FAILED");
+                        exit(1);
+                    }
+                    char* equal_sign = strchr(token, '=');
+                    if (equal_sign != NULL) {
+                        *equal_sign = '\0';
+                        char* version_str = equal_sign + 1;
+                        lib_list->libraries[lib_list->count].name = strdup(libs);
+                        lib_list->libraries[lib_list->count].version = strtof(version_str, NULL);
+                        lib_list->count++;
+                    }
+                    token = strtok(NULL, " ");
+                }
+            } else {
+                print_status("ERROR: MISSING LIBRARY ARGUMENT AFTER -plib");
+                exit(1);
+            }
+        }
+    }
+}
+

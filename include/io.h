@@ -37,5 +37,6 @@ typedef struct LocalFiles {
 
 char* io_load_file(char* filename);
 void parse_library_args(int argc, char* argv[], LibraryList* lib_list);
+void parse_pclibrary_args(int argc, char* argv[], LibraryList* lib_list);
 
 #endif // IO_H

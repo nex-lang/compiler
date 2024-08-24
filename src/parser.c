@@ -4,7 +4,7 @@
 #include <string.h>
 #include <stdio.h>
 
-Parser* parser_init(char* filename, char** srcs, LibraryList* lib_list, uint32_t src_n, uint32_t nosrc, ...) {
+Parser* parser_init(char* filename, char** srcs, LibraryList* lib_list, LibraryList* pclib_list,  uint32_t src_n, uint32_t nosrc, ...) {
     Parser* parser = calloc(1, sizeof(Parser));
 
     parser->lexer = lexer_init(filename);
@@ -19,6 +19,7 @@ Parser* parser_init(char* filename, char** srcs, LibraryList* lib_list, uint32_t
     parser->nest = 0;
 
     parser->lib_list = lib_list;
+    parser->pclib_list = pclib_list;
     parser->source_list = srcs;
     parser->src_n = src_n;
     parser->nosrc = nosrc;
@@ -182,28 +183,6 @@ void parser_parse(Parser* parser) {
     }
 }
 
-
-
-/* int parse_stospec(Parser* parser, bool expect_further) {
-    if (!(parser->cur->type == TOK_VAR || parser->cur->type == TOK_MUT || parser->cur->type == TOK_CONST)) {
-        return NULL;
-    }
-
-    if (!expect_further) {
-        return parser->cur->type;
-    }
-
-    if (parser_expect(parser, TOK_COLON)) {
-        parser_parse_var        
-    }
-
-
-
-}
-
-int parse_accspec(Parser* parser, bool expect_further); */
-
-
 ASTN_Literal parser_parse_literal(Parser* parser) {
     ASTN_Literal lit;
     char *endptr;
@@ -305,9 +284,8 @@ ASTN_DataTypeSpecifier parser_parse_dt_spec(Parser* parser) {
         Symbol* symb = symtbl_lookup(parser->tbl, (char*)iden, 0, 0, 0);
 
         if (symb == NULL) {
-            REPORT_ERROR(parser->lexer, "U_UOUDTY", parser->cur->value);
-            dts.data.prim = -1;
-            return dts;
+            symb = symbol_init(iden, SYMBOL_UNRE, 0, 0, parser->lexer->cl, parser->lexer->cc, 0);
+            symtbl_insert(parser, symb, iden);
         }
 
         if (!(symb->data.type == SYMBOL_CLASS || symb->data.type == SYMBOL_STRUCT || symb->data.type == SYMBOL_ENUM || symb->data.type == SYMBOL_UNRE)) {
@@ -316,7 +294,6 @@ ASTN_DataTypeSpecifier parser_parse_dt_spec(Parser* parser) {
             return dts;
         }
 
-        dts.data.cust_type = symb->data.ty_size; 
         parser_consume(parser);
     }
 
@@ -1349,15 +1326,7 @@ ASTN_Parameters* parser_parse_parameters(Parser* parser) {
 }
 
 ASTN_Module* parser_parse_module(Parser* parser) {
-    ASTN_Module* mod = malloc(sizeof(ASTN_Module));
-    if (!mod) {
-        return NULL;
-    }
-    mod->module = NULL;
-    mod->head_module = NULL;
-
-    ASTN_Module* current_module = malloc(sizeof(ASTN_Module));
-    current_module = mod;
+    ASTN_Module* mod = NULL;
 
     while (parser->cur->type == TOK_IDEN || parser->cur->type == TOK_PERIOD) {
         if (parser->cur->type == TOK_PERIOD) {
@@ -1367,31 +1336,48 @@ ASTN_Module* parser_parse_module(Parser* parser) {
 
         char* token = parser->cur->value;
         if (!token) {
-            free(mod);
+            ASTN_Module* to_free = mod;
+            while (to_free) {
+                ASTN_Module* next = to_free->head_module;
+                free(to_free->module);
+                free(to_free);
+                to_free = next;
+            }
             return NULL;
         }
-        
+
         ASTN_Module* new_module = malloc(sizeof(ASTN_Module));
         if (!new_module) {
-            free(mod);
+            ASTN_Module* to_free = mod;
+            while (to_free) {
+                ASTN_Module* next = to_free->head_module;
+                free(to_free->module);
+                free(to_free);
+                to_free = next;
+            }
             return NULL;
         }
-        
+
         new_module->module = strdup(token);
         if (!new_module->module) {
-            free(mod);
             free(new_module);
+            ASTN_Module* to_free = mod;
+            while (to_free) {
+                ASTN_Module* next = to_free->head_module;
+                free(to_free->module);
+                free(to_free);
+                to_free = next;
+            }
             return NULL;
         }
-        
 
-        new_module->head_module = current_module;
-        current_module = new_module;
+        new_module->head_module = mod;
+        mod = new_module;
 
         parser_consume(parser);
     }
 
-    return current_module;
+    return mod; 
 }
 
 
@@ -1412,6 +1398,41 @@ AST_Node* parser_parse_import(Parser* parser) {
     import.alias = NULL;
     import.source = NULL;
 
+    ASTN_Module* mod;
+
+    if (parser->cur->type == TOK_L_STRING) {
+        mod = malloc(sizeof(ASTN_Module));
+        
+        import.modules.items = realloc(import.modules.items, (import.modules.size + 1) * sizeof(ASTN_Module*));
+        import.modules.items[0] = NULL;
+
+        for (size_t j = 0; j < parser->nosrc; j++) {
+            if (strcmp(parser->cur->value, parser->source_list[j]) == 0) {
+                if (parser->src_n == j) {
+                    REPORT_ERROR(parser->lexer, "U_SELF_IMPORT");
+                    break; 
+                }
+                mod->module = strdup(parser->cur->value);
+                import.modules.items[0] = mod;
+                break;
+            }
+        }
+
+        if (import.modules.items[0] == NULL) {
+            REPORT_ERROR(parser->lexer, "U_UNRES_IMPORT", parser->cur->value);
+            return NULL;
+        }
+            
+        parser_consume(parser);
+
+        import.type = IMP_LOCALF;
+        statement->data.stm.data.import_decl = import;
+        statement->data.stm.type = STMT_IMPORT_DECL;
+        
+        parser_expect(parser, TOK_SC);    
+        return statement;
+    }
+
     while (parser->cur->type == TOK_IDEN || parser->cur->type == TOK_COMMA) {
         if (parser->cur->type == TOK_IDEN) {
             ASTN_Module* module = parser_parse_module(parser);
@@ -1430,9 +1451,6 @@ AST_Node* parser_parse_import(Parser* parser) {
     statement->data.stm.type = STMT_IMPORT_DECL;
 
     if (parser_expect(parser, TOK_FROM)) {
-        ASTN_Module* mod;
-        import.source = NULL;
-
         if (parser->cur->type == TOK_L_STRING) {
             mod = malloc(sizeof(ASTN_Module));
 
@@ -1447,7 +1465,7 @@ AST_Node* parser_parse_import(Parser* parser) {
                     
                     Symbol* sym;
                     for (size_t i = 0; i < import.modules.size; i++) {
-                        import.modules.items[i]->head_module = mod->module;
+                        import.modules.items[i]->head_module = mod;
                         sym = symbol_init(import.modules.items[i]->module, SYMBOL_UNRE, 0, 0, parser->lexer->cl, parser->lexer->cc, 0);
                         symtbl_insert(parser, sym, import.modules.items[i]->module);
                     } 
@@ -1466,14 +1484,66 @@ AST_Node* parser_parse_import(Parser* parser) {
             import.type = IMP_LOCAL;
         } else {
             import.source = parser_parse_module(parser);
+
             for (size_t i = 0; i < import.modules.size; i++) {
                 import.modules.items[i]->head_module = import.source;
             }
 
-            // if (parser->lib_list->count == 0) {
-                // REPORT_ERROR(parser->lexer, "U_IMPLISRB");
-                // return NULL;
-            // } 
+            mod = import.source;
+            while (mod->head_module != NULL) {
+                mod = mod->head_module;
+            }
+
+            bool found = false;
+
+            if (strcmp(mod->module, "std") == 0) {
+                import.type = IMP_STD;
+                found = true;
+            } else {
+                for (size_t j = 0; j < parser->pclib_list->count; j++) {
+                    if (strcmp(parser->cur->value, parser->pclib_list->libraries[j].name) == 0) {
+                        mod->module = strdup(parser->cur->value);
+                                            
+                        Symbol* sym;
+                        for (size_t i = 0; i < import.modules.size; i++) {
+                            import.modules.items[i]->head_module = mod;
+                            sym = symbol_init(import.modules.items[i]->module, SYMBOL_UNRE, 0, 0, parser->lexer->cl, parser->lexer->cc, 0);
+                            symtbl_insert(parser, sym, import.modules.items[i]->module);
+                        } 
+                        
+                        import.type = IMP_PLIB;
+                        import.source = mod;
+                        found = true;
+                        break;
+                    }
+                }
+
+                if (!found) {
+                    for (size_t j = 0; j < parser->lib_list->count; j++) {
+                        if (strcmp(parser->cur->value, parser->pclib_list->libraries[j].name) == 0) {
+                            mod->module = strdup(parser->cur->value);
+                                                
+                            Symbol* sym;
+                            for (size_t i = 0; i < import.modules.size; i++) {
+                                import.modules.items[i]->head_module = mod;
+                                sym = symbol_init(import.modules.items[i]->module, SYMBOL_UNRE, 0, 0, parser->lexer->cl, parser->lexer->cc, 0);
+                                symtbl_insert(parser, sym, import.modules.items[i]->module);
+                            } 
+                            
+                            import.type = IMP_LIB;
+                            import.source = mod;
+                            found = true;
+                            break;
+                        }
+                    }
+                }
+            }
+
+            if (!found) {
+                REPORT_ERROR(parser->lexer, "U_UNRES_IMPORT", parser->cur->value);
+                return NULL;
+            }
+
         }
     }
 
@@ -1496,12 +1566,6 @@ AST_Node* parser_parse_import(Parser* parser) {
     statement->data.stm.data.import_decl = import;
     
     parser_expect(parser, TOK_SC);    
-
-
-
-    ASTN_Module* mod;
-    Symbol* sym;
-
     // for (size_t i = 0; i < import.modules.size; i++) {
     //     sym = symbol_init(import.modules.items[i]->module, SYMBOL_MODULE, 0, parser->nest, parser->lexer->cl, parser->lexer->cc, 0);
     //     sym->data.data.mod = *import.modules.items[i];
