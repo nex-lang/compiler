@@ -63,7 +63,6 @@ bool resolve_sym(SymTable* src, SymTable* dest, ASTN_Modules mods) {
         sym = symtbl_lookup(src, mods.items[i]->module, 0, 0, 0);
         sym2 = symtbl_lookup(dest, mods.items[i]->module, 0, 0, 0);  
 
-
         if (sym2 == NULL) {
             // WTF HOW!
             return false;
@@ -83,10 +82,12 @@ bool resolve_sym(SymTable* src, SymTable* dest, ASTN_Modules mods) {
 }
 
 bool resolve_std_sym(SAO* sao, char* sub, ASTN_Modules mods) {
-    char* libs[2] = {"io", "math"};
+    char* libs[STD_LIBS] = {"io", "math"};
+    SymTable* libtbl[STD_LIBS] = {std_io(), std_math()};
 
-    for (size_t i = 0; i < 2; i++) {
+    for (size_t i = 0; i < STD_LIBS; i++) {
         if (strcmp(libs[i], sub) == 0) {
+            resolve_sym(libtbl[i], sao->tbls[sao->cur], mods);
             sao->flags = realloc(sao->flags, sizeof(char) * (sao->flag_no + 1));
             sao->flags[sao->flag_no] = libs[i];
             sao->flag_no += 1;
@@ -96,6 +97,28 @@ bool resolve_std_sym(SAO* sao, char* sub, ASTN_Modules mods) {
 
     return false;
 }
+
+
+
+SymTable* std_io() {
+    SymTable* tbl = symtbl_init();
+
+    symtbl_rinsert(tbl, symbol_init("puts", SYMBOL_FUNCTION, 0, 0, 0, 0, 0), "puts");
+
+    return tbl;
+}
+
+
+SymTable* std_math() {
+    SymTable* tbl = symtbl_init();
+
+    symtbl_rinsert(tbl, symbol_init("gcd", SYMBOL_FUNCTION, 0, 0, 0, 0, 0), "gcd");
+    symtbl_rinsert(tbl, symbol_init("lcm", SYMBOL_FUNCTION, 0, 0, 0, 0, 0), "lcm");
+
+    return tbl;
+}
+
+
 
 void fi_resolve_sym(SymTable* src, SymTable* dest) {
     Symbol* sym = malloc(sizeof(Symbol));
@@ -126,4 +149,37 @@ int get_source_file_index(char** source_files, uint32_t source_files_count, char
         }
     }
     return -1;
+}
+
+void symtbl_rinsert(SymTable* tbl, Symbol* symbol, char* raw_symb) {
+    if (!tbl) {
+        exit(EXIT_FAILURE); 
+        return;
+    }
+
+    Symbol* cur = tbl->symbol;
+
+    Symbol* checks;
+    checks = tbl->symbol;
+
+    while (checks != NULL) {
+        if (checks->data.id == symbol->data.id) {
+            return; 
+        }
+        checks = checks->next;
+    }
+
+
+    if (tbl->symbol == NULL) {        
+        tbl->symbol = symbol;
+        return;
+    }
+
+    Symbol* current = tbl->symbol;
+
+    while (current->next != NULL) {
+        current = current->next;
+    }
+
+    current->next = symbol;
 }

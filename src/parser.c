@@ -677,6 +677,7 @@ ASTN_PrimaryExpr parser_parse_prim_expr(Parser* parser, uint8_t scopeOS) {
         iden = strdup(parser->cur->value);
         parser_consume(parser);
 
+
         if (parser->cur->type == TOK_LBRACE) {
             expr.data.call = parser_parse_call(parser, scopeOS, iden, TOK_LBRACE, TOK_RBRACE);
             expr.data.call.type = CALL_STRUCT;
@@ -1499,6 +1500,13 @@ AST_Node* parser_parse_import(Parser* parser) {
             if (strcmp(mod->module, "std") == 0) {
                 import.type = IMP_STD;
                 found = true;
+
+                Symbol* sym;
+                for (size_t i = 0; i < import.modules.size; i++) {
+                    import.modules.items[i]->head_module = import.source;
+                    sym = symbol_init(import.modules.items[i]->module, SYMBOL_UNRE, 0, 0, parser->lexer->cl, parser->lexer->cc, 0);
+                    symtbl_insert(parser, sym, import.modules.items[i]->module);
+                } 
             } else {
                 for (size_t j = 0; j < parser->pclib_list->count; j++) {
                     if (strcmp(parser->cur->value, parser->pclib_list->libraries[j].name) == 0) {
@@ -3155,9 +3163,10 @@ ASTN_Statement parser_parse_statement(Parser* parser, uint8_t scopeOS) {
 
 
             if (symb != NULL) {
-                if (symb->data.type != SYMBOL_FUNCTION) { break; }
+                if (symb->data.type != SYMBOL_FUNCTION && symb->data.type != SYMBOL_UNRE) { break; }
                 
                 char* iden = parser->cur->value;
+
                 parser_consume(parser);
                 stm.data.call = parser_parse_call(parser, scopeOS, iden, TOK_LPAREN, TOK_RPAREN);
                 stm.data.call.type = CALL_FN;

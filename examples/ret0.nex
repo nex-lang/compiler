@@ -5,6 +5,7 @@
     var Vec2: rect = Vec2{23, 32}; 
     var Vec3: cube = new Vec3(4, -6, 2);
     
+    puts('c');
 
     return 0;
 }

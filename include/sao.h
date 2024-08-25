@@ -23,9 +23,15 @@ void sao_analyze(SAO* sao, AST_Node* node, SymTable* tbl);
 
 bool resolve_sym(SymTable* src, SymTable* dest, ASTN_Modules mods);
 bool resolve_std_sym(SAO* sao, char* sub, ASTN_Modules mods);
+
+SymTable* std_io();
+SymTable* std_math();
+
 void fi_resolve_sym(SymTable* src, SymTable* dest);
 
 int get_source_file_index(char** source_files, uint32_t source_files_count, char* filename);
+
+void symtbl_rinsert(SymTable* tbl, Symbol* symbol, char* raw_symb);
 
 #endif // SAO_H 
 // build/nex examples/ret0.nex examples/vec.nex
