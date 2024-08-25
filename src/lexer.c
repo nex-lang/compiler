@@ -790,6 +790,7 @@ struct ErrorTemplate templates[] = {
     {"U_REDEF", "Unexpected re-definition of `%s` previous definition found in %d:%d"},
     {"U_IMPLISRB", "Unexpected non-standard imports when no libs are configured and no source files are provided"},
     {"U_UNRES_IMPORT", "Unexpected attempt to import external '%s' module. Un-resolved imports found"},
+    {"U_IPARAMS", "Expected %d parameters for function call but got %d"},
 
     {"E_SHORTER_LENIDEN", "Expected a shorter identifier length - configuration expects: <= %d"},
     {"E_CHAR_TERMINATOR", "Expected a (') character literal terminator after starting of character literal"},

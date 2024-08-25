@@ -19,39 +19,87 @@ SAO* sao_init(AST_Node** roots, Lexer** lexers, SymTable** tables, char** files,
 
 
 void sao_analyze(SAO* sao, AST_Node* node, SymTable* tbl) {
-    if (node->next != NULL) {
-        if (node->type == STMT) {
+    if (node == NULL) {
+        return;
+    }
 
-            switch (node->data.stm.type) {
-            case STMT_IMPORT_DECL:
-                int16_t idx = -1;
-                if (node->data.stm.data.import_decl.type == IMP_LOCAL) {
-                    idx = get_source_file_index(sao->files, sao->count, node->data.stm.data.import_decl.source->module);
-
-                    if (idx == -1) {
-                        exit(-1);
-                    }
-
-                    resolve_sym(sao->tbls[idx], tbl, node->data.stm.data.import_decl.modules);
-                } else if (node->data.stm.data.import_decl.type == IMP_LOCALF) {                    
-                    idx = get_source_file_index(sao->files, sao->count, node->data.stm.data.import_decl.modules.items[0]->module);
-                    
-                    if (idx == -1) {
-                        exit(-1);
-                    }
-
-                    fi_resolve_sym(sao->tbls[idx], tbl);
-                } else if (node->data.stm.data.import_decl.type == IMP_STD) {
-                    resolve_std_sym(sao, node->data.stm.data.import_decl.source->module, node->data.stm.data.import_decl.modules);
-                }
-                break;            
-            default:
-                break;
-            }
+    if (node->type == STMT && node->data.stm.type == STMT_IMPORT_DECL) {
+        sao_import(sao, node, tbl);
+    } else if (node->type == MEP) {
+        for (size_t i = 0; i < node->data.mep.statements->size; i++) {
+            sao_stms(sao, node->data.mep.statements->statement[i], tbl);
         }
+    }
 
+
+
+
+    if (node->next != NULL) {
         sao_analyze(sao, node->next, tbl);
     }
+}
+
+bool sao_stms(SAO* sao, AST_Node* node, SymTable* tbl) {
+    switch (node->data.stm.type) {
+        case STMT_CALL:
+            sao_call(sao, node->data.stm, tbl);
+            break;    
+        default:
+            break;
+    }
+}
+
+bool sao_call(SAO* sao, ASTN_Statement stm, SymTable* tbl) {
+    if (stm.data.call.type != CALL_FN) {
+        return false;
+    }
+
+    Symbol* sym = symtbl_slookup(tbl, stm.data.call.identifier);
+
+    if (sym != NULL && sym->data.type != SYMBOL_FUNCTION) {
+        return false;
+    }
+
+    if (stm.data.call.params->size != sym->data.data.fn.parameters->size) {
+        REPORT_ERROR(sao->lexers[sao->cur], "U_IPARAMS", sym->data.data.fn.parameters->size, stm.data.call.params->size);
+        return false;
+    }    
+
+    for (size_t i = 0; i < sym->data.data.fn.parameters->size; i++) {
+        if (stm.data.call.params->parameter[i]->data.expr.data.literal.type
+            != sym->data.data.fn.parameters->parameter[i]->data_type_specifier.data.prim) {
+        REPORT_ERROR(sao->lexers[sao->cur], "E_VPARAMS");
+        }
+    }
+}
+
+bool sao_import(SAO* sao, AST_Node* node, SymTable* tbl) {
+    int16_t idx = -1;
+
+    if (node->data.stm.data.import_decl.type == IMP_LOCAL) {
+        idx = get_source_file_index(sao->files, sao->count, node->data.stm.data.import_decl.source->module);
+
+        if (idx == -1) {
+            exit(-1);
+        }
+
+        resolve_sym(sao->tbls[idx], tbl, node->data.stm.data.import_decl.modules);
+        return true;
+    } else if (node->data.stm.data.import_decl.type == IMP_LOCALF) {                    
+        idx = get_source_file_index(sao->files, sao->count, node->data.stm.data.import_decl.modules.items[0]->module);
+        
+        if (idx == -1) {
+            exit(-1);
+        }
+
+        fi_resolve_sym(sao->tbls[idx], tbl);
+        return true;
+    } else if (node->data.stm.data.import_decl.type == IMP_STD) {
+        resolve_std_sym(sao, node->data.stm.data.import_decl.source->module, node->data.stm.data.import_decl.modules);
+        return true;
+    }
+
+    return false;
 }
 
 bool resolve_sym(SymTable* src, SymTable* dest, ASTN_Modules mods) {
@@ -98,28 +146,6 @@ bool resolve_std_sym(SAO* sao, char* sub, ASTN_Modules mods) {
     return false;
 }
 
-
-
-SymTable* std_io() {
-    SymTable* tbl = symtbl_init();
-
-    symtbl_rinsert(tbl, symbol_init("puts", SYMBOL_FUNCTION, 0, 0, 0, 0, 0), "puts");
-
-    return tbl;
-}
-
-
-SymTable* std_math() {
-    SymTable* tbl = symtbl_init();
-
-    symtbl_rinsert(tbl, symbol_init("gcd", SYMBOL_FUNCTION, 0, 0, 0, 0, 0), "gcd");
-    symtbl_rinsert(tbl, symbol_init("lcm", SYMBOL_FUNCTION, 0, 0, 0, 0, 0), "lcm");
-
-    return tbl;
-}
-
-
-
 void fi_resolve_sym(SymTable* src, SymTable* dest) {
     Symbol* sym = malloc(sizeof(Symbol));
     Symbol* sym2 = malloc(sizeof(Symbol));
@@ -149,6 +175,37 @@ int get_source_file_index(char** source_files, uint32_t source_files_count, char
         }
     }
     return -1;
+}
+
+SymTable* std_io() {
+    SymTable* tbl = symtbl_init();
+
+    /* temporary until i figure out libs: fn puts => (str: __buf);  */
+    Symbol* sym = symbol_init("puts", SYMBOL_FUNCTION, 0, 0, 0, 0, 0);
+    sym->data.data.fn.parameters = malloc(sizeof(ASTN_Parameters));
+    sym->data.data.fn.parameters->parameter = malloc(sizeof(ASTN_Parameter));
+    sym->data.data.fn.parameters->size = 1;
+
+    ASTN_Parameter* puts_param = malloc(sizeof(ASTN_Parameter));
+    Symbol* param_sym = symbol_init("__buf", SYMBOL_VARIABLE, 1, 0, 0, 0, 0);
+    puts_param->identifier = param_sym->data.id;
+    puts_param->data_type_specifier.data.prim = TOK_L_STRING;
+    sym->data.data.fn.parameters->parameter[0] = puts_param;
+
+    symtbl_rinsert(tbl, sym, "puts");
+    symtbl_rinsert(tbl, param_sym, "puts");
+
+    return tbl;
+}
+
+
+SymTable* std_math() {
+    SymTable* tbl = symtbl_init();
+
+    symtbl_rinsert(tbl, symbol_init("gcd", SYMBOL_FUNCTION, 0, 0, 0, 0, 0), "gcd");
+    symtbl_rinsert(tbl, symbol_init("lcm", SYMBOL_FUNCTION, 0, 0, 0, 0, 0), "lcm");
+
+    return tbl;
 }
 
 void symtbl_rinsert(SymTable* tbl, Symbol* symbol, char* raw_symb) {

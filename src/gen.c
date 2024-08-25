@@ -103,7 +103,7 @@ void GEN(AST_Node *root, char* name, SymTable* tbl) {
 
     Generator* gen = gen_init(filename);
     gen->tbl = tbl;
-
+    
     generate_program(root, gen);
     // generate_data(gen);
 

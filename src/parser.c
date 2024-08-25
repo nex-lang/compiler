@@ -3161,13 +3161,12 @@ ASTN_Statement parser_parse_statement(Parser* parser, uint8_t scopeOS) {
             stm.type = STMT_CALL;
             Symbol* symb = symtbl_lookup(parser->tbl, parser->cur->value, 0, 0, 0);
 
-
             if (symb != NULL) {
                 if (symb->data.type != SYMBOL_FUNCTION && symb->data.type != SYMBOL_UNRE) { break; }
-                
-                char* iden = parser->cur->value;
+                char* iden = strdup(parser->cur->value);
 
                 parser_consume(parser);
+
                 stm.data.call = parser_parse_call(parser, scopeOS, iden, TOK_LPAREN, TOK_RPAREN);
                 stm.data.call.type = CALL_FN;
 

@@ -116,7 +116,7 @@ int main(int argc, char* argv[]) {
 
         parser_parse(parser);
         
-        ast_list[i] = parser->tree;
+        ast_list[i] = parser->root;
         symtbl_list[i] = parser->tbl;
         lexer_list[i] = parser->lexer;
 
