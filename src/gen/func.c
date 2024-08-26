@@ -12,7 +12,6 @@ void gen_fn(ASTN_FunctionDecl fn, Generator* gen) {
 
     WO(gen->fp, 0, "define %s @%s (", ret_type, get_fid(fn.identifier));
 
-
     Symbol* sym = NULL;
     for (size_t i = 0; i < fn.parameters->size; i++) {
         if (i != fn.parameters->size - 1) {
