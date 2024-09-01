@@ -1613,10 +1613,6 @@ AST_Node* parser_parse_attr_decl(Parser* parser) {
         attr.list = ext_list;
     }
 
-    if (!parser_expect(parser, TOK_FN_ARROW)) {
-        return NULL;
-    }
-
     if (!parser_expect(parser, TOK_LBRACE)) {
         return NULL;
     }
@@ -1886,7 +1882,7 @@ ASTN_VariableDecl parser_parse_var_decl(Parser* parser, uint8_t scopeOS) {
             parser_consume(parser);
 
             var.expr = malloc(sizeof(AST_Node));
-            var.expr->data.expr.data.literal.type = TOK_FN_ARROW;
+            var.expr->data.expr.data.literal.type = TOK_L_ARRAY;
             var.expr->data.expr.data.literal.value.array.items = malloc(sizeof(AST_Node));
 
             if (parser_expect(parser, TOK_RBRACE)) {
@@ -2062,11 +2058,6 @@ AST_Node* parser_parse_function_decl(Parser* parser) {
 
     parser_consume(parser);
 
-    if (!(parser_expect(parser, TOK_FN_ARROW))) {
-        REPORT_ERROR(parser->lexer, "E_FN_ARROW", parser->cur->value);
-        return NULL;
-    }
-
     Symbol* symb = symbol_init(name, SYMBOL_FUNCTION, 0, parser->nest, parser->lexer->cl, parser->lexer->cc, 0);
 
     PES(parser);
@@ -2230,7 +2221,7 @@ AST_Node* parser_parse_struct_decl(Parser* parser) {
 
 
 bool parser_parse_extend_attr(Parser* parser, ASTN_AttributeList* list) {
-    while (parser->cur->type != TOK_FN_ARROW && parser->cur->type != TOK_SC) {
+    while (parser->cur->type != TOK_LBRACE && parser->cur->type != TOK_SC) {
         bool is_class = false;
         Symbol* symb = NULL;
 
@@ -2304,7 +2295,7 @@ bool parser_parse_extend_attr(Parser* parser, ASTN_AttributeList* list) {
 
         if (parser_expect(parser, TOK_COMMA)) {
             continue;
-        } else if (parser->cur->type == TOK_FN_ARROW || parser->cur->type == TOK_SC) {
+        } else if (parser->cur->type == TOK_LPAREN || parser->cur->type == TOK_SC) {
             break;
         } else {
             REPORT_ERROR(parser->lexer, "E_UNEXPECTED_TOKEN", parser->cur->value);
@@ -2363,11 +2354,6 @@ AST_Node* parser_parse_class_decl(Parser* parser) {
         symtbl_insert(parser, symb, iden);
         parser_consume(parser);
 
-        return NULL;
-    }
-
-
-    if (!parser_expect(parser, TOK_FN_ARROW)) {
         return NULL;
     }
 
@@ -3256,11 +3242,6 @@ AST_Node* parser_parse_mep_decl(Parser* parser) {
 
     if (!(parser_expect_spec_value(parser, TOK_IDEN, "main"))) {
         REPORT_ERROR(parser->lexer, "E_MEP_NAME_MAIN", parser->cur->value);
-        return NULL;
-    }
-
-    if (!(parser_expect(parser, TOK_FN_ARROW))) {
-        REPORT_ERROR(parser->lexer, "E_FN_ARROW", parser->cur->value);
         return NULL;
     }
 

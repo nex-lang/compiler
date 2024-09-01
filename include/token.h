@@ -46,7 +46,7 @@ typedef struct Token {
         TOK_SC,                 // ;
         TOK_PIPE,               // |
         TOK_PIPE_PIPE,          // || 
-        TOK_FN_ARROW,           // =>
+        TOK_FN_ARROW,           //
         TOK_LT_EQ,              // <=
         TOK_GT_EQ,              // >=
         TOK_EQ_EQ,              // ==
@@ -129,7 +129,8 @@ typedef struct Token {
         TOK_L_CHAR,             // 8-bit character
         TOK_L_STRING,           // Dynamic array of characters (string)
         TOK_L_BOOL,             // 8-bit boolean
-        TOK_L_SIZE              // System-specific bit-size
+        TOK_L_SIZE,              // System-specific bit-size
+        TOK_L_ARRAY
     } type;
 } Token;
 

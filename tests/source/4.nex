@@ -1,28 +1,28 @@
-attr Hominid => { var: family; var: sub_family; var: genus; var: species; }
+attr Hominid { var: family; var: sub_family; var: genus; var: species; }
 
-class FamilyHominidae ext attr.Hominid => { family = "Hominidae"; }
+class FamilyHominidae ext attr.Hominid { family = "Hominidae"; }
 
-class SubFamilyHomininae ext FamilyHominidae => { sub_family = "Homininae"; }
-class SubFamilyAnuprinae ext FamilyHominidae => { sub_family = "Anuprinae"; }
+class SubFamilyHomininae ext FamilyHominidae { sub_family = "Homininae"; }
+class SubFamilyAnuprinae ext FamilyHominidae { sub_family = "Anuprinae"; }
 
-class GenusHomo ext SubFamilyHomininae => { genus = "Homo"; }
-class GenusPan ext SubFamilyHomininae => { genus = "Pan"; }
-class GenusAustralopithecus ext SubFamilyAnuprinae => { genus = "Australopithecus"; }
-class GenusParanthropus ext SubFamilyAnuprinae => { genus = "Paranthropus"; }
+class GenusHomo ext SubFamilyHomininae { genus = "Homo"; }
+class GenusPan ext SubFamilyHomininae { genus = "Pan"; }
+class GenusAustralopithecus ext SubFamilyAnuprinae { genus = "Australopithecus"; }
+class GenusParanthropus ext SubFamilyAnuprinae { genus = "Paranthropus"; }
 
-class SpeciesHomo_sapiens ext GenusHomo => { species = "Homo sapiens"; }
-class SpeciesHomo_neanderthalensis ext GenusHomo => { species = "Homo neanderthalensis"; }
-class SpeciesHomo_erectus ext GenusHomo => { species = "Homo erectus"; }
-class SpeciesHomo_habilis ext GenusHomo => { species = "Homo habilis"; }
-class SpeciesHomo_heidelbergensis ext GenusHomo => { species = "Homo heidelbergensis"; }
-class SpeciesHomo_floriensis ext GenusHomo => { species = "Homo floresiensis"; }
-class SpeciesHomo_naledi ext GenusHomo => { species = "Homo naledi"; }
+class SpeciesHomo_sapiens ext GenusHomo { species = "Homo sapiens"; }
+class SpeciesHomo_neanderthalensis ext GenusHomo { species = "Homo neanderthalensis"; }
+class SpeciesHomo_erectus ext GenusHomo { species = "Homo erectus"; }
+class SpeciesHomo_habilis ext GenusHomo { species = "Homo habilis"; }
+class SpeciesHomo_heidelbergensis ext GenusHomo { species = "Homo heidelbergensis"; }
+class SpeciesHomo_floriensis ext GenusHomo { species = "Homo floresiensis"; }
+class SpeciesHomo_naledi ext GenusHomo { species = "Homo naledi"; }
 
-class SpeciesPan_troglodytes ext GenusPan => { species = "Pan troglodytes"; }
-class SpeciesPan_paniscus ext GenusPan => { species = "Pan paniscus"; }
+class SpeciesPan_troglodytes ext GenusPan { species = "Pan troglodytes"; }
+class SpeciesPan_paniscus ext GenusPan { species = "Pan paniscus"; }
 
-class SpeciesAustralopithecus_afarensis ext GenusAustralopithecus => { species = "Australopithecus afarensis"; }
-class SpeciesAustralopithecus_ethiopicus ext GenusAustralopithecus => { species = "Australopithecus ethiopicus"; }
+class SpeciesAustralopithecus_afarensis ext GenusAustralopithecus { species = "Australopithecus afarensis"; }
+class SpeciesAustralopithecus_ethiopicus ext GenusAustralopithecus { species = "Australopithecus ethiopicus"; }
 
-class SpeciesParanthropus_boisei ext GenusParanthropus => { species = "Paranthropus boisei"; }
-class SpeciesParanthropus_robustus ext GenusParanthropus => { species = "Paranthropus robustus"; }
+class SpeciesParanthropus_boisei ext GenusParanthropus { species = "Paranthropus boisei"; }
+class SpeciesParanthropus_robustus ext GenusParanthropus { species = "Paranthropus robustus"; }

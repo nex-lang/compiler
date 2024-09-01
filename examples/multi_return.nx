@@ -1,24 +1,24 @@
-[(double), (float)] : fn returns_double_and_float => () {
+[(double), (float)] : fn returns_double_and_float () {
     return 1.1d, 1.1f;
 }
 
-[(double, float), (float, double)] : fn returns_two_double_or_float => () {
+[(double, float), (float, double)] : fn returns_two_double_or_float () {
     return 1.1d, 1.1f;
 }
 
-(float, double) : fn returns_floatordouble => () {
+(float, double) : fn returns_floatordouble () {
     return 1.1f;
 }
 
-double : fn returns_double => () {
+double : fn returns_double () {
     return 1.1d;
 }
 
-fn returns_anything => () {
+fn returns_anything () {
     return "1.1d";
 }
 
-: fn main => () {
+: fn main () {
     returns_double_and_float();
     returns_two_double_or_float();
     returns_floatordouble();

@@ -1,4 +1,4 @@
-: fn main => () {
+: fn main () {
     var s_short int: shortest_I = -128;
     var short int: short_I = -32768;
     var int: I = -2147483648;

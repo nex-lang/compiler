@@ -180,7 +180,7 @@ int get_source_file_index(char** source_files, uint32_t source_files_count, char
 SymTable* std_io() {
     SymTable* tbl = symtbl_init();
 
-    /* temporary until i figure out libs: fn puts => (str: __buf);  */
+    /* temporary until i figure out libs: fn puts (str: __buf);  */
     Symbol* sym = symbol_init("puts", SYMBOL_FUNCTION, 0, 0, 0, 0, 0);
     sym->data.data.fn.parameters = malloc(sizeof(ASTN_Parameters));
     sym->data.data.fn.parameters->parameter = malloc(sizeof(ASTN_Parameter));

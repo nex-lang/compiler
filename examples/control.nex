@@ -1,6 +1,6 @@
 @import fprint, input from std.io;
 
-: fn main => () {
+: fn main () {
     var int: param = 10;
     var int[]: array = {10, 100, 1000, 100000};  
 

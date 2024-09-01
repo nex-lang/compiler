@@ -1,6 +1,6 @@
 @import puts from std.io;
 
-: fn main => () {    
+: fn main () {    
     puts("nex");
 
     return 0;
