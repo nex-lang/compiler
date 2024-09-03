@@ -194,22 +194,22 @@ void print_expr(ASTN_Expression* expr, int indent_level, int dir) {
             print_indent(indent_level + 1);
             printf("Literal: ");
             switch (expr->data.literal.type) {
-                case TOK_L_SSINT:
-                case TOK_L_SINT:
-                case TOK_L_INT:
-                case TOK_L_LINT:
+                case TOK_L_I8:
+                case TOK_L_I16:
+                case TOK_L_I32:
+                case TOK_L_I64:
                     printf("int64: %ld\n", expr->data.literal.value.int_.norm);
                     break;
-                case TOK_L_LLINT:
+                case TOK_L_I128:
                     printf("int128: low = %ld, high = %ld\n", expr->data.literal.value.int_.bit128.low, expr->data.literal.value.int_.bit128.high);
                     break;
-                case TOK_L_SSUINT:
-                case TOK_L_SUINT:
-                case TOK_L_UINT:
-                case TOK_L_LUINT:
+                case TOK_L_U8:
+                case TOK_L_U16:
+                case TOK_L_U32:
+                case TOK_L_U64:
                     printf("uint64: %lu\n", expr->data.literal.value.uint.norm);
                     break;
-                case TOK_L_LLUINT:
+                case TOK_L_U128:
                     printf("uint128: low = %lu, high = %lu\n", expr->data.literal.value.uint.bit128.low, expr->data.literal.value.uint.bit128.high);
                     break;
                 case TOK_L_FLOAT:

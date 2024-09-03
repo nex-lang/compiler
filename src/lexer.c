@@ -9,8 +9,8 @@
 
 char* keywords[NO_OF_KEYWORDS] = {
     "as", "attr", "bool", "char", "class", "const", "double", "enum", "ext",
-    "false", "float", "fn", "from", "glob", "import", "int", "l_long", "long", "mut",
-    "priv", "pub", "return", "short", "s_short", "size", "str", "struct", "true", "uint", "var",
+    "false", "float", "fn", "from", "glob", "import", "i8", "i16", "i32", "i64", "i128", "mut",
+    "priv", "pub", "return", "size", "str", "struct", "true", "u8", "u16", "u32", "u64", "u128", "var",
     "if", "elif", "else", "for", "while", "switch", "case", "try", "except", "finally", "break", "continue", "err", "throw", "default", "new"
 };
 
@@ -278,8 +278,8 @@ Token* lexer_handle_alpha(Lexer* lexer) {
 
     uint8_t KWCHAR_TYPE_MAP[NO_OF_KEYWORDS] = {
         TOK_AS, TOK_ATTR, TOK_BOOL, TOK_CHAR, TOK_CLASS, TOK_CONST, TOK_DOUBLE, TOK_ENUM, TOK_EXT,
-        TOK_FALSE, TOK_FLOAT, TOK_FN, TOK_FROM, TOK_GLOB, TOK_IMPORT, TOK_INT, TOK_L_LONG, TOK_LONG, TOK_MUT,
-        TOK_PRIV, TOK_PUB, TOK_RETURN, TOK_SHORT, TOK_S_SHORT, TOK_SIZE, TOK_STRING, TOK_STRUCT, TOK_TRUE, TOK_UINT, TOK_VAR,
+        TOK_FALSE, TOK_FLOAT, TOK_FN, TOK_FROM, TOK_GLOB, TOK_IMPORT, TOK_I8, TOK_I16, TOK_I32, TOK_I64, TOK_I128, TOK_MUT,
+        TOK_PRIV, TOK_PUB, TOK_RETURN, TOK_SIZE, TOK_STRING, TOK_STRUCT, TOK_TRUE, TOK_U8, TOK_U16, TOK_U32, TOK_U64, TOK_U128, TOK_VAR,
         TOK_IF, TOK_ELIF, TOK_ELSE, TOK_FOR, TOK_WHILE, TOK_SWITCH, TOK_CASE, TOK_TRY, TOK_EXCEPT, TOK_FINALLY, TOK_BREAK,
         TOK_CONTINUE, TOK_ERR, TOK_THROW, TOK_DEFAULT, TOK_NEW
     };
@@ -301,7 +301,7 @@ Token* lexer_handle_alpha(Lexer* lexer) {
 Token* lexer_handle_numeric(Lexer* lexer, bool is_negative) {
     /*
     Identifies and creates numeric tokens 
-    return: numeric tokens [TOK_L_SSINT-> TOK_L_DOUBLE]
+    return: numeric tokens [TOK_L_I8-> TOK_L_DOUBLE]
     */
    
     int type = TOK_ERROR;
@@ -568,16 +568,16 @@ uint8_t lexer_process_int_type(char* buf) {
         if (is_within_int_range(lsigned_val, int128_min, int128_max)) {
             if (lsigned_val.high <= 0) {
                 if (signed_val >= INT8_MIN && signed_val <= INT8_MAX) {
-                    return TOK_L_SSINT;
+                    return TOK_L_I8;
                 } else if (signed_val >= INT16_MIN && signed_val <= INT16_MAX) {
-                    return TOK_L_SINT;
+                    return TOK_L_I16;
                 } else if (signed_val >= INT32_MIN && signed_val <= INT32_MAX) {
-                    return TOK_L_INT;
+                    return TOK_L_I32;
                 } else if (signed_val >= INT64_MIN && signed_val <= INT64_MAX) {
-                    return TOK_L_LINT;
+                    return TOK_L_I64;
                 }
             } else if (lsigned_val.high > 0) {
-                return TOK_L_LLINT;
+                return TOK_L_I128;
             }
         }        
         return TOK_ERROR;
@@ -596,24 +596,24 @@ uint8_t lexer_process_int_type(char* buf) {
 
         if (is_within_uint_range(unsigned_val, uint128_max)) {
             if (unsigned_val.low > 0) {
-                return TOK_L_LLUINT;
+                return TOK_L_U128;
             } else if (usigned_val >= 0 && usigned_val <= UINT8_MAX) {
-                return TOK_L_SSUINT;
+                return TOK_L_U8;
             } else if (usigned_val >= 0 && usigned_val <= UINT16_MAX) {
-                return TOK_L_SUINT;
+                return TOK_L_U16;
             } else if (usigned_val >= 0 && usigned_val <= UINT32_MAX) {
-                return TOK_L_UINT;
+                return TOK_L_U32;
             } else if (usigned_val >= 0 && usigned_val <= UINT64_MAX) {
-                return TOK_L_LUINT;
+                return TOK_L_U64;
             }
         } else if (signed_val >= INT8_MIN && signed_val <= INT8_MAX) {
-            return TOK_L_SSINT;
+            return TOK_L_I8;
         } else if (signed_val >= INT16_MIN && signed_val <= INT16_MAX) {
-            return TOK_L_SINT;
+            return TOK_L_I16;
         } else if (signed_val >= INT32_MIN && signed_val <= INT32_MAX) {
-            return TOK_L_INT;
+            return TOK_L_I32;
         } else if (signed_val >= INT64_MIN && signed_val <= INT64_MAX) {
-            return TOK_L_LINT;
+            return TOK_L_I64;
         }
     }
 

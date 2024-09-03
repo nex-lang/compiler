@@ -5,20 +5,19 @@
 #include "symtbl.h"
 
 char* shortkw(uint8_t kw) {
-
     switch (kw) {
-        case TOK_L_SSINT: return "i8";
-        case TOK_L_SINT: return "i16";
-        case TOK_L_INT: return "i32";
-        case TOK_L_LINT: return "i64";
-        case TOK_L_SSUINT: case TOK_L_CHAR: return "u8";
-        case TOK_L_SUINT: return "u16";
-        case TOK_L_UINT: return "u32";
-        case TOK_L_LUINT: return "u64";
+        case TOK_L_I8: return "i8";
+        case TOK_L_I16: return "i16";
+        case TOK_L_I32: return "i32";
+        case TOK_L_I64: return "i64";
+        case TOK_L_U8: case TOK_L_CHAR: return "u8";
+        case TOK_L_U16: return "u16";
+        case TOK_L_U32: return "u32";
+        case TOK_L_U64: return "u64";
         case TOK_TRUE: case TOK_FALSE: return "i1";       
-        case TOK_L_LLUINT: return "f32";
+        case TOK_L_DOUBLE: return "f32";
         case TOK_L_FLOAT: return "f64";
-
+        case TOK_L_STRING: return "*";
 
         default: break;
     }
@@ -34,23 +33,23 @@ char* glval(AST_Node* expr) {
     char* str = (char*)malloc(255 * sizeof(char)); 
 
     switch (expr->data.expr.data.literal.type) {
-        case TOK_L_SSINT:
-        case TOK_L_SINT:
-        case TOK_L_INT:
-        case TOK_L_LINT:
+        case TOK_L_I8:
+        case TOK_L_I16:
+        case TOK_L_I32:
+        case TOK_L_I64:
             sprintf(str, "%ld", expr->data.expr.data.literal.value.int_.norm);
             return str;
             break;
-        case TOK_L_LLINT:
+        case TOK_L_I128:
             break;
-        case TOK_L_SSUINT:
-        case TOK_L_SUINT:
-        case TOK_L_UINT:
-        case TOK_L_LUINT:
+        case TOK_L_U8:
+        case TOK_L_U16:
+        case TOK_L_U32:
+        case TOK_L_U64:
             sprintf(str, "%lu", expr->data.expr.data.literal.value.uint.norm);
             return str;
             break;
-        case TOK_L_LLUINT:
+        case TOK_L_U128:
             break;
         case TOK_L_FLOAT:
             sprintf(str, "%f", expr->data.expr.data.literal.value.float_.bit32);
@@ -102,23 +101,23 @@ char* glepval(ASTN_Expression* expr) {
     char* str = (char*)malloc(255 * sizeof(char)); 
 
     switch (expr->data.literal.type) {
-        case TOK_L_SSINT:
-        case TOK_L_SINT:
-        case TOK_L_INT:
-        case TOK_L_LINT:
+        case TOK_L_I8:
+        case TOK_L_I16:
+        case TOK_L_I32:
+        case TOK_L_I64:
             sprintf(str, "%ld", expr->data.literal.value.int_.norm);
             return str;
             break;
-        case TOK_L_LLINT:
+        case TOK_L_I128:
             break;
-        case TOK_L_SSUINT:
-        case TOK_L_SUINT:
-        case TOK_L_UINT:
-        case TOK_L_LUINT:
+        case TOK_L_U8:
+        case TOK_L_U16:
+        case TOK_L_U32:
+        case TOK_L_U64:
             sprintf(str, "%lu", expr->data.literal.value.uint.norm);
             return str;
             break;
-        case TOK_L_LLUINT:
+        case TOK_L_U128:
             break;
         case TOK_L_FLOAT:
             sprintf(str, "%f", expr->data.literal.value.float_.bit32);

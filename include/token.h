@@ -4,12 +4,12 @@
 #include "p_info.h"
 #include "utils/bit128.h"
 
-#define NO_OF_KEYWORDS 46
+#define NO_OF_KEYWORDS 50
 #define KEYWORDS keywords
 #define MAX_KEYWORD_LEN 7
 
 #define IS_LITERAL(type) \
-    (((type) >= TOK_L_SSINT && (type) <= TOK_L_SIZE) || (type) == TOK_TRUE || (type) == TOK_FALSE)
+    (((type) >= TOK_L_I8 && (type) <= TOK_L_SIZE) || (type) == TOK_TRUE || (type) == TOK_FALSE)
 
 #define INT128_MIN ((__int128_t)0x80000000000000000000000000000000)
 #define INT128_MAX ((__int128_t)0x7FFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF)
@@ -81,20 +81,24 @@ typedef struct Token {
         TOK_FN,                 // fn
         TOK_GLOB,               // glob
         TOK_IMPORT,             // import
-        TOK_INT,                // int
-        TOK_L_LONG,             // l_long
-        TOK_LONG,               // long
+        TOK_I8,                // i8
+        TOK_I16,                // i16
+        TOK_I32,                // i32
+        TOK_I64,                // i64
+        TOK_I128,                // i128
         TOK_MUT,                // mut
         TOK_PRIV,               // priv
         TOK_PUB,                // pub
         TOK_RETURN,             // return
-        TOK_SHORT,              // short
-        TOK_S_SHORT,            // s_short
         TOK_SIZE,               // size
         TOK_STRING,             // str
         TOK_STRUCT,             // struct
         TOK_TRUE,               // true
-        TOK_UINT,               // uint
+        TOK_U8,                // u8
+        TOK_U16,                // u16
+        TOK_U32,                // u32
+        TOK_U64,                // u64
+        TOK_U128,                // u128
         TOK_VAR,                // var
         TOK_IF,
         TOK_ELIF,
@@ -114,23 +118,24 @@ typedef struct Token {
         TOK_NEW, // new
 
         // Literals
-        TOK_L_SSINT,            // 8-bit signed integer
-        TOK_L_SINT,             // 16-bit signed integer
-        TOK_L_INT,              // 32-bit signed integer
-        TOK_L_LINT,             // 64-bit signed integer
-        TOK_L_LLINT,            // 128-bit signed integer
-        TOK_L_SSUINT,           // 8-bit unsigned integer
-        TOK_L_SUINT,            // 16-bit unsigned integer
-        TOK_L_UINT,             // 32-bit unsigned integer
-        TOK_L_LUINT,            // 64-bit unsigned integer
-        TOK_L_LLUINT,           // 128-bit unsigned integer
+        TOK_L_I8,            // 8-bit signed integer
+        TOK_L_I16,             // 16-bit signed integer
+        TOK_L_I32,              // 32-bit signed integer
+        TOK_L_I64,             // 64-bit signed integer
+        TOK_L_I128,            // 128-bit signed integer
+        TOK_L_U8,           // 8-bit unsigned integer
+        TOK_L_U16,            // 16-bit unsigned integer
+        TOK_L_U32,             // 32-bit unsigned integer
+        TOK_L_U64,            // 64-bit unsigned integer
+        TOK_L_U128,           // 128-bit unsigned integer
         TOK_L_FLOAT,            // 32-bit floating-point
         TOK_L_DOUBLE,           // 64-bit double-precision floating-point
         TOK_L_CHAR,             // 8-bit character
         TOK_L_STRING,           // Dynamic array of characters (string)
         TOK_L_BOOL,             // 8-bit boolean
         TOK_L_SIZE,              // System-specific bit-size
-        TOK_L_ARRAY
+        TOK_L_ARRAY,
+        TOK_L_PTR,
     } type;
 } Token;
 

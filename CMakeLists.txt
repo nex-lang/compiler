@@ -20,7 +20,7 @@ set(LIB_SOURCES
     src/gen/enum.c
     src/gen/err.c
     src/gen/func.c
-    src/gen/imports.c
+    src/gen/import.c
     src/gen/mem.c
     src/gen/stack.c
     src/gen/struct.c

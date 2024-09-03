@@ -68,6 +68,7 @@ bool sao_call(SAO* sao, ASTN_Statement stm, SymTable* tbl) {
     for (size_t i = 0; i < sym->data.data.fn.parameters->size; i++) {
         if (stm.data.call.params->parameter[i]->data.expr.data.literal.type
             != sym->data.data.fn.parameters->parameter[i]->data_type_specifier.data.prim) {
+        // Impl! TYPE RANGES
         REPORT_ERROR(sao->lexers[sao->cur], "E_VPARAMS");
         }
     }
@@ -125,7 +126,7 @@ bool resolve_sym(SymTable* src, SymTable* dest, ASTN_Modules mods) {
         sym2->data.ty_size = sym->data.ty_size;
         sym2->data.data = sym->data.data;
     }
-
+    
     return true;
 }
 
@@ -180,15 +181,18 @@ int get_source_file_index(char** source_files, uint32_t source_files_count, char
 SymTable* std_io() {
     SymTable* tbl = symtbl_init();
 
-    /* temporary until i figure out libs: fn puts (str: __buf);  */
+    /* temporary until i figure out libs: uint8_t : fn puts (str: __buf);  */
     Symbol* sym = symbol_init("puts", SYMBOL_FUNCTION, 0, 0, 0, 0, 0);
-    sym->data.data.fn.parameters = malloc(sizeof(ASTN_Parameters));
+    sym->data.data.fn.identifier = symtbl_hash("puts", 0);
+    sym->data.data.fn.data_type_specifier.data.prim = TOK_L_I8;
+    sym->data.data.fn.parameters = malloc(sizeof(ASTN_Parameters));    
     sym->data.data.fn.parameters->parameter = malloc(sizeof(ASTN_Parameter));
     sym->data.data.fn.parameters->size = 1;
 
     ASTN_Parameter* puts_param = malloc(sizeof(ASTN_Parameter));
     Symbol* param_sym = symbol_init("__buf", SYMBOL_VARIABLE, 1, 0, 0, 0, 0);
     puts_param->identifier = param_sym->data.id;
+    puts_param->data_type_specifier = (ASTN_DataTypeSpecifier){0};
     puts_param->data_type_specifier.data.prim = TOK_L_STRING;
     sym->data.data.fn.parameters->parameter[0] = puts_param;
 

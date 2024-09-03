@@ -10,6 +10,7 @@
 #include "symtbl.h"
 
 void gen_fn(ASTN_FunctionDecl fn, Generator* gen);
+void gen_fnd(ASTN_FunctionDecl fn, Generator* gen);
 
 void gen_call(ASTN_Call call, FILE* fp, SymTable* tbl);
 

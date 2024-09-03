@@ -84,8 +84,12 @@ void generate_program(AST_Node* node, Generator* gen) {
             if (node->data.stm.type == STMT_FUNCTION_DECL) {
                 gen_fn(node->data.stm.data.function_decl, gen);
                 break;
-            } 
-                // gen_import(node->data.stm.data.function_decl, gen);
+            } else if (node->data.stm.type == STMT_IMPORT_DECL) {
+                gen_import(node->data.stm.data.import_decl, gen);
+                break;
+            }
+
+            // gen_import(node->data.stm.data.function_decl, gen);
             // }
         default:
             break;

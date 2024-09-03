@@ -44,6 +44,7 @@ Parser* parser_init(char* filename, char** srcs, LibraryList* lib_list, LibraryL
 
     va_end(args);
 
+    default_symbols(parser);
     return (Parser*)parser;
 }
 
@@ -61,7 +62,6 @@ void parser_free(Parser* parser) {
 
 
     ast_free(parser->tree);
-
 
     symtbl_free(parser->tbl);
     parser = NULL;
@@ -195,25 +195,25 @@ ASTN_Literal parser_parse_literal(Parser* parser) {
     lit.type = parser->cur->type;
 
     switch (lit.type) {
-        case TOK_L_SSINT:
-        case TOK_L_SINT:
-        case TOK_L_INT:
-        case TOK_L_LINT:
+        case TOK_L_I8:
+        case TOK_L_I16:
+        case TOK_L_I32:
+        case TOK_L_I64:
             lit.value.int_.norm = (int64_t)strtol(parser->cur->value, &endptr, 10);
             break;
-        case TOK_L_LLINT:
+        case TOK_L_I128:
             int128_t i128; strtoint128(parser->cur->value, i128);
 
             lit.value.int_.bit128.low = i128.low;
             lit.value.int_.bit128.high = i128.high;
             break;
-        case TOK_L_SSUINT:
-        case TOK_L_SUINT:
-        case TOK_L_UINT:
-        case TOK_L_LUINT:
+        case TOK_L_U8:
+        case TOK_L_U16:
+        case TOK_L_U32:
+        case TOK_L_U64:
             lit.value.uint.norm = (uint64_t)strtoul(parser->cur->value, &endptr, 10);
             break;
-        case TOK_L_LLUINT:
+        case TOK_L_U128:
             uint128_t u128; strtouint128(parser->cur->value, u128);
 
             lit.value.uint.bit128.low = u128.low;
@@ -297,35 +297,42 @@ ASTN_DataTypeSpecifier parser_parse_dt_spec(Parser* parser) {
         parser_consume(parser);
     }
 
-
-    if (parser_expect(parser, TOK_S_SHORT)) {
-        int_dts = 8;
-    } else if (parser_expect(parser, TOK_SHORT)) {
-        int_dts = 16;
-    } else if (parser_expect(parser, TOK_LONG)) {
-        int_dts += 64;
-    } else if (parser_expect(parser, TOK_L_LONG)) {
-        int_dts += 128;
-    }
-
-    if (parser_expect(parser, TOK_INT)) {
-        int_dts = (int_dts == 0) ? 32 : int_dts;
-    } else if (parser_expect(parser, TOK_UINT)) {
-        int_dts += 1;
-        int_dts = (int_dts == 1) ? 33 : int_dts;
+    switch (parser->cur->type) {
+        case TOK_I8:
+            int_dts = 8; break;
+        case TOK_I16:
+            int_dts = 16; break;
+        case TOK_I32:
+            int_dts = 32; break;
+        case TOK_I64:
+            int_dts = 64; break;
+        case TOK_I128:
+            int_dts = 128; break;
+        case TOK_U8:
+            int_dts = 8 + 1; break;
+        case TOK_U16:
+            int_dts = 16 + 1; break;
+        case TOK_U32:
+            int_dts = 32 + 1; break;
+        case TOK_U64:
+            int_dts = 64 + 1; break;
+        case TOK_U128:
+            int_dts = 128 + 1; break;
+        default:
+            int_dts = 0; break;
     }
 
     switch (int_dts) {
-        case 8: dts.data.prim = TOK_L_SSINT; break;
-        case 16: dts.data.prim = TOK_L_SINT; break;
-        case 32: dts.data.prim = TOK_L_INT; break;
-        case 64: dts.data.prim = TOK_L_LINT; break;
-        case 128: dts.data.prim = TOK_L_LLINT; break;
-        case 9: dts.data.prim = TOK_L_SSUINT; break;
-        case 17: dts.data.prim = TOK_L_SUINT; break;
-        case 33: dts.data.prim = TOK_L_UINT; break;
-        case 65: dts.data.prim = TOK_L_LUINT; break;
-        case 129: dts.data.prim = TOK_L_LLUINT; break;
+        case 8: dts.data.prim = TOK_L_I8; break;
+        case 16: dts.data.prim = TOK_L_I16; break;
+        case 32: dts.data.prim = TOK_L_I32; break;
+        case 64: dts.data.prim = TOK_L_I64; break;
+        case 128: dts.data.prim = TOK_L_I128; break;
+        case 9: dts.data.prim = TOK_L_U8; break;
+        case 17: dts.data.prim = TOK_L_U16; break;
+        case 33: dts.data.prim = TOK_L_U32; break;
+        case 65: dts.data.prim = TOK_L_U64; break;
+        case 129: dts.data.prim = TOK_L_U128; break;
         default: break;
     }
 
@@ -348,11 +355,15 @@ ASTN_DataTypeSpecifier parser_parse_dt_spec(Parser* parser) {
         dts.data.prim = TOK_L_SIZE;
     }
 
+    if (parser_expect(parser, TOK_ASTK)) {
+        dts.data.prim = TOK_L_PTR;
+    }
+
 
     if (parser_expect(parser, TOK_LBRACK)) {
-        if (!(parser->cur->type ==  TOK_L_SSUINT ||
-            parser->cur->type ==  TOK_L_SUINT ||
-            parser->cur->type ==  TOK_L_UINT)) {
+        if (!(parser->cur->type ==  TOK_L_U8 ||
+            parser->cur->type ==  TOK_L_U16 ||
+            parser->cur->type ==  TOK_L_U32)) {
             REPORT_ERROR(parser->lexer, "E_PROP_ARR_SZ", parser->cur->value);
             dts.data.prim = -1;
             return dts;
@@ -540,7 +551,6 @@ ASTN_Call parser_parse_call(Parser* parser, uint8_t scopeOS, char* iden, uint8_t
     params->item_size = sizeof(AST_Node*);
     params->parameter = calloc(1, sizeof(AST_Node*));
 
-
     while (parser->cur->type != end) {
         params->parameter[params->size] = parser_parse_expr(parser, scopeOS);
 
@@ -652,6 +662,8 @@ ASTN_PrimaryExpr parser_parse_prim_expr(Parser* parser, uint8_t scopeOS) {
 
         parser_parse_call(parser, scopeOS, iden, TOK_LPAREN, TOK_RPAREN);
         expr.data.call.type = CALL_FN;
+
+        printf("%s | %d\n", parser->cur->value, symb->data.id);
 
         return expr;
     }
@@ -1497,9 +1509,11 @@ AST_Node* parser_parse_import(Parser* parser) {
 
             bool found = false;
 
+
             if (strcmp(mod->module, "std") == 0) {
                 import.type = IMP_STD;
                 found = true;
+    
 
                 Symbol* sym;
                 for (size_t i = 0; i < import.modules.size; i++) {
@@ -3270,21 +3284,15 @@ size_t parser_mem_for(ASTN_DataTypeSpecifier* dts) {
     size_t sz = 0;
 
     switch (dts->data.prim) {
-        case TOK_L_SSINT:  sz = 1;  break;  // int8_t
-        case TOK_L_SINT:   sz = 2;  break;  // int16_t
-        case TOK_L_INT:    sz = 4;  break;  // int32_t
-        case TOK_L_LINT:   sz = 8;  break;  // int64_t
-        case TOK_L_LLINT:  sz = 16; break;  // int128_t
-        case TOK_L_SSUINT: sz = 1;  break;  // uint8_t
-        case TOK_L_SUINT:  sz = 2;  break;  // uint16_t
-        case TOK_L_UINT:   sz = 4;  break;  // uint32_t
-        case TOK_L_LUINT:  sz = 8;  break;  // uint64_t
-        case TOK_L_LLUINT: sz = 16; break;  // uint128_t
-        case TOK_L_FLOAT:  sz = 4;  break;  // float
-        case TOK_L_DOUBLE: sz = 8;  break;  // double
-        case TOK_L_BOOL:   sz = 1;  break;  // bool
-        case TOK_L_SIZE:   sz = sizeof(size_t); break; // machine specefic
-        case TOK_L_CHAR: 
+        case TOK_L_I8: case TOK_L_U8: sz = 1;  break; 
+        case TOK_L_I16: case TOK_L_U16: sz = 2;  break;
+        case TOK_L_I32: case TOK_L_U32: case TOK_L_FLOAT: sz = 4;  break; 
+        case TOK_L_I64: case TOK_L_U64: case TOK_L_DOUBLE: sz = 8;  break;
+        case TOK_L_I128: case TOK_L_U128: sz = 16; break;
+        case TOK_L_BOOL: case TOK_L_CHAR:  sz = 1;  break;
+        case TOK_L_SIZE:   sz = sizeof(size_t); break;
+        case TOK_L_PTR:   sz = sizeof(void*); break;
+        
         case TOK_L_STRING: sz = 0;
         default: sz = -1; break;  
     }
@@ -3333,3 +3341,44 @@ void symtbl_insert(Parser* parser, Symbol* symbol, char* raw_symb) {
 
     current->next = symbol;
 }
+
+void default_symbols(Parser* parser) {
+    Symbol* sym;
+    Symbol* param_sym;
+    ASTN_Parameter* param;
+
+    sym = symbol_init("malloc", SYMBOL_FUNCTION, 0, 0, 0, 0, 0);
+    sym->data.data.fn.identifier = symtbl_hash("malloc", 0);
+    sym->data.data.fn.data_type_specifier.data.prim = TOK_L_PTR;
+    sym->data.data.fn.parameters = malloc(sizeof(ASTN_Parameters));    
+    sym->data.data.fn.parameters->parameter = malloc(sizeof(ASTN_Parameter));
+    sym->data.data.fn.parameters->size = 1;
+    
+    PES(parser);
+    param = malloc(sizeof(ASTN_Parameter));
+    param_sym = symbol_init("__size", SYMBOL_VARIABLE, parser->scope, 0, 0, 0, 0);
+    param->identifier = param_sym->data.id;
+    param->data_type_specifier = (ASTN_DataTypeSpecifier){0};
+    param->data_type_specifier.data.prim = TOK_L_SIZE;
+    sym->data.data.fn.parameters->parameter[0] = param;
+
+    symtbl_insert(parser, sym, "malloc");
+    symtbl_insert(parser, param_sym, "__size");
+
+    sym = symbol_init("free", SYMBOL_FUNCTION, 0, 0, 0, 0, 0);
+    sym->data.data.fn.identifier = symtbl_hash("free", 0);
+    sym->data.data.fn.parameters = malloc(sizeof(ASTN_Parameters));    
+    sym->data.data.fn.parameters->parameter = malloc(sizeof(ASTN_Parameter));
+    sym->data.data.fn.parameters->size = 1;
+
+    PES(parser);
+    param = malloc(sizeof(ASTN_Parameter));
+    param_sym = symbol_init("__ptr", SYMBOL_VARIABLE, parser->scope, 0, 0, 0, 0);
+    param->identifier = param_sym->data.id;
+    param->data_type_specifier = (ASTN_DataTypeSpecifier){0};
+    param->data_type_specifier.data.prim = TOK_L_PTR;
+    sym->data.data.fn.parameters->parameter[0] = param;
+
+    symtbl_insert(parser, sym, "free");
+    symtbl_insert(parser, param_sym, "__ptr");
+} 
